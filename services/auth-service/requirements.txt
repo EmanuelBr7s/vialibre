@@ -1,0 +1,3 @@
+# Auth-specific dependencies (common deps come from shared/)
+email-validator>=2.1.0,<3.0.0
+bcrypt>=4.1.0,<5.0.0

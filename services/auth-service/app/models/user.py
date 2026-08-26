@@ -1,0 +1,39 @@
+import uuid
+from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.database import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+    __table_args__ = {"schema": "vialibre_auth"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=False)
+    role_id = Column(UUID(as_uuid=True), ForeignKey("vialibre_auth.roles.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    # Profile fields
+    avatar_url = Column(String(512), nullable=True)
+    phone = Column(String(20), nullable=True)
+    bio = Column(String(500), nullable=True)
+
+    # Externos / Empresariales
+    nit_empresa = Column(String(20), nullable=True)
+    empresa_nombre = Column(String(255), nullable=True)
+
+    # Estudiantes / Academicos
+    programa_academico = Column(String(255), nullable=True)
+    afiliacion_academica = Column(String(255), nullable=True)  # semilleros, capítulos
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    role = relationship("Role", back_populates="users")
