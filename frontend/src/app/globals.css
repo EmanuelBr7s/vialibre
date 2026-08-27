@@ -2,32 +2,309 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+/* OpenDyslexic (OFL 1.1) — fuente de alta legibilidad para dislexia. */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/opendyslexic-bolditalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  @apply bg-gray-50 text-gray-900;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+/* Respetar la preferencia del sistema para reducir movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
+
+/* ── Accesibilidad Universal (driven por data-* en <html>) ── */
+
+/* Escalado de tipografía (Tailwind usa rem, por lo que escala toda la interfaz). */
+[data-font-size='small'] {
+  font-size: 14px;
+}
+[data-font-size='normal'] {
+  font-size: 16px;
+}
+[data-font-size='large'] {
+  font-size: 18px;
+}
+[data-font-size='xlarge'] {
+  font-size: 20px;
+}
+
+/* Fuente para dislexia + interlineado ampliado. */
+[data-dyslexia='on'] {
+  font-family: 'OpenDyslexic', Verdana, Tahoma, sans-serif !important;
+  letter-spacing: 0.03em;
+}
+[data-dyslexia='on'] p,
+[data-dyslexia='on'] li,
+[data-dyslexia='on'] h1,
+[data-dyslexia='on'] h2,
+[data-dyslexia='on'] h3,
+[data-dyslexia='on'] h4,
+[data-dyslexia='on'] input,
+[data-dyslexia='on'] textarea,
+[data-dyslexia='on'] button,
+[data-dyslexia='on'] a,
+[data-dyslexia='on'] span,
+[data-dyslexia='on'] label {
+  line-height: 1.8;
+}
+
+/* Reducción de movimiento forzada (independiente de la preferencia del sistema). */
+[data-reduce-motion='on'] *,
+[data-reduce-motion='on'] *::before,
+[data-reduce-motion='on'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Filtros de contraste / daltonismo (aproximaciones CSS). */
+[data-contrast='grayscale'] {
+  filter: grayscale(1);
+}
+[data-contrast='dark'] {
+  filter: invert(1) hue-rotate(180deg) contrast(0.95);
+}
+[data-contrast='light'] {
+  filter: contrast(1.2) saturate(1.05);
+  background-color: #fff;
+}
+[data-contrast='protanopia'] {
+  filter: grayscale(0.5) contrast(1.05) sepia(0.35) hue-rotate(-20deg);
+}
+[data-contrast='deuteranopia'] {
+  filter: grayscale(0.4) contrast(1.05) sepia(0.4) hue-rotate(-10deg);
+}
+[data-contrast='light'] body {
+  background-color: #ffffff;
+  color: #111111;
+}
+
+/* Enfoque / regla de lectura horizontal. */
+[data-reading-guide='on'] body::after {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 55%;
+  height: 2px;
+  background: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+/* ── Onboarding Modal Animations ── */
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes modal-exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 300ms ease-out forwards;
+}
+
+.animate-slide-out-left {
+  animation: slide-out-left 300ms ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 300ms ease-out forwards;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 300ms ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 300ms ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 200ms ease-out forwards;
+}
+
+.animate-fade-out {
+  animation: fade-out 150ms ease-in forwards;
+}
+
+.animate-modal-enter {
+  animation: modal-enter 300ms ease-out forwards;
+}
+
+.animate-modal-exit {
+  animation: modal-exit 200ms ease-in forwards;
+}
+
+/* Stagger delays for children */
+.delay-75 {
+  animation-delay: 75ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-225 {
+  animation-delay: 225ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+/* Respect reduced motion for onboarding animations */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-slide-out-left,
+  .animate-slide-in-left,
+  .animate-slide-out-right,
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-fade-out,
+  .animate-modal-enter,
+  .animate-modal-exit {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
