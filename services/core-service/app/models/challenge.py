@@ -10,11 +10,9 @@ from app.database import Base
 
 
 class ChallengeStatus(str, enum.Enum):
-    DRAFT = "draft"
-    OPEN = "open"
-    IN_PROGRESS = "in_progress"
-    RESOLVED = "resolved"
-    CLOSED = "closed"
+    ABIERTO = "abierto"
+    EN_PROGRESO = "en_progreso"
+    CERRADO = "cerrado"
 
 
 class DifficultyLevel(str, enum.Enum):
@@ -29,24 +27,25 @@ class Challenge(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(300), nullable=False, index=True)
-    description = Column(Text, nullable=False)
+    short_description = Column(String(500), nullable=False)
+    long_description = Column(Text, nullable=False)
 
     # Relationships
     category_id = Column(UUID(as_uuid=True), ForeignKey("vialibre_core.categories.id"), nullable=True)
 
     # Publisher reference (cross-service - no FK constraint)
-    publisher_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    author_id = Column(UUID(as_uuid=True), nullable=False, index=True)
 
     # Status and metadata
-    status = Column(Enum(ChallengeStatus), default=ChallengeStatus.DRAFT, nullable=False)
+    status = Column(Enum(ChallengeStatus), default=ChallengeStatus.ABIERTO, nullable=False)
     difficulty = Column(Enum(DifficultyLevel), nullable=True)
-    tags = Column(JSONB, nullable=True)  # Array of strings
+    tags = Column(JSONB, nullable=True)
     budget = Column(Numeric(12, 2), nullable=True)
     deadline = Column(DateTime, nullable=True)
 
     # Featured algorithm
     is_featured = Column(Boolean, default=False, nullable=False)
-    featured_score = Column(Numeric(5, 2), default=0.0)  # Computed score for ranking
+    featured_score = Column(Numeric(5, 2), default=0.0)
 
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

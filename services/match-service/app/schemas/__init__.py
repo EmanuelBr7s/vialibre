@@ -1,8 +1,9 @@
 from app.schemas.match import (
     InteractionCreate,
-    InteractionUpdate,
+    InteractionApprove,
     InteractionResponse,
     InteractionListResponse,
+    ChallengeApplicantsResponse,
     ReactionCreate,
     ReactionResponse,
     ReactionListResponse,
@@ -11,9 +12,10 @@ from app.schemas.match import (
 
 __all__ = [
     "InteractionCreate",
-    "InteractionUpdate",
+    "InteractionApprove",
     "InteractionResponse",
     "InteractionListResponse",
+    "ChallengeApplicantsResponse",
     "ReactionCreate",
     "ReactionResponse",
     "ReactionListResponse",

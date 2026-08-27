@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.database import get_db
 from app.core.security import create_access_token, hash_password, verify_password
+from app.database import get_db
+from app.models.role import Role
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from vialibre_common.schemas import UserRole
@@ -14,7 +16,9 @@ router = APIRouter()
 @router.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Authenticate user and return JWT token."""
-    result = await db.execute(select(User).where(User.email == request.email))
+    result = await db.execute(
+        select(User).options(selectinload(User.role)).where(User.email == request.email)
+    )
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(request.password, user.password_hash):
@@ -42,21 +46,37 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Register a new user and return JWT token."""
-    # Check if email already exists
-    result = await db.execute(select(User).where(User.email == request.email))
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register(
+    request: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Register a new user.
+
+    Role-specific validation (handled by schema):
+    - PUBLICADOR: requires nit_empresa + empresa_nombre
+    - SOLUCIONADOR: requires programa_academico
+    - ADMIN: no additional fields required
+    """
+    # Check duplicate email
+    result = await db.execute(
+        select(User).where(User.email == request.email)
+    )
     if result.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Email already registered",
         )
 
-    # TODO: Look up role_id from Role table based on request.role
-    # For now, we'll need to handle this properly
-    from app.models.role import Role
-    role_result = await db.execute(select(Role).where(Role.name == request.role.value))
+    # Look up role
+    role_result = await db.execute(
+        select(Role).where(Role.name == request.role.value)
+    )
     role = role_result.scalar_one_or_none()
     if not role:
         raise HTTPException(
@@ -64,6 +84,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
             detail=f"Invalid role: {request.role}",
         )
 
+    # Create user with role-specific fields
     user = User(
         email=request.email,
         password_hash=hash_password(request.password),

@@ -11,18 +11,19 @@ from app.models.reaction import ReactionType
 # ── Interaction Schemas ──
 
 class InteractionCreate(BaseModel):
+    """Schema for a solucionador applying to a challenge."""
     challenge_id: uuid.UUID
     message: Optional[str] = Field(None, max_length=2000)
 
 
-class InteractionUpdate(BaseModel):
+class InteractionApprove(BaseModel):
+    """Schema for a publicador approving/rejecting an interaction."""
     status: InteractionStatus
-    message: Optional[str] = Field(None, max_length=2000)
 
 
 class InteractionResponse(BaseModel):
     id: uuid.UUID
-    user_id: uuid.UUID
+    solucionador_id: uuid.UUID
     challenge_id: uuid.UUID
     status: InteractionStatus
     message: Optional[str] = None
@@ -39,6 +40,12 @@ class InteractionListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class ChallengeApplicantsResponse(BaseModel):
+    """List of solucionadores who applied to a specific challenge."""
+    interactions: list[InteractionResponse]
+    total: int
 
 
 # ── Reaction Schemas ──

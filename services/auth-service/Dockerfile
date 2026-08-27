@@ -21,6 +21,10 @@ COPY shared/python/vialibre_common /shared/vialibre_common
 # Copy application code
 COPY services/auth-service/app /app/app
 
+# Copy Alembic config
+COPY services/auth-service/alembic.ini /app/alembic.ini
+COPY services/auth-service/alembic /app/alembic
+
 # Set Python path to include shared library
 ENV PYTHONPATH="${PYTHONPATH}:/shared"
 

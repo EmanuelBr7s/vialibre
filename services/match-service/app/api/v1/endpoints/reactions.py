@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, AuthContext
 from app.database import get_db
 from app.models.reaction import Reaction, ReactionType
 from app.schemas.match import (
@@ -12,7 +12,6 @@ from app.schemas.match import (
     ReactionListResponse,
     ReactionResponse,
 )
-from vialibre_common.schemas import TokenPayload
 
 router = APIRouter()
 
@@ -20,14 +19,14 @@ router = APIRouter()
 @router.post("/", response_model=ReactionResponse, status_code=status.HTTP_201_CREATED)
 async def create_reaction(
     data: ReactionCreate,
-    current_user: TokenPayload = Depends(get_current_user),
+    auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a reaction (like/bookmark)."""
     # Check if user already has this reaction type for this challenge
     existing = await db.execute(
         select(Reaction).where(
-            Reaction.user_id == uuid.UUID(current_user.sub),
+            Reaction.user_id == uuid.UUID(auth.payload.sub),
             Reaction.challenge_id == data.challenge_id,
             Reaction.reaction_type == data.reaction_type,
         )
@@ -39,7 +38,7 @@ async def create_reaction(
         )
 
     reaction = Reaction(
-        user_id=uuid.UUID(current_user.sub),
+        user_id=uuid.UUID(auth.payload.sub),
         challenge_id=data.challenge_id,
         reaction_type=data.reaction_type,
     )
@@ -53,15 +52,15 @@ async def list_my_reactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     reaction_type: ReactionType | None = None,
-    current_user: TokenPayload = Depends(get_current_user),
+    auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List current user's reactions."""
     query = select(Reaction).where(
-        Reaction.user_id == uuid.UUID(current_user.sub)
+        Reaction.user_id == uuid.UUID(auth.payload.sub)
     )
     count_query = select(func.count(Reaction.id)).where(
-        Reaction.user_id == uuid.UUID(current_user.sub)
+        Reaction.user_id == uuid.UUID(auth.payload.sub)
     )
 
     if reaction_type:
@@ -86,14 +85,14 @@ async def list_my_reactions(
 @router.delete("/{reaction_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reaction(
     reaction_id: uuid.UUID,
-    current_user: TokenPayload = Depends(get_current_user),
+    auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Remove a reaction."""
     result = await db.execute(
         select(Reaction).where(
             Reaction.id == reaction_id,
-            Reaction.user_id == uuid.UUID(current_user.sub),
+            Reaction.user_id == uuid.UUID(auth.payload.sub),
         )
     )
     reaction = result.scalar_one_or_none()

@@ -25,7 +25,8 @@ class CategoryResponse(BaseModel):
 
 class ChallengeCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=300)
-    description: str = Field(..., min_length=20)
+    short_description: str = Field(..., min_length=10, max_length=500)
+    long_description: str = Field(..., min_length=20)
     category_id: Optional[uuid.UUID] = None
     difficulty: Optional[DifficultyLevel] = None
     tags: Optional[list[str]] = None
@@ -35,7 +36,8 @@ class ChallengeCreate(BaseModel):
 
 class ChallengeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=5, max_length=300)
-    description: Optional[str] = Field(None, min_length=20)
+    short_description: Optional[str] = Field(None, min_length=10, max_length=500)
+    long_description: Optional[str] = Field(None, min_length=20)
     category_id: Optional[uuid.UUID] = None
     status: Optional[ChallengeStatus] = None
     difficulty: Optional[DifficultyLevel] = None
@@ -47,8 +49,9 @@ class ChallengeUpdate(BaseModel):
 class ChallengeResponse(BaseModel):
     id: uuid.UUID
     title: str
-    description: str
-    publisher_id: uuid.UUID
+    short_description: str
+    long_description: str
+    author_id: uuid.UUID
     category_id: Optional[uuid.UUID] = None
     status: ChallengeStatus
     difficulty: Optional[DifficultyLevel] = None
@@ -59,6 +62,10 @@ class ChallengeResponse(BaseModel):
     featured_score: Decimal
     created_at: datetime
     updated_at: datetime
+
+    # Resolved author info (filled via cross-service call to auth-service)
+    author_name: Optional[str] = None
+    empresa_nombre: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

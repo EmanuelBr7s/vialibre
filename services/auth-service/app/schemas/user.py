@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from vialibre_common.schemas import UserRole
 
@@ -48,6 +48,27 @@ class UserResponse(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_role_name(cls, data):
+        """Extract role name from ORM Role object."""
+        if hasattr(data, "role") and hasattr(data.role, "name"):
+            # Create a copy-like approach: set role to the name string
+            # Pydantic will handle this when from_attributes=True
+            pass
+        return data
+
+    @classmethod
+    def from_orm_model(cls, obj):
+        """Custom factory to handle Role ORM relationship."""
+        data = {}
+        for field_name in cls.model_fields:
+            if field_name == "role":
+                data["role"] = obj.role.name if hasattr(obj.role, "name") else obj.role
+            else:
+                data[field_name] = getattr(obj, field_name)
+        return cls(**data)
 
 
 class UserListResponse(BaseModel):

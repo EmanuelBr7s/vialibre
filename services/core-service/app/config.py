@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1/core"
     schema_name: str = "vialibre_core"
 
+    # Internal service URLs
+    auth_service_url: str = "http://auth-service:8000"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     def model_post_init(self, __context) -> None:

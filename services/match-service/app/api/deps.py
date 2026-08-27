@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -8,9 +10,15 @@ from vialibre_common.schemas import TokenPayload
 security = HTTPBearer()
 
 
+@dataclass
+class AuthContext:
+    payload: TokenPayload
+    token: str
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> TokenPayload:
+) -> AuthContext:
     """Dependency to extract and verify the current user from JWT."""
     try:
         token_payload = verify_token(
@@ -18,7 +26,7 @@ async def get_current_user(
             secret_key=settings.jwt_secret_key,
             algorithm=settings.jwt_algorithm,
         )
-        return token_payload
+        return AuthContext(payload=token_payload, token=credentials.credentials)
     except TokenVerificationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

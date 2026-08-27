@@ -20,6 +20,11 @@ app = FastAPI(
     description="Challenges and categories management microservice",
     version="0.1.0",
     lifespan=lifespan,
+    # Evita el rebote 307 entre rutas con/sin slash final. El proxy de Next.js
+    # normaliza a rutas SIN slash (308), de modo que FastAPI debe resolver la
+    # colección en /challenges (sin slash) sin devolver un 307 que cree un bucle
+    # que rompía el POST (publicación de problemáticas) en el navegador.
+    redirect_slashes=False,
 )
 
 # CORS middleware
