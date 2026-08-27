@@ -1,6 +1,6 @@
 // ── Auth Types ──
 
-export type UserRole = 'publicador' | 'solucionador' | 'admin';
+export type UserRole = 'admin' | 'publicador' | 'solucionador';
 
 export interface User {
   id: string;
@@ -8,13 +8,13 @@ export interface User {
   full_name: string;
   role: UserRole;
   is_active: boolean;
-  avatar_url?: string;
-  phone?: string;
-  bio?: string;
-  nit_empresa?: string;
-  empresa_nombre?: string;
-  programa_academico?: string;
-  afiliacion_academica?: string;
+  avatar_url?: string | null;
+  phone?: string | null;
+  bio?: string | null;
+  nit_empresa?: string | null;
+  empresa_nombre?: string | null;
+  programa_academico?: string | null;
+  afiliacion_academica?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -28,7 +28,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   full_name: string;
-  role?: UserRole;
+  role: UserRole;
   phone?: string;
   nit_empresa?: string;
   empresa_nombre?: string;
@@ -44,33 +44,36 @@ export interface TokenResponse {
   role: UserRole;
 }
 
-// ── Challenge Types ──
+// ── Challenge Types (aligned with core-service schemas) ──
 
-export type ChallengeStatus = 'draft' | 'open' | 'in_progress' | 'resolved' | 'closed';
+export type ChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
 export interface Category {
   id: string;
   name: string;
-  description?: string;
-  icon?: string;
+  description?: string | null;
+  icon?: string | null;
 }
 
 export interface Challenge {
   id: string;
   title: string;
-  description: string;
-  publisher_id: string;
-  category_id?: string;
+  short_description: string;
+  long_description: string;
+  author_id: string;
+  category_id?: string | null;
   status: ChallengeStatus;
-  difficulty?: DifficultyLevel;
-  tags?: string[];
-  budget?: number;
-  deadline?: string;
+  difficulty?: DifficultyLevel | null;
+  tags?: string[] | null;
+  budget?: number | null;
+  deadline?: string | null;
   is_featured: boolean;
   featured_score: number;
   created_at: string;
   updated_at: string;
+  author_name?: string | null;
+  empresa_nombre?: string | null;
 }
 
 export interface ChallengeListResponse {
@@ -80,19 +83,19 @@ export interface ChallengeListResponse {
   limit: number;
 }
 
-// ── Match Types ──
+// ── Match Types (aligned with match-service schemas) ──
 
-export type InteractionStatus = 'pending' | 'accepted' | 'rejected' | 'completed';
+export type InteractionStatus = 'pendiente' | 'aprobado' | 'rechazado';
 export type ReactionType = 'like' | 'bookmark';
 
 export interface Interaction {
   id: string;
-  user_id: string;
+  solucionador_id: string;
   challenge_id: string;
   status: InteractionStatus;
-  message?: string;
+  message?: string | null;
   contact_unlocked: boolean;
-  contact_unlocked_at?: string;
+  contact_unlocked_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -102,6 +105,11 @@ export interface InteractionListResponse {
   total: number;
   skip: number;
   limit: number;
+}
+
+export interface ChallengeApplicantsResponse {
+  interactions: Interaction[];
+  total: number;
 }
 
 export interface Reaction {
@@ -123,7 +131,44 @@ export interface ContactInfo {
   user_id: string;
   full_name: string;
   email: string;
-  phone?: string;
+  phone?: string | null;
+  empresa_nombre?: string | null;
+  programa_academico?: string | null;
+  afiliacion_academica?: string | null;
+}
+
+// ── Profile / Resume types (client-persisted extended data) ──
+
+export type PreferredChannel = 'correo' | 'telefono' | 'whatsapp';
+
+export interface ExtendedProfile {
+  /** Campos que el backend aún no persiste; se guardan en el navegador. */
+  second_email?: string;
+  location?: string;
+  skills: string[];
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+  cargo?: string;
+  departamento?: string;
+  enlaces_corporativos: string[];
+  canal_preferido: PreferredChannel;
+}
+
+export interface ResumeInfo {
+  id: string;
+  fileName: string;
+  size: number;
+  updatedAt: string;
+}
+
+export type ResumeStatus = 'activo';
+
+export interface ProfileUpdatePayload {
+  full_name?: string;
+  phone?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
   empresa_nombre?: string;
   programa_academico?: string;
   afiliacion_academica?: string;
