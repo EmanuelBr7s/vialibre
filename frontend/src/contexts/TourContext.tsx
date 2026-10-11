@@ -50,10 +50,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  // El rol admin reutiliza los pasos del Publicador.
+  // Cada rol tiene sus propios pasos del recorrido guiado.
   const stepsForRole = useCallback((): TourStep[] => {
     const role = user?.role ?? 'publicador';
-    const tourRole: TourRole = role === 'solucionador' ? 'solucionador' : 'publicador';
+    const tourRole: TourRole =
+      role === 'solucionador' ? 'solucionador' : role === 'admin' ? 'admin' : 'publicador';
     return TOUR_STEPS[tourRole];
   }, [user?.role]);
 
