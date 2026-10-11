@@ -5,7 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import ProfileEditor from '@/components/ProfileEditor';
 import ResumeUploader from '@/components/ResumeUploader';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
-import { FOCUS_RING } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
 export default function PerfilAcademicoPage() {
   const allowed = useRoleGuard('solucionador');
@@ -26,11 +26,11 @@ export default function PerfilAcademicoPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl focus:outline-none"
+        className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl focus:outline-none pb-safe-bottom"
       >
         <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Perfil Académico</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-fluid-2xl font-bold text-gray-900">Perfil Académico</h1>
+          <p className="text-fluid-sm text-gray-500 mt-1">
             Edita tus datos personales, información académica y gestiona tu hoja de vida (CV).
           </p>
         </header>
@@ -41,10 +41,10 @@ export default function PerfilAcademicoPage() {
           <ResumeUploader />
 
           {/* Interruptor de disponibilidad */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex items-center justify-between gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-900">Disponible para postulaciones</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-fluid-sm font-medium text-gray-900">Disponible para postulaciones</p>
+              <p className="text-fluid-xs text-gray-500">
                 {available
                   ? 'Recibes nuevas propuestas de problemáticas.'
                   : 'Oculto temporalmente de nuevas propuestas.'}
@@ -56,7 +56,7 @@ export default function PerfilAcademicoPage() {
               aria-checked={available}
               aria-label="Disponible para postulaciones"
               onClick={() => setAvailable((prev) => !prev)}
-              className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${FOCUS_RING} ${
+              className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${TOUCH_TARGET} ${FOCUS_RING} ${
                 available ? 'bg-secondary-500' : 'bg-gray-300'
               }`}
             >
