@@ -224,7 +224,9 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
                         ? 'menu-perfil-org'
                         : item.id === 'mi-perfil'
                           ? 'menu-mi-perfil'
-                          : undefined
+                          : item.id === 'panel-admin'
+                            ? 'menu-panel-admin'
+                            : undefined
                     }
                     onClick={() => navigate(item.href)}
                     className={itemClass}
