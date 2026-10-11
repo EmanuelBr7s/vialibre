@@ -61,18 +61,23 @@ export function useProfile(): UseProfileResult {
     const previousResume = resumeUrl;
 
     (async () => {
-      const ext = getExtendedProfile(userId);
-      const meta = getResumeMeta(userId);
-      const [av, rv] = await Promise.all([
-        getAvatarBlobUrl(userId),
-        getResumeBlobUrl(userId),
-      ]);
-      if (cancelled) return;
-      setExtended(ext);
-      setAvatarUrl(av);
-      setResumeInfo(meta);
-      setResumeUrl(rv);
-      setLoading(false);
+      try {
+        const ext = getExtendedProfile(userId);
+        const meta = getResumeMeta(userId);
+        const [av, rv] = await Promise.all([
+          getAvatarBlobUrl(userId),
+          getResumeBlobUrl(userId),
+        ]);
+        if (cancelled) return;
+        setExtended(ext);
+        setAvatarUrl(av);
+        setResumeInfo(meta);
+        setResumeUrl(rv);
+      } catch {
+        // Almacenamiento local no disponible (p. ej. modo incógnito): se continúa sin datos extendidos.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
 
     return () => {
