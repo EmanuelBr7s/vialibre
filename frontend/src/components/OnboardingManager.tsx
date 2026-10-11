@@ -9,7 +9,11 @@ import { ONBOARDING_KEY, onboardingKey, type TourRole } from '@/data/tour';
 import type { UserRole } from '@/types';
 
 function roleToTourRole(role: UserRole): TourRole {
-  return role === 'solucionador' ? 'solucionador' : 'publicador';
+  return role === 'solucionador'
+    ? 'solucionador'
+    : role === 'admin'
+      ? 'admin'
+      : 'publicador';
 }
 
 /**
