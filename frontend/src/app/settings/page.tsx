@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useTour } from '@/contexts/TourContext';
 import type { UserRole } from '@/types';
-import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, btnPrimary, btnSecondary, selectClass } from '@/components/ui/classes';
 
 interface SettingsState {
   notifPostulaciones: boolean;
@@ -81,9 +81,9 @@ function Switch({
   const id = `switch-${label.replace(/\s+/g, '-').toLowerCase()}`;
   return (
     <div className="flex items-start justify-between gap-3 py-2">
-      <div>
-        <span className="block text-sm text-gray-700">{label}</span>
-        {description && <span className="block text-xs text-gray-500">{description}</span>}
+      <div className="min-w-0">
+        <span className="block text-fluid-sm text-gray-700">{label}</span>
+        {description && <span className="block text-fluid-xs text-gray-500">{description}</span>}
       </div>
       <button
         id={id}
@@ -116,6 +116,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [saved, setSaved] = useState(false);
   const [passFields, setPassFields] = useState({ current: '', next: '', confirm: '' });
+  const [passError, setPassError] = useState<string | null>(null);
 
   const role = user?.role;
 
@@ -123,7 +124,6 @@ export default function SettingsPage() {
     if (role) setSettings(loadSettings(role));
   }, [role]);
 
-  // Red de seguridad: si no autenticado, volver al login (el middleware ya protege la ruta).
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       window.location.href = '/login';
@@ -163,12 +163,25 @@ export default function SettingsPage() {
 
   const handlePassword = (e: FormEvent) => {
     e.preventDefault();
-    // Flujo de UI simulado: validación mínima y confirmación.
-    if (passFields.next && passFields.next === passFields.confirm) {
-      setSaved(true);
-      setPassFields({ current: '', next: '', confirm: '' });
-      window.setTimeout(() => setSaved(false), 2500);
+    setPassError(null);
+    if (!passFields.next || !passFields.confirm) {
+      setPassError('Completa ambos campos para actualizar la contraseña.');
+      return;
     }
+    if (passFields.next !== passFields.confirm) {
+      setPassError('Las contraseñas no coinciden.');
+      return;
+    }
+    setSaved(true);
+    setPassFields({ current: '', next: '', confirm: '' });
+    window.setTimeout(() => setSaved(false), 2500);
+  };
+
+  const updatePass = (field: keyof typeof passFields) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setPassError(null);
+    setPassFields((p) => ({ ...p, [field]: e.target.value }));
   };
 
   const tabs: { id: TabId; label: string }[] = [{ id: 'general', label: 'Generales' }];
@@ -183,17 +196,17 @@ export default function SettingsPage() {
         tabIndex={-1}
         className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl focus:outline-none"
       >
-        <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <header className="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Configuración</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-fluid-2xl font-bold text-gray-900">Configuración</h1>
+            <p className="text-fluid-sm text-gray-500 mt-1">
               Ajustes de tu cuenta, seguridad y preferencias según tu rol.
             </p>
           </div>
           <button
             type="button"
             onClick={() => setPanelOpen(true)}
-            className={`inline-flex items-center gap-2 px-4 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+            className={`inline-flex items-center gap-2 px-4 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING} w-full sm:w-auto`}
           >
             <svg className="w-5 h-5 text-secondary-600" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 2a3 3 0 100 6 3 3 0 000-6zM12 9c-2.2 0-4.4 1-6.1 2.9l2.3 2.3c1.8-1.9 4.1-2.9 3.8-2.9.3 0 2 .6 3.8 1.9l2.3-2.3A8.1 8.1 0 0012 9z" />
@@ -202,8 +215,8 @@ export default function SettingsPage() {
           </button>
         </header>
 
-        {/* Pestañas */}
-        <div role="tablist" aria-label="Secciones de configuración" className="flex gap-1 border-b border-gray-200 mb-6">
+        {/* Pestañas - scrollable en móvil */}
+        <div role="tablist" aria-label="Secciones de configuración" className="flex gap-1 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 border-b border-gray-200 mb-6">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -213,7 +226,7 @@ export default function SettingsPage() {
               aria-selected={activeTab === tab.id}
               aria-controls={`panel-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 -mb-px ${TOUCH_TARGET} ${
+              className={`whitespace-nowrap px-4 py-2.5 text-fluid-sm font-medium rounded-t-lg border-b-2 -mb-px ${TOUCH_TARGET} ${
                 activeTab === tab.id
                   ? 'border-primary-600 text-primary-700'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -225,10 +238,10 @@ export default function SettingsPage() {
         </div>
 
         <div id="panel-general" role="tabpanel" aria-labelledby="tab-general" hidden={activeTab !== 'general'}>
-          <form onSubmit={handlePassword} className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Seguridad</h2>
+          <form onSubmit={handlePassword} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-4">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Seguridad</h2>
             <div>
-              <label htmlFor="pass-current" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="pass-current" className={labelClass}>
                 Contraseña actual
               </label>
               <input
@@ -236,13 +249,13 @@ export default function SettingsPage() {
                 type="password"
                 autoComplete="current-password"
                 value={passFields.current}
-                onChange={(e) => setPassFields((p) => ({ ...p, current: e.target.value }))}
+                onChange={updatePass('current')}
                 className={inputClass}
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="pass-next" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="pass-next" className={labelClass}>
                   Nueva contraseña
                 </label>
                 <input
@@ -250,12 +263,12 @@ export default function SettingsPage() {
                   type="password"
                   autoComplete="new-password"
                   value={passFields.next}
-                  onChange={(e) => setPassFields((p) => ({ ...p, next: e.target.value }))}
+                  onChange={updatePass('next')}
                   className={inputClass}
                 />
               </div>
               <div>
-                <label htmlFor="pass-confirm" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="pass-confirm" className={labelClass}>
                   Confirmar nueva contraseña
                 </label>
                 <input
@@ -263,21 +276,26 @@ export default function SettingsPage() {
                   type="password"
                   autoComplete="new-password"
                   value={passFields.confirm}
-                  onChange={(e) => setPassFields((p) => ({ ...p, confirm: e.target.value }))}
+                  onChange={updatePass('confirm')}
                   className={inputClass}
                 />
               </div>
             </div>
+            {passError && (
+              <p role="alert" className="text-fluid-sm text-red-600">
+                {passError}
+              </p>
+            )}
             <button
               type="submit"
-              className={`px-4 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`${btnPrimary} w-full sm:w-auto`}
             >
               Actualizar contraseña
             </button>
           </form>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-2 mt-4">
-            <h2 className="text-lg font-semibold text-gray-900">Notificaciones por correo</h2>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-2 mt-4">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Notificaciones por correo</h2>
             <Switch
               checked={settings.notifPostulaciones}
               onChange={(v) => update({ notifPostulaciones: v })}
@@ -292,13 +310,13 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-2 mt-4">
-            <h2 className="text-lg font-semibold text-gray-900">Idioma de la interfaz</h2>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-2 mt-4">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Idioma de la interfaz</h2>
             <fieldset>
               <legend className="sr-only">Idioma de la interfaz</legend>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                 {(['es', 'en'] as const).map((lang) => (
-                  <label key={lang} className="inline-flex items-center gap-2 text-sm text-gray-700">
+                  <label key={lang} className="inline-flex items-center gap-2 text-fluid-sm text-gray-700">
                     <input
                       type="radio"
                       name="idioma"
@@ -314,15 +332,15 @@ export default function SettingsPage() {
             </fieldset>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3 mt-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recorrido guiado</h2>
-            <p className="text-sm text-gray-500">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-3 mt-4">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Recorrido guiado</h2>
+            <p className="text-fluid-sm text-gray-500">
               Vuelve a la bienvenida y revisa de nuevo los tooltips del recorrido interactivo.
             </p>
             <button
               type="button"
               onClick={startTour}
-              className={`px-4 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`${btnPrimary} w-full sm:w-auto`}
             >
               Reiniciar recorrido de bienvenida
             </button>
@@ -330,8 +348,8 @@ export default function SettingsPage() {
         </div>
 
         <div id="panel-role" role="tabpanel" aria-labelledby="tab-role" hidden={activeTab !== 'role'}>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-2">
-            <h2 className="text-lg font-semibold text-gray-900">{ROLE_LABEL[role].title}</h2>
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-2">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">{ROLE_LABEL[role].title}</h2>
 
             {role === 'publicador' && (
               <div className="space-y-2">
@@ -348,12 +366,12 @@ export default function SettingsPage() {
                   description="Muestra el NIT junto a tus propuestas y contactos."
                 />
                 <fieldset className="pt-2">
-                  <legend className="text-sm font-medium text-gray-700 mb-1">
+                  <legend className="text-fluid-sm font-medium text-gray-700 mb-1">
                     Canales de contacto preferidos
                   </legend>
                   <div className="flex flex-col gap-2">
                     {CHANNELS.map((ch) => (
-                      <label key={ch.id} className="inline-flex items-center gap-2 text-sm text-gray-700">
+                      <label key={ch.id} className="inline-flex items-center gap-2 text-fluid-sm text-gray-700">
                         <input
                           type="checkbox"
                           checked={settings.canales.includes(ch.id)}
@@ -377,7 +395,7 @@ export default function SettingsPage() {
                   description="Permite que los publicadores consulten tu perfil al evaluar postulaciones."
                 />
                 <div className="pt-2">
-                  <label htmlFor="intereses" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="intereses" className={labelClass}>
                     Etiquetas de intereses / habilidades
                   </label>
                   <input
@@ -396,7 +414,7 @@ export default function SettingsPage() {
                   description="Recibe avisos de retos afines a tus intereses."
                 />
                 <div>
-                  <label htmlFor="especialidades" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="especialidades" className={labelClass}>
                     Especialidades de interés
                   </label>
                   <input
@@ -414,7 +432,7 @@ export default function SettingsPage() {
             {role === 'admin' && (
               <div className="space-y-2">
                 <div>
-                  <label htmlFor="params" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="params" className={labelClass}>
                     Parámetros del sistema
                   </label>
                   <textarea
@@ -427,14 +445,14 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label htmlFor="backups" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="backups" className={labelClass}>
                     Frecuencia de respaldos
                   </label>
                   <select
                     id="backups"
                     value={settings.frecuenciaBackups}
                     onChange={(e) => update({ frecuenciaBackups: e.target.value })}
-                    className={inputClass}
+                    className={selectClass}
                   >
                     <option value="diaria">Diaria</option>
                     <option value="semanal">Semanal</option>
@@ -452,16 +470,16 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSave} className="mt-6 flex items-center gap-3">
+        <form onSubmit={handleSave} className="mt-6 flex flex-col sm:flex-row items-center gap-3">
           <button
             type="submit"
-            className={`px-5 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+            className={`${btnPrimary} w-full sm:w-auto`}
           >
             Guardar cambios
           </button>
           <div aria-live="polite">
             {saved && (
-              <span role="status" className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <span role="status" className="text-fluid-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                 Cambios guardados.
               </span>
             )}
