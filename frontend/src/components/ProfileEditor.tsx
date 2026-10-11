@@ -11,13 +11,11 @@ import {
 } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { FOCUS_RING, INPUT_FOCUS, TOUCH_TARGET } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, selectClass, btnPrimary, btnSecondary } from '@/components/ui/classes';
 import type { ExtendedProfile, PreferredChannel, ProfileUpdatePayload } from '@/types';
 
 const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp';
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-
-const inputClass = `w-full px-4 py-3 rounded-lg border border-gray-300 ${INPUT_FOCUS} bg-white text-gray-900`;
 
 type Role = 'solucionador' | 'publicador';
 type NoticeTone = 'success' | 'error';
@@ -88,6 +86,8 @@ interface FieldProps {
   placeholder?: string;
   maxLength?: number;
   hint?: string;
+  inputMode?: 'text' | 'email' | 'tel' | 'url' | 'numeric' | 'decimal' | 'search' | 'none';
+  autoComplete?: string;
 }
 
 function Field({
@@ -102,10 +102,12 @@ function Field({
   placeholder,
   maxLength,
   hint,
+  inputMode,
+  autoComplete,
 }: FieldProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className={labelClass}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
       </label>
@@ -121,19 +123,21 @@ function Field({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
         className={inputClass}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
       />
       {maxLength && value.length > 0 && (
-        <p id={`${id}-count`} className="mt-1 text-right text-[11px] text-gray-400" aria-hidden="true">
+        <p id={`${id}-count`} className="mt-1 text-right text-fluid-xs text-gray-400" aria-hidden="true">
           {value.length}/{maxLength}
         </p>
       )}
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-gray-500">
+        <p id={`${id}-hint`} className={hintClass}>
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} className="mt-1 text-xs text-red-600" role="alert">
+        <p id={`${id}-error`} className={errorClass} role="alert">
           {error}
         </p>
       )}
@@ -148,10 +152,10 @@ interface SectionProps {
 
 function Section({ title, children }: SectionProps) {
   return (
-    <fieldset className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <fieldset className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
       <legend className="sr-only">{title}</legend>
-      <h3 className="text-base font-semibold text-gray-900 mb-1">{title}</h3>
-      <div className="mt-5 space-y-5">{children}</div>
+      <h3 className="text-fluid-base font-semibold text-gray-900 mb-1">{title}</h3>
+      <div className="mt-4 sm:mt-5 space-y-4 sm:space-y-5">{children}</div>
     </fieldset>
   );
 }
@@ -163,11 +167,11 @@ interface NoticeProps {
 
 function Notice({ tone, text }: NoticeProps) {
   return tone === 'success' ? (
-    <div role="status" className="text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+    <div role="status" className="text-fluid-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
       {text}
     </div>
   ) : (
-    <div role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
+    <div role="alert" className="text-fluid-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
       {text}
     </div>
   );
@@ -177,11 +181,6 @@ interface ProfileEditorProps {
   role: Role;
 }
 
-/**
- * Editor modular del perfil: avatar, datos generales y bloque rol-específico
- * (solucionador / publicador). Validación inline en tiempo real, persistencia
- * en API (PATCH) + almacenamiento local de campos extendidos.
- */
 export default function ProfileEditor({ role }: ProfileEditorProps) {
   const { user, updateUser } = useAuth();
   const {
@@ -494,12 +493,12 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       </div>
 
       {/* ── Avatar / foto de perfil ── */}
-      <fieldset className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <fieldset className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6">
         <legend className="sr-only">Foto de perfil</legend>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">Foto de perfil</h3>
-        <p className="text-xs text-gray-500">JPEG, PNG o WebP · máx. 2 MB</p>
+        <h3 className="text-fluid-base font-semibold text-gray-900 mb-1">Foto de perfil</h3>
+        <p className="text-fluid-xs text-gray-500">JPEG, PNG o WebP · máx. 2 MB</p>
 
-        <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-5">
+        <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
           <div className="relative shrink-0">
             <div
               className="w-24 h-24 rounded-full bg-primary-100 border border-primary-200 flex items-center justify-center overflow-hidden"
@@ -524,7 +523,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             )}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <input
               ref={fileInputRef}
               id="avatar-file"
@@ -538,7 +537,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               onClick={() => fileInputRef.current?.click()}
               disabled={avatarBusy}
               aria-busy={avatarBusy}
-              className={`inline-flex items-center justify-center gap-2 px-4 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`${btnPrimary} w-full sm:w-auto`}
             >
               {avatarBusy && (
                 <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" aria-hidden="true" />
@@ -550,7 +549,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
                 type="button"
                 onClick={handleRemoveAvatar}
                 disabled={avatarBusy}
-                className={`inline-flex items-center justify-center px-4 rounded-lg border border-red-300 text-red-600 font-medium hover:bg-red-50 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                className={`${btnSecondary} w-full sm:w-auto border-red-300 text-red-600 hover:bg-red-50`}
               >
                 Eliminar foto
               </button>
@@ -561,7 +560,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
 
       {/* ── Datos Generales ── */}
       <Section title="Datos Generales">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <Field
             id="full_name"
             label={role === 'publicador' ? 'Nombre de la organización' : 'Nombre completo'}
@@ -573,6 +572,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             }}
             error={showError('full_name')}
             required
+            inputMode="text"
+            autoComplete={role === 'publicador' ? 'organization' : 'name'}
           />
           <Field
             id="phone"
@@ -585,9 +586,12 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             }}
             error={showError('phone')}
             placeholder="+57 300 000 0000"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
           />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <Field
             id="second_email"
             label="Correo de contacto alternativo"
@@ -599,6 +603,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             }}
             error={showError('second_email')}
             type="email"
+            inputMode="email"
+            autoComplete="email"
           />
           <Field
             id="location"
@@ -606,10 +612,12 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             value={form.location}
             onChange={setField('location')}
             placeholder="Barranquilla, Atlántico"
+            inputMode="text"
+            autoComplete="address-level2"
           />
         </div>
         <div>
-          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="bio" className={labelClass}>
             Biografía corta
           </label>
           <textarea
@@ -628,18 +636,19 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             aria-invalid={showError('bio') ? true : undefined}
             aria-describedby={showError('bio') ? 'bio-error' : 'bio-hint'}
             placeholder="Cuéntanos brevemente quién eres…"
-            className={inputClass}
+            className={`${inputClass} min-h-[120px]`}
+            inputMode="text"
           />
           <div className="mt-1 flex items-center justify-between gap-4">
-            <p id="bio-hint" className="text-xs text-gray-500">
+            <p id="bio-hint" className={hintClass}>
               Máximo 500 caracteres.
             </p>
-            <p className="text-[11px] text-gray-400" aria-hidden="true">
+            <p className="text-fluid-xs text-gray-400" aria-hidden="true">
               {form.bio.length}/500
             </p>
           </div>
           {showError('bio') && (
-            <p id="bio-error" className="mt-1 text-xs text-red-600" role="alert">
+            <p id="bio-error" className={errorClass} role="alert">
               {errors.bio}
             </p>
           )}
@@ -649,7 +658,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       {/* ── Bloque Solucionador ── */}
       {role === 'solucionador' && (
         <Section title="Información Académica">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <Field
               id="programa_academico"
               label="Programa académico"
@@ -662,6 +671,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               error={showError('programa_academico')}
               required
               placeholder="Ingeniería de Sistemas"
+              inputMode="text"
             />
             <Field
               id="afiliacion_academica"
@@ -669,9 +679,10 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               value={form.afiliacion_academica}
               onChange={setField('afiliacion_academica')}
               placeholder="Rama Estudiantil IEEE"
+              inputMode="text"
             />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
             <Field
               id="linkedin"
               label="LinkedIn"
@@ -683,6 +694,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               }}
               error={showError('linkedin')}
               placeholder="https://linkedin.com/in/usuario"
+              type="url"
+              inputMode="url"
             />
             <Field
               id="github"
@@ -695,6 +708,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               }}
               error={showError('github')}
               placeholder="https://github.com/usuario"
+              type="url"
+              inputMode="url"
             />
             <Field
               id="portfolio"
@@ -707,12 +722,14 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               }}
               error={showError('portfolio')}
               placeholder="https://mi-portafolio.com"
+              type="url"
+              inputMode="url"
             />
           </div>
 
           {/* Habilidades */}
           <div>
-            <label htmlFor="skills" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="skills" className={labelClass}>
               Habilidades técnicas
             </label>
             <input
@@ -723,21 +740,22 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               onKeyDown={handleSkillKeyDown}
               placeholder="Escribe una habilidad y presiona Enter"
               className={inputClass}
+              inputMode="text"
             />
-            <p id="skills-hint" className="mt-1 text-xs text-gray-500">
+            <p id="skills-hint" className={hintClass}>
               Presiona Enter o coma para agregar. Borra con Retroceso para quitar la última.
             </p>
             {form.skills.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Habilidades agregadas">
+              <ul className="mt-3 flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Habilidades agregadas">
                 {form.skills.map((skill) => (
                   <li key={skill}>
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-fluid-xs font-medium whitespace-nowrap">
                       {skill}
                       <button
                         type="button"
                         onClick={() => removeSkill(skill)}
                         aria-label={`Quitar habilidad ${skill}`}
-                        className={`p-0.5 rounded-full text-primary-500 hover:text-primary-700 hover:bg-primary-100 ${FOCUS_RING}`}
+                        className={`p-0.5 rounded-full text-primary-500 hover:text-primary-700 hover:bg-primary-100 ${TOUCH_TARGET} ${FOCUS_RING}`}
                       >
                         ×
                       </button>
@@ -753,7 +771,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       {/* ── Bloque Publicador ── */}
       {role === 'publicador' && (
         <Section title="Información de la Organización">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <Field
               id="cargo"
               label="Cargo dentro de la organización"
@@ -766,6 +784,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               error={showError('cargo')}
               required
               placeholder="Director de Innovación"
+              inputMode="text"
             />
             <Field
               id="departamento"
@@ -778,11 +797,12 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               }}
               error={showError('departamento')}
               placeholder="Innovación y Tecnología"
+              inputMode="text"
             />
           </div>
 
           <div>
-            <label htmlFor="canal_preferido" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="canal_preferido" className={labelClass}>
               Canal de comunicación preferido
             </label>
             <select
@@ -791,7 +811,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, canal_preferido: e.target.value as PreferredChannel }))
               }
-              className={inputClass}
+              className={selectClass}
             >
               <option value="correo">Correo electrónico</option>
               <option value="telefono">Teléfono</option>
@@ -800,7 +820,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
           </div>
 
           <div>
-            <label htmlFor="enlaces_corporativos" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="enlaces_corporativos" className={labelClass}>
               Enlaces corporativos
             </label>
             <input
@@ -817,32 +837,29 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
                   : 'enlaces_corporativos-hint'
               }
               className={inputClass}
+              inputMode="url"
             />
-            <p id="enlaces_corporativos-hint" className="mt-1 text-xs text-gray-500">
+            <p id="enlaces_corporativos-hint" className={hintClass}>
               Presiona Enter para agregar cada enlace.
             </p>
             {showError('enlaces_corporativos') && (
-              <p
-                id="enlaces_corporativos-error"
-                className="mt-1 text-xs text-red-600"
-                role="alert"
-              >
+              <p id="enlaces_corporativos-error" className={errorClass} role="alert">
                 {errors.enlaces_corporativos}
               </p>
             )}
             {form.enlaces_corporativos.length > 0 && (
-              <ul className="mt-3 space-y-2" aria-label="Enlaces corporativos agregados">
+              <ul className="mt-3 space-y-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Enlaces corporativos agregados">
                 {form.enlaces_corporativos.map((link) => (
                   <li
                     key={link}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 rounded-lg border border-gray-200 px-3 py-2 text-fluid-sm text-gray-700 whitespace-nowrap"
                   >
                     <span className="truncate">{link}</span>
                     <button
                       type="button"
                       onClick={() => removeEnlace(link)}
                       aria-label={`Quitar enlace ${link}`}
-                      className={`shrink-0 p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 ${FOCUS_RING}`}
+                      className={`shrink-0 px-3 py-1.5 rounded-lg text-fluid-xs font-medium text-gray-400 hover:text-red-600 hover:bg-red-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
                     >
                       Quitar
                     </button>
@@ -860,7 +877,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
           type="submit"
           disabled={saving || avatarBusy}
           aria-busy={saving}
-          className={`inline-flex items-center justify-center gap-2 px-6 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+          className={`${btnPrimary} w-full sm:w-auto`}
         >
           {saving && (
             <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" aria-hidden="true" />
