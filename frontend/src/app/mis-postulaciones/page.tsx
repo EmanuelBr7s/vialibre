@@ -12,7 +12,7 @@ import {
   APP_STATUS_LABEL,
   type ApplicantStatus,
 } from '@/data/mock';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 
 interface Row {
@@ -58,9 +58,9 @@ export default function MisPostulacionesPage() {
           };
         })
       );
-      setRows(enriched.length > 0 ? enriched : MY_APPLICATIONS);
+      setRows(enriched);
     } catch {
-      // Fallback: datos mock cuando la API no está disponible / sin interacciones.
+      // Sin backend disponible: se muestran filas demostrativas.
       setRows(MY_APPLICATIONS);
     } finally {
       setLoading(false);
@@ -78,7 +78,6 @@ export default function MisPostulacionesPage() {
     }
     setOpenId(row.id);
     setContactError((prev) => ({ ...prev, [row.id]: '' }));
-    // Si el contacto ya viene en el mock, se muestra directo.
     if (row.contact) return;
     try {
       const info = await api.getInteractionContactInfo(row.id);
@@ -106,11 +105,11 @@ export default function MisPostulacionesPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl focus:outline-none"
+        className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl focus:outline-none pb-safe-bottom"
       >
         <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis Postulaciones</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-fluid-2xl font-bold text-gray-900">Mis Postulaciones</h1>
+          <p className="text-fluid-sm text-gray-500 mt-1">
             Problemáticas a las que te has postulado como solucionador. Cuando un publicador
             apruebe tu postulación, se desbloquea el contacto.
           </p>
@@ -122,6 +121,10 @@ export default function MisPostulacionesPage() {
               <SkeletonBlock key={i} className="h-28 w-full" />
             ))}
           </div>
+        ) : rows.length === 0 ? (
+          <p className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 text-gray-500 shadow-sm">
+            Aún no tienes postulaciones. Explora el feed y postúlate a una problemática.
+          </p>
         ) : (
           <ul className="space-y-4">
             {rows.map((row) => {
@@ -129,22 +132,20 @@ export default function MisPostulacionesPage() {
               const contact = row.contact || contactByRow[row.id];
               return (
                 <li key={row.id}>
-                  <article className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <article className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="text-fluid-xs font-medium text-gray-500 uppercase tracking-wider truncate">
                             {row.empresa}
                           </span>
                           <span
-                            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                              APP_STATUS_BADGE[row.status]
-                            }`}
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium shrink-0 ${APP_STATUS_BADGE[row.status]}`}
                           >
                             {APP_STATUS_LABEL[row.status]}
                           </span>
                         </div>
-                        <h2 className="text-lg font-semibold text-gray-900">
+                        <h2 className="text-fluid-base font-semibold text-gray-900 truncate">
                           <Link
                             href={`/feed/${row.challengeId}`}
                             className={`hover:text-primary-700 ${FOCUS_RING} rounded`}
@@ -153,7 +154,7 @@ export default function MisPostulacionesPage() {
                           </Link>
                         </h2>
                         {row.message && (
-                          <p className="text-sm text-gray-600 mt-1 italic">"{row.message}"</p>
+                          <p className="text-fluid-sm text-gray-600 mt-1 italic">“{row.message}”</p>
                         )}
                       </div>
                     </div>
@@ -164,7 +165,7 @@ export default function MisPostulacionesPage() {
                           onClick={() => handleToggleContact(row)}
                           aria-expanded={isOpen}
                           aria-controls={`contact-panel-${row.id}`}
-                          className={`inline-flex items-center text-sm font-medium text-secondary-700 px-3 -mx-3 rounded-lg ${TOUCH_TARGET} ${FOCUS_RING}`}
+                          className={`inline-flex items-center text-fluid-sm font-medium text-secondary-700 px-2 -mx-2 rounded-lg ${TOUCH_TARGET} ${FOCUS_RING}`}
                         >
                           {isOpen ? 'Ocultar contacto' : 'Ver contacto del publicador'} →
                         </button>
@@ -175,10 +176,10 @@ export default function MisPostulacionesPage() {
                             className="mt-3 bg-secondary-50 rounded-lg border border-secondary-200 p-4 space-y-2"
                           >
                             {contactError[row.id] && (
-                              <p className="text-sm text-red-600">{contactError[row.id]}</p>
+                              <p className="text-fluid-sm text-red-600">{contactError[row.id]}</p>
                             )}
                             {contact && (
-                              <dl className="space-y-1 text-sm">
+                              <dl className="space-y-1 text-fluid-sm">
                                 <div>
                                   <dt className="sr-only">Nombre</dt>
                                   <dd className="font-medium text-gray-900">
