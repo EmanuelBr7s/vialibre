@@ -60,9 +60,16 @@ services:
     build: ./frontend
     ports:
       - "3000:3000"
+    environment:
+      # Con backend arriba el frontend usa la API real vía el gateway nginx.
+      # Evita que el .env.local del repo (modo mock) se imponga en Docker.
+      - NEXT_PUBLIC_API_MOCK=false
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      - ./frontend/next.config.js:/app/next.config.js
 
   # ── API Gateway (Nginx) ──
   nginx:
