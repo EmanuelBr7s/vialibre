@@ -7,7 +7,7 @@ import {
   type OnboardingIcon,
   type TourRole,
 } from '@/data/tour';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG } from '@/components/ui/classes';
 
 interface OnboardingModalProps {
   open: boolean;
@@ -136,7 +136,7 @@ export default function OnboardingModal({
         aria-modal="true"
         aria-labelledby="onboarding-title"
         aria-describedby="onboarding-desc"
-        className="relative flex flex-col h-full w-full max-w-4xl mx-auto px-4 sm:px-8"
+        className="relative flex flex-col h-full w-full max-w-4xl mx-auto px-4 sm:px-6 pb-safe-bottom"
       >
         {/* ── Header: Dots + Omitir ── */}
         <header className="flex items-center justify-between h-16 shrink-0">
@@ -157,7 +157,7 @@ export default function OnboardingModal({
           <button
             type="button"
             onClick={onClose}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors ${TOUCH_TARGET} ${FOCUS_RING}`}
+            className={`flex items-center gap-2 px-4 py-2 text-fluid-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors ${TOUCH_TARGET_LG} ${FOCUS_RING}`}
           >
             <svg
               className="w-5 h-5"
@@ -180,7 +180,7 @@ export default function OnboardingModal({
         {/* ── Centro: Slides animados ── */}
         <main className="flex-1 flex items-center justify-center overflow-hidden relative">
           <div
-            className={`absolute inset-0 flex items-center justify-center px-6 ${
+            className={`absolute inset-0 flex items-center justify-center px-4 sm:px-6 ${
               slideEnterClass
             }`}
             style={{ animationDuration: '300ms' }}
@@ -197,7 +197,7 @@ export default function OnboardingModal({
               {/* Título */}
               <h2
                 id="onboarding-title"
-                className="mt-6 text-2xl sm:text-3xl font-bold text-white animate-fade-in-up"
+                className="mt-6 text-fluid-2xl sm:text-fluid-3xl font-bold text-white animate-fade-in-up"
                 style={{ animationDelay: '150ms' }}
               >
                 {current.title}
@@ -206,7 +206,7 @@ export default function OnboardingModal({
               {/* Descripción */}
               <p
                 id="onboarding-desc"
-                className="mt-4 text-lg sm:text-xl text-white/80 max-w-lg mx-auto animate-fade-in-up"
+                className="mt-4 text-fluid-lg sm:text-fluid-xl text-white/80 max-w-lg mx-auto animate-fade-in-up"
                 style={{ animationDelay: '225ms' }}
               >
                 {current.description}
@@ -217,7 +217,7 @@ export default function OnboardingModal({
           {/* Slide saliente (para animación de salida) */}
           {direction && index > 0 && index < slides.length && (
             <div
-              className={`absolute inset-0 flex items-center justify-center px-6 ${slideExitClass}`}
+              className={`absolute inset-0 flex items-center justify-center px-4 sm:px-6 ${slideExitClass}`}
               style={{ animationDuration: '300ms', pointerEvents: 'none' }}
               aria-hidden="true"
             >
@@ -236,12 +236,12 @@ export default function OnboardingModal({
         </p>
 
         {/* ── Footer: Botones de navegación ── */}
-        <footer className="flex items-center justify-between gap-4 p-6 shrink-0 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <footer className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 p-4 sm:p-6 shrink-0 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           {index > 0 && (
             <button
               type="button"
               onClick={goPrev}
-              className={`flex items-center gap-2 px-6 py-3 text-base font-medium text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-colors ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`flex items-center gap-2 px-6 py-3 text-fluid-base font-medium text-white/90 hover:text-white hover:bg-white/10 rounded-xl transition-colors ${TOUCH_TARGET_LG} ${FOCUS_RING} w-full sm:w-auto`}
             >
               <svg
                 className="w-5 h-5"
@@ -263,7 +263,7 @@ export default function OnboardingModal({
           <button
             type="button"
             onClick={isLast ? onStartTour : goNext}
-            className={`ml-auto flex items-center gap-2 px-8 py-3 text-base font-semibold text-primary-900 bg-white hover:bg-primary-50 rounded-xl shadow-lg transition-all ${TOUCH_TARGET} ${FOCUS_RING}`}
+            className={`ml-auto flex items-center gap-2 px-8 py-3 text-fluid-base font-semibold text-primary-900 bg-white hover:bg-primary-50 rounded-xl shadow-lg transition-all ${TOUCH_TARGET_LG} ${FOCUS_RING} w-full sm:w-auto`}
           >
             {isLast ? 'Comenzar recorrido' : 'Siguiente'}
             {!isLast && (
