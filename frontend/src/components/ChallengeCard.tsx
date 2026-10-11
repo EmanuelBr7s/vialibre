@@ -21,34 +21,27 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
   const difficulty = challenge.difficulty ?? '';
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer ${FOCUS_RING}`}>
-      <div className="flex items-start justify-between">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">
+    <div className={`bg-white rounded-xl border border-gray-200 p-4 sm:p-5 hover:shadow-md transition-shadow cursor-pointer ${FOCUS_RING}`}>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+        <p className="text-fluid-xs font-medium text-gray-500 uppercase tracking-wider truncate">
           {challenge.empresa_nombre || challenge.author_name || 'Empresa'}
         </p>
         {difficulty && (
-          <span
-            className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-              DIFFICULTY_COLOR[difficulty] || 'bg-gray-100 text-gray-700'
-            }`}
-          >
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium self-start ${DIFFICULTY_COLOR[difficulty] || 'bg-gray-100 text-gray-700'}`}>
             {DIFFICULTY_LABEL[difficulty] || difficulty}
           </span>
         )}
       </div>
-      <h3 className="text-sm font-semibold text-gray-900 mt-2 line-clamp-2">
+      <h3 className="text-fluid-base font-semibold text-gray-900 mt-2 line-clamp-2">
         {challenge.title}
       </h3>
-      <p className="text-xs text-gray-600 mt-2 line-clamp-2">
+      <p className="text-fluid-sm text-gray-600 mt-2 line-clamp-3">
         {challenge.short_description}
       </p>
       {challenge.tags && challenge.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {challenge.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="text-[10px] font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full"
-            >
+        <div className="flex flex-wrap gap-1.5 mt-3" role="list" aria-label="Etiquetas">
+          {challenge.tags.slice(0, 4).map((tag) => (
+            <span key={tag} className="inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium bg-gray-100 text-gray-600" role="listitem">
               {tag}
             </span>
           ))}
