@@ -121,7 +121,7 @@ export default function FeedPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Problemáticas Destacadas
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <FeaturedCardSkeleton key={i} />
                   ))}
@@ -132,7 +132,7 @@ export default function FeedPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Últimas Problemáticas
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <ChallengeCardSkeleton key={i} />
                   ))}
@@ -146,7 +146,7 @@ export default function FeedPage() {
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">
                     Problemáticas Destacadas
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {featured.map((challenge) => (
                       <FeaturedCard key={challenge.id} challenge={challenge} />
                     ))}
@@ -161,17 +161,17 @@ export default function FeedPage() {
                 {challenges.length === 0 ? (
                   <p className="text-gray-500">Aún no hay problemáticas publicadas.</p>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {challenges.map((challenge) => (
-                      <Link
-                        key={challenge.id}
-                        href={`/feed/${challenge.id}`}
-                        className={`block rounded-lg ${FOCUS_RING}`}
-                      >
-                        <ChallengeCard challenge={challenge} />
-                      </Link>
-                    ))}
-                  </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      {challenges.map((challenge) => (
+                        <Link
+                          key={challenge.id}
+                          href={`/feed/${challenge.id}`}
+                          className={`block rounded-lg ${FOCUS_RING}`}
+                        >
+                          <ChallengeCard challenge={challenge} />
+                        </Link>
+                      ))}
+                    </div>
                 )}
               </section>
             </div>
