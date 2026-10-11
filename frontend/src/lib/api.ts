@@ -12,10 +12,15 @@ import type {
   User,
 } from '@/types';
 import { AUTH_COOKIE_NAME } from '@/lib/constants';
+import { mockApi } from '@/lib/mockApi';
 
 export { AUTH_COOKIE_NAME };
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+
+// Modo mockup autocontenido: responde con datos locales (src/lib/mockApi.ts)
+// en lugar de llamar a la infraestructura real (auth/core/match vía nginx).
+const MOCK_MODE = process.env.NEXT_PUBLIC_API_MOCK === 'true';
 
 interface RequestOptions {
   method?: string;
@@ -100,6 +105,11 @@ class ApiClient {
 
   // ── Auth endpoints ──
   async login(email: string, password: string): Promise<TokenResponse> {
+    if (MOCK_MODE) {
+      const res = await mockApi.login(email);
+      this.setToken(res.access_token);
+      return res;
+    }
     const res = await this.request<TokenResponse>('/v1/auth/login', {
       method: 'POST',
       body: { email, password },
@@ -120,6 +130,11 @@ class ApiClient {
     programa_academico?: string;
     afiliacion_academica?: string;
   }): Promise<TokenResponse> {
+    if (MOCK_MODE) {
+      const res = await mockApi.register(data);
+      this.setToken(res.access_token);
+      return res;
+    }
     const res = await this.request<TokenResponse>('/v1/auth/register', {
       method: 'POST',
       body: data,
@@ -130,16 +145,21 @@ class ApiClient {
   }
 
   async getMe(token?: string): Promise<User> {
+    if (MOCK_MODE) {
+      return mockApi.getMe(token ?? this.getToken() ?? undefined);
+    }
     return this.request<User>('/v1/auth/users/me', {
       token: token ?? undefined,
     });
   }
 
   async getUserById(userId: string): Promise<User> {
+    if (MOCK_MODE) return mockApi.getUserById(userId);
     return this.request<User>(`/v1/auth/users/${userId}`);
   }
 
   async updateMe(payload: ProfileUpdatePayload): Promise<User> {
+    if (MOCK_MODE) return mockApi.updateMe(payload);
     return this.request<User>('/v1/auth/users/me', {
       method: 'PATCH',
       body: payload,
@@ -155,6 +175,7 @@ class ApiClient {
     difficulty?: string;
     featured_only?: boolean;
   }): Promise<ChallengeListResponse> {
+    if (MOCK_MODE) return mockApi.getChallenges(params);
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -168,6 +189,7 @@ class ApiClient {
   }
 
   async getChallenge(id: string): Promise<Challenge> {
+    if (MOCK_MODE) return mockApi.getChallenge(id);
     return this.request(`/v1/core/challenges/${id}`);
   }
 
@@ -181,6 +203,7 @@ class ApiClient {
     budget?: number;
     deadline?: string;
   }): Promise<Challenge> {
+    if (MOCK_MODE) return mockApi.createChallenge(data);
     return this.request('/v1/core/challenges/', {
       method: 'POST',
       body: data,
@@ -189,6 +212,7 @@ class ApiClient {
 
   // ── Interactions endpoints ──
   async applyToChallenge(data: { challenge_id: string; message?: string }): Promise<Interaction> {
+    if (MOCK_MODE) return mockApi.applyToChallenge(data);
     return this.request('/v1/match/interactions/apply', {
       method: 'POST',
       body: data,
@@ -200,6 +224,7 @@ class ApiClient {
     limit?: number;
     status?: string;
   }): Promise<InteractionListResponse> {
+    if (MOCK_MODE) return mockApi.getMyInteractions(params);
     const searchParams = new URLSearchParams();
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -213,10 +238,12 @@ class ApiClient {
   }
 
   async getChallengeApplicants(challengeId: string): Promise<ChallengeApplicantsResponse> {
+    if (MOCK_MODE) return mockApi.getChallengeApplicants(challengeId);
     return this.request(`/v1/match/interactions/challenge/${challengeId}`);
   }
 
   async approveInteraction(interactionId: string, status: 'aprobado' | 'rechazado'): Promise<Interaction> {
+    if (MOCK_MODE) return mockApi.approveInteraction(interactionId, status);
     return this.request(`/v1/match/interactions/${interactionId}/approve`, {
       method: 'PATCH',
       body: { status },
@@ -224,15 +251,18 @@ class ApiClient {
   }
 
   async getInteractionContactInfo(interactionId: string): Promise<ContactInfo> {
+    if (MOCK_MODE) return mockApi.getInteractionContactInfo(interactionId);
     return this.request(`/v1/match/interactions/${interactionId}/contact`);
   }
 
   async getInteraction(interactionId: string): Promise<Interaction> {
+    if (MOCK_MODE) return mockApi.getInteraction(interactionId);
     return this.request(`/v1/match/interactions/${interactionId}`);
   }
 
   // ── Reactions endpoints ──
   async createReaction(data: { challenge_id: string; reaction_type: 'like' | 'bookmark' }): Promise<Reaction> {
+    if (MOCK_MODE) return mockApi.createReaction(data);
     return this.request('/v1/match/reactions/', {
       method: 'POST',
       body: data,
@@ -240,6 +270,7 @@ class ApiClient {
   }
 
   async deleteReaction(reactionId: string): Promise<null> {
+    if (MOCK_MODE) return mockApi.deleteReaction(reactionId);
     return this.request(`/v1/match/reactions/${reactionId}`, { method: 'DELETE' });
   }
 }
