@@ -21,6 +21,8 @@ interface A11yState {
   dyslexiaFont: boolean;
   reduceMotion: boolean;
   readingGuide: boolean;
+  /** Separación extra entre palabras, letras y líneas (dislexia, WCAG 1.4.12). */
+  textSpacing: boolean;
 }
 
 interface AccessibilityContextValue extends A11yState {
@@ -33,6 +35,7 @@ interface AccessibilityContextValue extends A11yState {
   setDyslexiaFont: (value: boolean) => void;
   setReduceMotion: (value: boolean) => void;
   setReadingGuide: (value: boolean) => void;
+  setTextSpacing: (value: boolean) => void;
   setPanelOpen: (value: boolean) => void;
   setShortcutsOpen: (value: boolean) => void;
   resetAll: () => void;
@@ -44,6 +47,7 @@ const DEFAULT_STATE: A11yState = {
   dyslexiaFont: false,
   reduceMotion: false,
   readingGuide: false,
+  textSpacing: false,
 };
 
 const AccessibilityContext = createContext<AccessibilityContextValue | undefined>(undefined);
@@ -78,6 +82,7 @@ function loadStoredState(): A11yState {
       dyslexiaFont: parsed.dyslexiaFont ?? DEFAULT_STATE.dyslexiaFont,
       reduceMotion: parsed.reduceMotion ?? prefersReducedMotion(),
       readingGuide: parsed.readingGuide ?? DEFAULT_STATE.readingGuide,
+      textSpacing: parsed.textSpacing ?? DEFAULT_STATE.textSpacing,
     };
   } catch {
     return DEFAULT_STATE;
@@ -108,6 +113,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
     root.dataset.dyslexia = state.dyslexiaFont ? 'on' : 'off';
     root.dataset.reduceMotion = state.reduceMotion ? 'on' : 'off';
     root.dataset.readingGuide = state.readingGuide ? 'on' : 'off';
+    root.dataset.textSpacing = state.textSpacing ? 'on' : 'off';
   }, [state]);
 
   // Persiste cuando cambian los valores (después de hidratar).
@@ -134,6 +140,9 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
   }, []);
   const setReadingGuide = useCallback((value: boolean) => {
     setState((prev) => ({ ...prev, readingGuide: value }));
+  }, []);
+  const setTextSpacing = useCallback((value: boolean) => {
+    setState((prev) => ({ ...prev, textSpacing: value }));
   }, []);
   const resetAll = useCallback(() => {
     setState((prev) => ({
@@ -191,6 +200,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
       setDyslexiaFont,
       setReduceMotion,
       setReadingGuide,
+      setTextSpacing,
       setPanelOpen,
       setShortcutsOpen,
       resetAll,
@@ -204,6 +214,7 @@ export function AccessibilityProvider({ children }: { children: ReactNode }) {
       setDyslexiaFont,
       setReduceMotion,
       setReadingGuide,
+      setTextSpacing,
       setPanelOpen,
       setShortcutsOpen,
       resetAll,

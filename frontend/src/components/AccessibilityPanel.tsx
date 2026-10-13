@@ -61,6 +61,8 @@ export default function AccessibilityPanel() {
     setReduceMotion,
     readingGuide,
     setReadingGuide,
+    textSpacing,
+    setTextSpacing,
     resetAll,
   } = useAccessibility();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -180,6 +182,12 @@ export default function AccessibilityPanel() {
                   onChange={setDyslexiaFont}
                   label="Fuente para dislexia"
                   description="Tipografía de alta legibilidad con mayor interlineado."
+                />
+                <Switch
+                  checked={textSpacing}
+                  onChange={setTextSpacing}
+                  label="Separar palabras"
+                  description="Más espacio entre palabras, letras y líneas para no perderse al leer."
                 />
                 <Switch
                   checked={reduceMotion}
