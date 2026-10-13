@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useTour } from '@/contexts/TourContext';
 import type { UserRole } from '@/types';
+import { isTalentRole } from '@/lib/constants';
 import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
 
 interface SettingsState {
@@ -43,6 +44,7 @@ const DEFAULT_SETTINGS: SettingsState = {
 const ROLE_LABEL: Record<UserRole, { tab: string; title: string }> = {
   publicador: { tab: 'Organización', title: 'Ajustes de la organización' },
   solucionador: { tab: 'Perfil académico', title: 'Ajustes de tu perfil académico' },
+  egresado: { tab: 'Perfil profesional', title: 'Ajustes de tu perfil profesional' },
   admin: { tab: 'Sistema', title: 'Parámetros del sistema' },
 };
 
@@ -368,7 +370,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {role === 'solucionador' && (
+            {isTalentRole(role) && (
               <div className="space-y-2">
                 <Switch
                   checked={settings.perfilVisible}

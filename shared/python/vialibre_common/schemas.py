@@ -10,8 +10,13 @@ from pydantic import BaseModel, EmailStr, Field
 
 class UserRole(str, enum.Enum):
     PUBLICADOR = "publicador"
-    SOLUCIONADOR = "solucionador"
+    SOLUCIONADOR = "solucionador"  # estudiante
+    EGRESADO = "egresado"
     ADMIN = "admin"
+
+
+# Roles que buscan oportunidades (practica, empleo, retos) y se postulan.
+TALENT_ROLES = (UserRole.SOLUCIONADOR, UserRole.EGRESADO)
 
 
 class ChallengeStatus(str, enum.Enum):

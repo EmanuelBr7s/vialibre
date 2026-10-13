@@ -229,7 +229,8 @@ export const ADMIN_USERS: AdminUserRow[] = [
 ];
 
 export const ROLE_LABEL: Record<UserRole, string> = {
-  publicador: 'Publicador',
-  solucionador: 'Solucionador',
-  admin: 'Admin',
+  publicador: 'Empresa',
+  solucionador: 'Estudiante',
+  egresado: 'Egresado',
+  admin: 'Administración',
 };

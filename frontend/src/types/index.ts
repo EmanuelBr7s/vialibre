@@ -1,6 +1,7 @@
 // ── Auth Types ──
 
-export type UserRole = 'admin' | 'publicador' | 'solucionador';
+/** solucionador = estudiante; egresado = graduado en búsqueda de empleo. */
+export type UserRole = 'admin' | 'publicador' | 'solucionador' | 'egresado';
 
 export interface User {
   id: string;

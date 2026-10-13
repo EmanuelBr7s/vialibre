@@ -18,7 +18,7 @@ from app.schemas.match import (
     InteractionListResponse,
     InteractionResponse,
 )
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import TALENT_ROLES, UserRole
 
 router = APIRouter()
 
@@ -33,10 +33,10 @@ async def apply_to_challenge(
     A Solucionador applies to a challenge.
     Creates an interaction in PENDIENTE status.
     """
-    if auth.payload.role != UserRole.SOLUCIONADOR:
+    if auth.payload.role not in TALENT_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only solucionadores can apply to challenges",
+            detail="Solo estudiantes y egresados pueden postularse",
         )
 
     # Check if user already applied to this challenge

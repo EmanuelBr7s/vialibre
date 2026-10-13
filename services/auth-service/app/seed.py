@@ -19,6 +19,7 @@ from app.models.user import User
 ROLE_ADMIN_ID = uuid.UUID("a0000000-0000-0000-0000-000000000001")
 ROLE_PUBLICADOR_ID = uuid.UUID("a0000000-0000-0000-0000-000000000002")
 ROLE_SOLUCIONADOR_ID = uuid.UUID("a0000000-0000-0000-0000-000000000003")
+ROLE_EGRESADO_ID = uuid.UUID("a0000000-0000-0000-0000-000000000004")
 
 USER_ADMIN_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 USER_PUBLICADOR_ID = uuid.UUID("00000000-0000-0000-0000-000000000002")
@@ -29,6 +30,7 @@ ROLES = [
     {"id": ROLE_ADMIN_ID, "name": "admin", "description": "Administrator with full access"},
     {"id": ROLE_PUBLICADOR_ID, "name": "publicador", "description": "Organization that publishes challenges"},
     {"id": ROLE_SOLUCIONADOR_ID, "name": "solucionador", "description": "Student/solver that accepts challenges"},
+    {"id": ROLE_EGRESADO_ID, "name": "egresado", "description": "Graduate looking for job offers"},
 ]
 
 USERS = [

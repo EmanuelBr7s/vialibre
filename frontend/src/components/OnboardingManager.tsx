@@ -7,9 +7,10 @@ import OnboardingModal from './OnboardingModal';
 import FeatureTour from './FeatureTour';
 import { ONBOARDING_KEY, onboardingKey, type TourRole } from '@/data/tour';
 import type { UserRole } from '@/types';
+import { isTalentRole } from '@/lib/constants';
 
 function roleToTourRole(role: UserRole): TourRole {
-  return role === 'solucionador' ? 'solucionador' : 'publicador';
+  return isTalentRole(role) ? 'solucionador' : 'publicador';
 }
 
 /**

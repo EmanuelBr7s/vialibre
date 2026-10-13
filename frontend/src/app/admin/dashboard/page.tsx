@@ -17,6 +17,7 @@ const ROLE_BADGE: Record<string, string> = {
   admin: 'bg-secondary-100 text-secondary-700',
   publicador: 'bg-primary-100 text-primary-700',
   solucionador: 'bg-gray-100 text-gray-700',
+  egresado: 'bg-amber-100 text-amber-700',
 };
 
 export default function AdminDashboardPage() {

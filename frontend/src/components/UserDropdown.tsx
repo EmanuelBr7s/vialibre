@@ -27,17 +27,22 @@ interface RoleMeta {
 
 const ROLE_META: Record<UserRole, RoleMeta> = {
   publicador: {
-    label: 'Publicador',
+    label: 'Empresa',
     badgeClass: 'bg-primary-100 text-primary-700',
     dotClass: 'bg-primary-500',
   },
   solucionador: {
-    label: 'Solucionador',
+    label: 'Estudiante',
     badgeClass: 'bg-gray-100 text-gray-700',
     dotClass: 'bg-gray-400',
   },
+  egresado: {
+    label: 'Egresado',
+    badgeClass: 'bg-amber-100 text-amber-700',
+    dotClass: 'bg-amber-500',
+  },
   admin: {
-    label: 'Admin',
+    label: 'Administración',
     badgeClass: 'bg-secondary-100 text-secondary-700',
     dotClass: 'bg-secondary-500',
   },
@@ -128,9 +133,14 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
             { id: 'perfil-org', label: 'Perfil de Organización', href: '/perfil/organizacion' },
           ];
         case 'solucionador':
+        case 'egresado':
           return [
             { id: 'mis-postulaciones', label: 'Mis Postulaciones', href: '/mis-postulaciones' },
-            { id: 'mi-perfil', label: 'Mi Perfil Académico', href: '/perfil/academico' },
+            {
+              id: 'mi-perfil',
+              label: user.role === 'egresado' ? 'Mi Perfil Profesional' : 'Mi Perfil Académico',
+              href: '/perfil/academico',
+            },
             {
               id: 'hoja-de-vida',
               label: 'Mi Hoja de Vida (CV)',

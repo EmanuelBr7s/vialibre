@@ -12,6 +12,7 @@ import {
 } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from './AuthContext';
+import { isTalentRole } from '@/lib/constants';
 import {
   TOUR_COMPLETED_KEY,
   TOUR_STEPS,
@@ -53,7 +54,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   // El rol admin reutiliza los pasos del Publicador.
   const stepsForRole = useCallback((): TourStep[] => {
     const role = user?.role ?? 'publicador';
-    const tourRole: TourRole = role === 'solucionador' ? 'solucionador' : 'publicador';
+    const tourRole: TourRole = isTalentRole(role) ? 'solucionador' : 'publicador';
     return TOUR_STEPS[tourRole];
   }, [user?.role]);
 

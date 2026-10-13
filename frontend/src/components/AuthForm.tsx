@@ -7,7 +7,13 @@ import { PROMO_CONFIG } from '@/config/promo';
 import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
 
 type AuthMode = 'login' | 'register';
-type RegisterRole = 'publicador' | 'solucionador';
+type RegisterRole = 'publicador' | 'solucionador' | 'egresado';
+
+const REGISTER_ROLES: { id: RegisterRole; label: string; hint: string }[] = [
+  { id: 'solucionador', label: 'Estudiante', hint: 'Prácticas y retos' },
+  { id: 'egresado', label: 'Egresado', hint: 'Ofertas laborales' },
+  { id: 'publicador', label: 'Empresa', hint: 'Publica y busca talento' },
+];
 
 interface FieldErrors {
   email?: string;
@@ -105,7 +111,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
     const allFields: string[] = ['email', 'password'];
     if (isRegister) allFields.push('fullName');
     if (isRegister && role === 'publicador') allFields.push('empresaNombre', 'nitEmpresa');
-    if (isRegister && role === 'solucionador') allFields.push('programaAcademico');
+    if (isRegister && role !== 'publicador') allFields.push('programaAcademico');
     setTouched(Array.from(new Set([...touched, ...allFields])));
 
     if (Object.keys(validation).length > 0) return;
@@ -205,31 +211,20 @@ export default function AuthForm({ mode }: AuthFormProps) {
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Role selection (register only) */}
             {isRegister && (
-              <div className="flex gap-3" role="radiogroup" aria-label="Tipo de usuario">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={role === 'solucionador'}
-                  onClick={() => setRole('solucionador')}
-                  className={roleButtonClass(role === 'solucionador')}
-                >
-                  Solucionador
-                  <span className="block text-[10px] font-normal text-gray-400">
-                    Estudiante / Semillero
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={role === 'publicador'}
-                  onClick={() => setRole('publicador')}
-                  className={roleButtonClass(role === 'publicador')}
-                >
-                  Publicador
-                  <span className="block text-[10px] font-normal text-gray-400">
-                    Empresa / Fundación
-                  </span>
-                </button>
+              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Tipo de usuario">
+                {REGISTER_ROLES.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={role === option.id}
+                    onClick={() => setRole(option.id)}
+                    className={roleButtonClass(role === option.id)}
+                  >
+                    {option.label}
+                    <span className="block text-[10px] font-normal text-gray-400">{option.hint}</span>
+                  </button>
+                ))}
               </div>
             )}
 
@@ -291,7 +286,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               </div>
             )}
 
-            {isRegister && role === 'solucionador' && (
+            {isRegister && role !== 'publicador' && (
               <>
                 <div>
                   <label htmlFor="programaAcademico" className="block text-sm font-medium text-gray-700 mb-1">
@@ -342,6 +337,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 placeholder="tu@correo.com"
                 className={inputClass}
               />
+              {isRegister && !showError('email') && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Puedes usar tu correo personal; no necesitas el institucional.
+                </p>
+              )}
               {fieldError('email', 'email-error')}
             </div>
 
