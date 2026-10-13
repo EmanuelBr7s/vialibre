@@ -123,10 +123,10 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
       switch (user.role) {
         case 'publicador':
           return [
-            { id: 'mis-problematicas', label: 'Mis Problemáticas', href: '/mis-problematicas' },
+            { id: 'mis-problematicas', label: 'Mis Publicaciones', href: '/mis-problematicas' },
             {
               id: 'publicar',
-              label: 'Publicar Nueva Problemática',
+              label: 'Nueva Publicación',
               action: onOpenCreate ?? (() => undefined),
               disabled: !onOpenCreate,
             },
