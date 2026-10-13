@@ -6,49 +6,7 @@
 
 import type { ContactInfo, UserRole } from '@/types';
 
-// IDs reales de las problemáticas sembradas por el publicador (Artesanías Llamas).
-export const ORG_CHALLENGE_IDS = [
-  'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', // Modelo predictivo mango
-  'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb', // Plataforma E-commerce
-  'cccc3333-cccc-cccc-cccc-cccccccccccc', // Auditoría ISO 27001
-];
-
 export type OrgChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
-
-export interface OrgChallenge {
-  id: string;
-  title: string;
-  status: OrgChallengeStatus;
-  applicantsCount: number;
-  shortDescription: string;
-}
-
-export const ORG_CHALLENGES: OrgChallenge[] = [
-  {
-    id: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    title: 'Modelo predictivo para rendimiento de mango de hilaza',
-    status: 'en_progreso',
-    applicantsCount: 8,
-    shortDescription:
-      'Aplicar modelos de Machine Learning con variables agroclimáticas para predecir cosechas.',
-  },
-  {
-    id: 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    title: 'Diseño de plataforma E-commerce y gestión de marca',
-    status: 'abierto',
-    applicantsCount: 12,
-    shortDescription:
-      'Digitalizar el catálogo de productos artesanales y posicionar la marca a nivel regional.',
-  },
-  {
-    id: 'cccc3333-cccc-cccc-cccc-cccccccccccc',
-    title: 'Auditoría de seguridad y análisis de red (ISO 27001)',
-    status: 'cerrado',
-    applicantsCount: 5,
-    shortDescription:
-      'Análisis de vulnerabilidades y levantamiento de la estructura de red actual.',
-  },
-];
 
 export const CHALLENGE_STATUS_LABEL: Record<OrgChallengeStatus, string> = {
   abierto: 'Abierta',
