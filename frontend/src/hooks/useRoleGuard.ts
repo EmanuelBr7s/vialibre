@@ -14,9 +14,11 @@ import type { UserRole } from '@/types';
  *
  * @returns true cuando el usuario autenticado tiene el rol esperado.
  */
-export function useRoleGuard(requiredRole: UserRole): boolean {
+export function useRoleGuard(requiredRole: UserRole | UserRole[]): boolean {
   const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
+  const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+  const hasRole = !!user && roles.includes(user.role);
 
   useEffect(() => {
     if (loading) return;
@@ -24,11 +26,11 @@ export function useRoleGuard(requiredRole: UserRole): boolean {
       router.replace('/login');
       return;
     }
-    if (user?.role !== requiredRole) {
+    if (!hasRole) {
       router.replace('/feed');
     }
-  }, [loading, isAuthenticated, user, requiredRole, router]);
+  }, [loading, isAuthenticated, hasRole, router]);
 
   // El guard solo permite renderizar cuando ya se resolvió y el rol coincide.
-  return !loading && isAuthenticated && user?.role === requiredRole;
+  return !loading && isAuthenticated && hasRole;
 }

@@ -5,10 +5,11 @@ import Sidebar from '@/components/Sidebar';
 import ProfileEditor from '@/components/ProfileEditor';
 import ResumeUploader from '@/components/ResumeUploader';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { TALENT_ROLES } from '@/lib/constants';
 import { FOCUS_RING } from '@/components/ui/classes';
 
 export default function PerfilAcademicoPage() {
-  const allowed = useRoleGuard('solucionador');
+  const allowed = useRoleGuard(TALENT_ROLES);
   const [available, setAvailable] = useState(true);
 
   if (!allowed) {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { TALENT_ROLES } from '@/lib/constants';
 import api from '@/lib/api';
 import type { ContactInfo } from '@/types';
 import {
@@ -26,7 +27,7 @@ interface Row {
 }
 
 export default function MisPostulacionesPage() {
-  const allowed = useRoleGuard('solucionador');
+  const allowed = useRoleGuard(TALENT_ROLES);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);

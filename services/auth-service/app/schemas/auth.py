@@ -38,10 +38,10 @@ class RegisterRequest(BaseModel):
                 raise ValueError(
                     "Publicadores must provide 'empresa_nombre'"
                 )
-        elif self.role == UserRole.SOLUCIONADOR:
+        elif self.role in (UserRole.SOLUCIONADOR, UserRole.EGRESADO):
             if not self.programa_academico:
                 raise ValueError(
-                    "Solucionadores must provide 'programa_academico'"
+                    "Estudiantes y egresados deben indicar 'programa_academico'"
                 )
         return self
 
