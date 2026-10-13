@@ -12,6 +12,7 @@ import type {
   ReactionListResponse,
   TokenResponse,
   User,
+  UserListResponse,
 } from '@/types';
 import { AUTH_COOKIE_NAME } from '@/lib/constants';
 
@@ -150,6 +151,26 @@ class ApiClient {
       method: 'PATCH',
       body: payload,
     });
+  }
+
+  /** Banco de hojas de vida (solo empresas y administración). */
+  async searchTalent(params: {
+    role?: 'solucionador' | 'egresado';
+    q?: string;
+    programa?: string;
+    afiliacion?: string;
+    con_cv?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<UserListResponse> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== false) {
+        searchParams.append(key, String(value));
+      }
+    });
+    const query = searchParams.toString();
+    return this.request(`/v1/auth/users/talent${query ? `?${query}` : ''}`);
   }
 
   // ── Hoja de vida (PDF) ──

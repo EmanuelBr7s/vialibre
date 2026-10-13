@@ -51,6 +51,33 @@ export function defaultModuleFor(role?: UserRole): ChallengeTipo {
   return 'reto';
 }
 
+/** Pestañas del banco de hojas de vida, alineadas con los tres módulos. */
+export const TALENT_TABS: {
+  id: ChallengeTipo;
+  label: string;
+  description: string;
+  params: { role?: 'solucionador' | 'egresado'; afiliacion?: string };
+}[] = [
+  {
+    id: 'reto',
+    label: 'Pupilos de innovación',
+    description: 'Estudiantes vinculados al Laboratorio de Innovación, listos para resolver retos.',
+    params: { afiliacion: 'Innovaci' },
+  },
+  {
+    id: 'practica',
+    label: 'Estudiantes para práctica',
+    description: 'Estudiantes de la Universidad Libre disponibles para práctica empresarial.',
+    params: { role: 'solucionador' },
+  },
+  {
+    id: 'empleo',
+    label: 'Egresados',
+    description: 'Egresados en búsqueda de empleo.',
+    params: { role: 'egresado' },
+  },
+];
+
 export const MODALIDAD_LABEL: Record<Modalidad, string> = {
   presencial: 'Presencial',
   remoto: 'Remoto',
