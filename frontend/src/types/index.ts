@@ -16,6 +16,19 @@ export interface User {
   empresa_nombre?: string | null;
   programa_academico?: string | null;
   afiliacion_academica?: string | null;
+  // Perfil profesional (estudiantes y egresados), visible para las empresas
+  skills: string[];
+  soft_skills: string[];
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  ubicacion?: string | null;
+  semestre?: string | null;
+  anio_egreso?: number | null;
+  disponible: boolean;
+  cv_filename?: string | null;
+  cv_size?: number | null;
+  cv_updated_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -145,11 +158,6 @@ export type PreferredChannel = 'correo' | 'telefono' | 'whatsapp';
 export interface ExtendedProfile {
   /** Campos que el backend aún no persiste; se guardan en el navegador. */
   second_email?: string;
-  location?: string;
-  skills: string[];
-  linkedin?: string;
-  github?: string;
-  portfolio?: string;
   cargo?: string;
   departamento?: string;
   enlaces_corporativos: string[];
@@ -173,4 +181,13 @@ export interface ProfileUpdatePayload {
   empresa_nombre?: string;
   programa_academico?: string;
   afiliacion_academica?: string;
+  skills?: string[];
+  soft_skills?: string[];
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  ubicacion?: string | null;
+  semestre?: string | null;
+  anio_egreso?: number | null;
+  disponible?: boolean;
 }

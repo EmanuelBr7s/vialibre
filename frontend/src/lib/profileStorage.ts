@@ -1,16 +1,15 @@
 'use client';
 
-import type { ExtendedProfile, ResumeInfo } from '@/types';
+import type { ExtendedProfile } from '@/types';
 
 /**
  * Persistencia del módulo de perfil en el navegador.
  *
- * - Campos extendidos (links, skills, cargo, …) y metadatos del CV → localStorage.
- * - Binarios (imagen de avatar y PDF del CV) → IndexedDB, para no agotar la
- *   cuota de localStorage.
+ * - Campos extendidos de la organización (cargo, enlaces, …) → localStorage.
+ * - Imagen de avatar → IndexedDB, para no agotar la cuota de localStorage.
  *
- * El backend aún no expone almacenamiento de archivos; esta capa es la fuente
- * de verdad local y evita recargar datos en cada interacción.
+ * El perfil profesional y la hoja de vida viven en el backend (auth-service)
+ * para que las empresas puedan consultarlos.
  */
 
 const DB_NAME = 'vialibre-profile-store';
@@ -19,10 +18,6 @@ const STORE_NAME = 'blobs';
 
 function extendedKey(userId: string): string {
   return `vialibre-extended-profile-${userId}`;
-}
-
-function resumeMetaKey(userId: string): string {
-  return `vialibre-resume-meta-${userId}`;
 }
 
 function blobKey(prefix: string, userId: string): string {
@@ -99,48 +94,6 @@ export async function getAvatarBlobUrl(userId: string): Promise<string | null> {
 
 export async function deleteAvatar(userId: string): Promise<void> {
   await deleteRecord(blobKey('avatar', userId));
-}
-
-// ── Hoja de vida (CV) ──
-
-export async function saveResume(userId: string, blob: Blob): Promise<void> {
-  await putRecord(blobKey('resume', userId), blob);
-}
-
-export async function getResumeBlob(userId: string): Promise<Blob | null> {
-  return getRecord<Blob>(blobKey('resume', userId));
-}
-
-export async function getResumeBlobUrl(userId: string): Promise<string | null> {
-  const blob = await getResumeBlob(userId);
-  return blob ? URL.createObjectURL(blob) : null;
-}
-
-export async function deleteResume(userId: string): Promise<void> {
-  await deleteRecord(blobKey('resume', userId));
-}
-
-// ── Metadatos del CV (localStorage) ──
-
-export function saveResumeMeta(userId: string, meta: ResumeInfo): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(resumeMetaKey(userId), JSON.stringify(meta));
-}
-
-export function getResumeMeta(userId: string): ResumeInfo | null {
-  if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(resumeMetaKey(userId));
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as ResumeInfo;
-  } catch {
-    return null;
-  }
-}
-
-export function clearResumeMeta(userId: string): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.removeItem(resumeMetaKey(userId));
 }
 
 // ── Perfil extendido (localStorage) ──

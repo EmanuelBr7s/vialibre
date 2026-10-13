@@ -22,6 +22,8 @@ interface AuthContextValue {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
   updateUser: (payload: ProfileUpdatePayload) => Promise<User>;
+  /** Reemplaza el usuario en memoria con la versión devuelta por la API. */
+  syncUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -90,6 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updated;
   }, []);
 
+  const syncUser = useCallback((next: User) => setUser(next), []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -100,8 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       updateUser,
+      syncUser,
     }),
-    [user, token, loading, login, register, logout, updateUser]
+    [user, token, loading, login, register, logout, updateUser, syncUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
