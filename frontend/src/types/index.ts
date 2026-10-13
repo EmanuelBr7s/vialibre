@@ -62,6 +62,9 @@ export interface TokenResponse {
 
 export type ChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
+/** Módulo de la publicación: reto (laboratorio), práctica o empleo. */
+export type ChallengeTipo = 'reto' | 'practica' | 'empleo';
+export type Modalidad = 'presencial' | 'remoto' | 'hibrido';
 
 export interface Category {
   id: string;
@@ -75,6 +78,7 @@ export interface Challenge {
   title: string;
   short_description: string;
   long_description: string;
+  tipo: ChallengeTipo;
   author_id: string;
   category_id?: string | null;
   status: ChallengeStatus;
@@ -82,6 +86,9 @@ export interface Challenge {
   tags?: string[] | null;
   budget?: number | null;
   deadline?: string | null;
+  image_url?: string | null;
+  modalidad?: Modalidad | null;
+  ubicacion?: string | null;
   is_featured: boolean;
   featured_score: number;
   created_at: string;

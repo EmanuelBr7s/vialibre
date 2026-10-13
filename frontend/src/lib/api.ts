@@ -2,6 +2,8 @@ import type {
   Challenge,
   ChallengeApplicantsResponse,
   ChallengeListResponse,
+  ChallengeTipo,
+  Modalidad,
   ContactInfo,
   Interaction,
   InteractionListResponse,
@@ -187,6 +189,8 @@ class ApiClient {
     category_id?: string;
     difficulty?: string;
     featured_only?: boolean;
+    tipo?: ChallengeTipo;
+    author_id?: string;
   }): Promise<ChallengeListResponse> {
     const searchParams = new URLSearchParams();
     if (params) {
@@ -208,11 +212,15 @@ class ApiClient {
     title: string;
     short_description: string;
     long_description: string;
+    tipo: ChallengeTipo;
     category_id?: string;
     difficulty?: string;
     tags?: string[];
     budget?: number;
     deadline?: string;
+    image_url?: string;
+    modalidad?: Modalidad;
+    ubicacion?: string;
   }): Promise<Challenge> {
     return this.request('/v1/core/challenges/', {
       method: 'POST',
