@@ -308,10 +308,13 @@ async def get_contact_info(
             detail="Not authorized to view contact info",
         )
 
-    # Fetch solucionador info from auth-service (pass real JWT)
+    # Contacto de la contraparte: el estudiante ve a la empresa; la empresa y
+    # la administracion ven al estudiante.
+    is_solucionador = str(interaction.solucionador_id) == auth.payload.sub
+    contact_id = author_id if is_solucionador else interaction.solucionador_id
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{settings.auth_service_url}/api/v1/auth/users/{interaction.solucionador_id}",
+            f"{settings.auth_service_url}/api/v1/auth/users/{contact_id}",
             headers={"Authorization": f"Bearer {auth.token}"},
         )
         if response.status_code != 200:

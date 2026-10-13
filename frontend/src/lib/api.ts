@@ -5,6 +5,8 @@ import type {
   ChallengeTipo,
   Modalidad,
   ContactInfo,
+  DocumentChecklist,
+  DocumentInfo,
   Interaction,
   InteractionListResponse,
   ProfileUpdatePayload,
@@ -173,13 +175,13 @@ class ApiClient {
     return this.request(`/v1/auth/users/talent${query ? `?${query}` : ''}`);
   }
 
-  // ── Hoja de vida (PDF) ──
-  async uploadMyCv(file: File): Promise<User> {
+  // ── Archivos (multipart y descargas autenticadas) ──
+  private async uploadFile<T>(endpoint: string, file: File): Promise<T> {
     const body = new FormData();
     body.append('file', file);
     const token = this.getToken();
     // Sin Content-Type: el navegador fija el boundary del multipart.
-    const response = await fetch(`${this.baseUrl}/v1/auth/users/me/cv`, {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body,
@@ -188,18 +190,44 @@ class ApiClient {
     return response.json();
   }
 
-  async deleteMyCv(): Promise<null> {
-    return this.request('/v1/auth/users/me/cv', { method: 'DELETE' });
-  }
-
-  /** Descarga el CV con el token y devuelve una URL blob para <iframe> o descarga. */
-  async getUserCvBlobUrl(userId: string): Promise<string> {
+  /** Descarga con el token y devuelve una URL blob para <iframe> o descarga. */
+  private async fetchBlobUrl(endpoint: string): Promise<string> {
     const token = this.getToken();
-    const response = await fetch(`${this.baseUrl}/v1/auth/users/${userId}/cv`, {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) throw await toError(response);
     return URL.createObjectURL(await response.blob());
+  }
+
+  // ── Hoja de vida (PDF) ──
+  async uploadMyCv(file: File): Promise<User> {
+    return this.uploadFile('/v1/auth/users/me/cv', file);
+  }
+
+  async deleteMyCv(): Promise<null> {
+    return this.request('/v1/auth/users/me/cv', { method: 'DELETE' });
+  }
+
+  async getUserCvBlobUrl(userId: string): Promise<string> {
+    return this.fetchBlobUrl(`/v1/auth/users/${userId}/cv`);
+  }
+
+  // ── Documentos de práctica y carta de aval ──
+  async getPracticeDocuments(interactionId: string): Promise<DocumentChecklist> {
+    return this.request(`/v1/match/interactions/${interactionId}/documentos`);
+  }
+
+  async uploadPracticeDocument(interactionId: string, tipo: string, file: File): Promise<DocumentInfo> {
+    return this.uploadFile(`/v1/match/interactions/${interactionId}/documentos/${tipo}`, file);
+  }
+
+  async getPracticeDocumentBlobUrl(interactionId: string, tipo: string): Promise<string> {
+    return this.fetchBlobUrl(`/v1/match/interactions/${interactionId}/documentos/${tipo}`);
+  }
+
+  async getEndorsementLetterBlobUrl(interactionId: string): Promise<string> {
+    return this.fetchBlobUrl(`/v1/match/interactions/${interactionId}/carta-aval`);
   }
 
   // ── Challenges endpoints ──

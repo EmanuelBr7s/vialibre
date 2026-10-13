@@ -165,6 +165,28 @@ export interface ContactInfo {
   afiliacion_academica?: string | null;
 }
 
+// ── Documentos de práctica (carta de aval) ──
+
+export interface DocumentInfo {
+  tipo: string;
+  filename: string;
+  size: number;
+  uploaded_at: string;
+}
+
+export interface RequiredDocument {
+  tipo: string;
+  label: string;
+  documento?: DocumentInfo | null;
+}
+
+export interface DocumentChecklist {
+  /** Práctica en la que el estudiante fue seleccionado. */
+  aplica: boolean;
+  completos: boolean;
+  requeridos: RequiredDocument[];
+}
+
 // ── Profile / Resume types (client-persisted extended data) ──
 
 export type PreferredChannel = 'correo' | 'telefono' | 'whatsapp';
