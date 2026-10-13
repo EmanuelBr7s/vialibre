@@ -112,7 +112,7 @@ async def list_challenge_applicants(
     )
 
 
-@router.get("/", response_model=InteractionListResponse)
+@router.get("", response_model=InteractionListResponse)
 async def list_my_interactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),

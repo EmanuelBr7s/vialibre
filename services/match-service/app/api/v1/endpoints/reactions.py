@@ -16,7 +16,7 @@ from app.schemas.match import (
 router = APIRouter()
 
 
-@router.post("/", response_model=ReactionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ReactionResponse, status_code=status.HTTP_201_CREATED)
 async def create_reaction(
     data: ReactionCreate,
     auth: AuthContext = Depends(get_current_user),
@@ -47,7 +47,7 @@ async def create_reaction(
     return reaction
 
 
-@router.get("/", response_model=ReactionListResponse)
+@router.get("", response_model=ReactionListResponse)
 async def list_my_reactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),

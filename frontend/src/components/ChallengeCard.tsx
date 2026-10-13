@@ -1,5 +1,6 @@
 ﻿import type { Challenge } from '@/types';
 import { FOCUS_RING } from '@/components/ui/classes';
+import { MODALIDAD_LABEL, MODULE_BY_ID } from '@/data/modules';
 
 interface ChallengeCardProps {
   challenge: Challenge;
@@ -19,6 +20,7 @@ const DIFFICULTY_LABEL: Record<string, string> = {
 
 export default function ChallengeCard({ challenge }: ChallengeCardProps) {
   const difficulty = challenge.difficulty ?? '';
+  const mod = MODULE_BY_ID[challenge.tipo];
 
   return (
     <div className={`bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer ${FOCUS_RING}`}>
@@ -39,6 +41,11 @@ export default function ChallengeCard({ challenge }: ChallengeCardProps) {
       <h3 className="text-sm font-semibold text-gray-900 mt-2 line-clamp-2">
         {challenge.title}
       </h3>
+      <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-gray-500">
+        {mod && <span className={`font-medium px-1.5 rounded ${mod.badgeClass}`}>{mod.singular}</span>}
+        {challenge.modalidad && <span>{MODALIDAD_LABEL[challenge.modalidad]}</span>}
+        {challenge.ubicacion && <span>· {challenge.ubicacion}</span>}
+      </p>
       <p className="text-xs text-gray-600 mt-2 line-clamp-2">
         {challenge.short_description}
       </p>

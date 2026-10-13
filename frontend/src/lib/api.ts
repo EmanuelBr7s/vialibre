@@ -2,6 +2,8 @@ import type {
   Challenge,
   ChallengeApplicantsResponse,
   ChallengeListResponse,
+  ChallengeTipo,
+  Modalidad,
   ContactInfo,
   Interaction,
   InteractionListResponse,
@@ -187,6 +189,8 @@ class ApiClient {
     category_id?: string;
     difficulty?: string;
     featured_only?: boolean;
+    tipo?: ChallengeTipo;
+    author_id?: string;
   }): Promise<ChallengeListResponse> {
     const searchParams = new URLSearchParams();
     if (params) {
@@ -197,7 +201,7 @@ class ApiClient {
       });
     }
     const query = searchParams.toString();
-    return this.request(`/v1/core/challenges/${query ? `?${query}` : ''}`);
+    return this.request(`/v1/core/challenges${query ? `?${query}` : ''}`);
   }
 
   async getChallenge(id: string): Promise<Challenge> {
@@ -208,13 +212,17 @@ class ApiClient {
     title: string;
     short_description: string;
     long_description: string;
+    tipo: ChallengeTipo;
     category_id?: string;
     difficulty?: string;
     tags?: string[];
     budget?: number;
     deadline?: string;
+    image_url?: string;
+    modalidad?: Modalidad;
+    ubicacion?: string;
   }): Promise<Challenge> {
-    return this.request('/v1/core/challenges/', {
+    return this.request('/v1/core/challenges', {
       method: 'POST',
       body: data,
     });
@@ -242,7 +250,7 @@ class ApiClient {
       });
     }
     const query = searchParams.toString();
-    return this.request(`/v1/match/interactions/${query ? `?${query}` : ''}`);
+    return this.request(`/v1/match/interactions${query ? `?${query}` : ''}`);
   }
 
   async getChallengeApplicants(challengeId: string): Promise<ChallengeApplicantsResponse> {
@@ -266,7 +274,7 @@ class ApiClient {
 
   // ── Reactions endpoints ──
   async createReaction(data: { challenge_id: string; reaction_type: 'like' | 'bookmark' }): Promise<Reaction> {
-    return this.request('/v1/match/reactions/', {
+    return this.request('/v1/match/reactions', {
       method: 'POST',
       body: data,
     });

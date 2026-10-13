@@ -31,7 +31,7 @@ export default function Sidebar({ challenges, onOpenCreate }: SidebarProps) {
   useFocusTrap(drawerRef, mobileOpen, () => setMobileOpen(false));
 
   const recentList = (
-    <nav aria-label="Problemáticas recientes">
+    <nav aria-label="Publicaciones recientes">
       <ul className="space-y-3">
         {challenges.slice(0, 5).map((challenge) => (
           <li key={challenge.id}>
@@ -125,7 +125,7 @@ export default function Sidebar({ challenges, onOpenCreate }: SidebarProps) {
 
         <div className="flex-1 overflow-y-auto p-4">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-            Problemáticas Recientes
+            Publicaciones recientes
           </h2>
           {recentList}
         </div>
@@ -165,7 +165,7 @@ export default function Sidebar({ challenges, onOpenCreate }: SidebarProps) {
             </div>
             <div className="flex-1 overflow-y-auto p-4">
               <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-                Problemáticas Recientes
+                Publicaciones recientes
               </h2>
               {recentList}
             </div>

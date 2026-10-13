@@ -1,13 +1,16 @@
 'use client';
 
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import api from '@/lib/api';
-import type { Challenge } from '@/types';
+import type { Challenge, ChallengeTipo, Modalidad } from '@/types';
+import { MODALIDAD_LABEL, MODULES, MODULE_BY_ID } from '@/data/modules';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
 interface CreateChallengeModalProps {
   open: boolean;
+  /** Módulo preseleccionado (la pestaña activa del feed). */
+  defaultTipo?: ChallengeTipo;
   onClose: () => void;
   onCreated: (challenge: Challenge) => void;
 }
@@ -16,6 +19,7 @@ interface FieldErrors {
   title?: string;
   shortDescription?: string;
   longDescription?: string;
+  imageUrl?: string;
 }
 
 const inputClass =
@@ -23,6 +27,7 @@ const inputClass =
 
 export default function CreateChallengeModal({
   open,
+  defaultTipo = 'reto',
   onClose,
   onCreated,
 }: CreateChallengeModalProps) {
@@ -33,6 +38,15 @@ export default function CreateChallengeModal({
   const [longDescription, setLongDescription] = useState('');
   const [difficulty, setDifficulty] = useState('medium');
   const [tags, setTags] = useState('');
+  const [tipo, setTipo] = useState<ChallengeTipo>(defaultTipo);
+  const [modalidad, setModalidad] = useState<Modalidad | ''>('');
+  const [ubicacion, setUbicacion] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+
+  // Cada apertura parte del módulo de la pestaña activa.
+  useEffect(() => {
+    if (open) setTipo(defaultTipo);
+  }, [open, defaultTipo]);
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<string[]>([]);
@@ -54,6 +68,9 @@ export default function CreateChallengeModal({
     if (longDescription.trim().length < 20) {
       next.longDescription = 'La descripción larga debe tener al menos 20 caracteres';
     }
+    if (imageUrl.trim() && !/^(https?:\/\/|\/)\S+$/.test(imageUrl.trim())) {
+      next.imageUrl = 'Ingresa una URL válida (https://…)';
+    }
     return next;
   };
 
@@ -73,7 +90,7 @@ export default function CreateChallengeModal({
     };
 
   const markAllTouched = () => {
-    const all = ['title', 'shortDescription', 'longDescription'];
+    const all = ['title', 'shortDescription', 'longDescription', 'imageUrl'];
     setTouched((prev) => Array.from(new Set([...prev, ...all])));
   };
 
@@ -99,16 +116,23 @@ export default function CreateChallengeModal({
         title: title.trim(),
         short_description: shortDescription.trim(),
         long_description: longDescription.trim(),
-        difficulty,
+        tipo,
+        ...(tipo === 'reto' ? { difficulty } : {}),
         ...(parsedTags.length ? { tags: parsedTags } : {}),
+        ...(modalidad ? { modalidad } : {}),
+        ...(ubicacion.trim() ? { ubicacion: ubicacion.trim() } : {}),
+        ...(imageUrl.trim() ? { image_url: imageUrl.trim() } : {}),
       });
       onCreated(challenge);
-      setSuccess('Problemática publicada con éxito.');
+      setSuccess(`${MODULE_BY_ID[tipo].singular} publicado con éxito.`);
       setTitle('');
       setShortDescription('');
       setLongDescription('');
       setDifficulty('medium');
       setTags('');
+      setModalidad('');
+      setUbicacion('');
+      setImageUrl('');
       setTouched([]);
       setErrors({});
       // Cerrar tras un breve instante para que se vea el mensaje de éxito.
@@ -138,7 +162,7 @@ export default function CreateChallengeModal({
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 id="create-challenge-title" className="text-lg font-bold text-gray-900">
-            Publicar Problemática
+            Nueva publicación
           </h2>
           <button
             type="button"
@@ -151,13 +175,41 @@ export default function CreateChallengeModal({
         </div>
 
         <div id="create-challenge-desc" className="sr-only">
-          Formulario para publicar una nueva problemática empresarial o de fundación.
+          Formulario para publicar un reto empresarial, una práctica o una oferta laboral.
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4" noValidate>
+          <fieldset>
+            <legend className="block text-sm font-medium text-gray-700 mb-2">
+              ¿Qué quieres publicar?
+            </legend>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {MODULES.map((m) => (
+                <label
+                  key={m.id}
+                  className={`flex items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium cursor-pointer text-center ${TOUCH_TARGET} ${
+                    tipo === m.id
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  } has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary-600`}
+                >
+                  <input
+                    type="radio"
+                    name="tipo"
+                    value={m.id}
+                    checked={tipo === m.id}
+                    onChange={() => setTipo(m.id)}
+                    className="sr-only"
+                  />
+                  {m.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Título de la problemática <span aria-hidden="true">*</span>
+              Título <span aria-hidden="true">*</span>
             </label>
             <input
               id="title"
@@ -168,7 +220,13 @@ export default function CreateChallengeModal({
               required
               aria-invalid={!!errors.title}
               aria-describedby={showError('title') ? 'title-error' : undefined}
-              placeholder="Ej: Modelo predictivo para rendimiento de cosechas"
+              placeholder={
+                tipo === 'empleo'
+                  ? 'Ej: Analista contable junior'
+                  : tipo === 'practica'
+                    ? 'Ej: Practicante de desarrollo web'
+                    : 'Ej: Modelo predictivo para rendimiento de cosechas'
+              }
               className={inputClass}
             />
             {showError('title') && (
@@ -191,7 +249,7 @@ export default function CreateChallengeModal({
               required
               aria-invalid={!!errors.shortDescription}
               aria-describedby={showError('shortDescription') ? 'shortDescription-error' : undefined}
-              placeholder="Resumen breve de la problemática"
+              placeholder="Resumen breve en una línea"
               className={inputClass}
             />
             {showError('shortDescription') && (
@@ -214,7 +272,7 @@ export default function CreateChallengeModal({
               rows={5}
               aria-invalid={!!errors.longDescription}
               aria-describedby={showError('longDescription') ? 'longDescription-error' : undefined}
-              placeholder="Descripción detallada de la problemática…"
+              placeholder="Responsabilidades, requisitos, beneficios o alcance del reto…"
               className={inputClass}
             />
             {showError('longDescription') && (
@@ -224,6 +282,64 @@ export default function CreateChallengeModal({
             )}
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="modalidad" className="block text-sm font-medium text-gray-700 mb-1">
+                Modalidad
+              </label>
+              <select
+                id="modalidad"
+                value={modalidad}
+                onChange={(e) => setModalidad(e.target.value as Modalidad | '')}
+                className={inputClass}
+              >
+                <option value="">Sin especificar</option>
+                {(Object.keys(MODALIDAD_LABEL) as Modalidad[]).map((m) => (
+                  <option key={m} value={m}>
+                    {MODALIDAD_LABEL[m]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ubicacion" className="block text-sm font-medium text-gray-700 mb-1">
+                Ubicación
+              </label>
+              <input
+                id="ubicacion"
+                type="text"
+                value={ubicacion}
+                onChange={(e) => setUbicacion(e.target.value)}
+                maxLength={120}
+                placeholder="Barranquilla, Atlántico"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Imagen de portada (URL, opcional)
+            </label>
+            <input
+              id="imageUrl"
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              onBlur={() => handleBlur('imageUrl')}
+              aria-invalid={!!errors.imageUrl}
+              aria-describedby={showError('imageUrl') ? 'imageUrl-error' : undefined}
+              placeholder="https://…"
+              className={inputClass}
+            />
+            {showError('imageUrl') && (
+              <p id="imageUrl-error" className="mt-1 text-xs text-red-600" role="alert">
+                {errors.imageUrl}
+              </p>
+            )}
+          </div>
+
+          {tipo === 'reto' && (
           <div>
             <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
               Dificultad
@@ -239,6 +355,7 @@ export default function CreateChallengeModal({
               <option value="hard">Difícil</option>
             </select>
           </div>
+          )}
 
           <div>
             <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
