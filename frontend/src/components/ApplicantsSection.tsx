@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import type { ContactInfo, Interaction, User } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
-import { useFocusTrap } from '@/hooks/useFocusTrap';
+import CvPreviewModal from '@/components/CvPreviewModal';
 
 interface ApplicantsSectionProps {
   challengeId: string;
@@ -43,12 +43,9 @@ export default function ApplicantsSection({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   // Estado de previsualización del CV del postulado
-  const previewRef = useRef<HTMLDivElement>(null);
   const [cvOpen, setCvOpen] = useState<{ url: string; fileName: string } | null>(null);
   const [cvLoadingId, setCvLoadingId] = useState<string | null>(null);
   const [cvNotice, setCvNotice] = useState<string | null>(null);
-
-  useFocusTrap(previewRef, !!cvOpen, () => setCvOpen(null));
 
   const loadApplicants = useCallback(async () => {
     setLoading(true);
@@ -315,50 +312,12 @@ export default function ApplicantsSection({
 
       {/* Modal de previsualización del CV del postulado */}
       {cvOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="presentation"
-        >
-          <div
-            ref={previewRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="applicant-cv-preview-title"
-            className="bg-white rounded-xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]"
-          >
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3
-                id="applicant-cv-preview-title"
-                className="text-base font-bold text-gray-900 truncate"
-              >
-                Hoja de vida del postulado
-              </h3>
-              <button
-                type="button"
-                onClick={() => setCvOpen(null)}
-                aria-label="Cerrar hoja de vida"
-                className={`inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 text-2xl leading-none rounded-lg hover:bg-gray-100 ${FOCUS_RING}`}
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-            </div>
-            <iframe
-              src={cvOpen.url}
-              title={`Previsualización de ${cvOpen.fileName}`}
-              className="w-full flex-1 min-h-[70vh] border-0"
-            />
-            <div className="flex items-center justify-between gap-3 p-4 border-t border-gray-200">
-              <p className="text-sm text-gray-500 truncate">{cvOpen.fileName}</p>
-              <a
-                href={cvOpen.url}
-                download={cvOpen.fileName}
-                className={`inline-flex items-center justify-center px-4 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
-              >
-                Descargar PDF
-              </a>
-            </div>
-          </div>
-        </div>
+        <CvPreviewModal
+          url={cvOpen.url}
+          fileName={cvOpen.fileName}
+          title="Hoja de vida del postulado"
+          onClose={() => setCvOpen(null)}
+        />
       )}
     </section>
   );

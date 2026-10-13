@@ -33,6 +33,13 @@ export interface User {
   updated_at: string;
 }
 
+export interface UserListResponse {
+  users: User[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;

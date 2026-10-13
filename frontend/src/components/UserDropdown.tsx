@@ -124,6 +124,7 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
         case 'publicador':
           return [
             { id: 'mis-problematicas', label: 'Mis Publicaciones', href: '/mis-problematicas' },
+            { id: 'talento', label: 'Banco de Hojas de Vida', href: '/talento' },
             {
               id: 'publicar',
               label: 'Nueva Publicación',
@@ -150,6 +151,7 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
         case 'admin':
           return [
             { id: 'panel-admin', label: 'Panel de Administración', href: '/admin/dashboard' },
+            { id: 'talento', label: 'Banco de Hojas de Vida', href: '/talento' },
             { id: 'gestion-anuncios', label: 'Gestión de Anuncios / Pautas', href: '/admin/anuncios' },
           ];
       }

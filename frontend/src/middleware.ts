@@ -9,6 +9,7 @@ const PROTECTED_PATHS = [
   '/perfil',
   '/admin',
   '/settings',
+  '/talento',
 ];
 
 export function middleware(request: NextRequest) {
@@ -44,5 +45,6 @@ export const config = {
     '/perfil/:path*',
     '/admin/:path*',
     '/settings',
+    '/talento',
   ],
 };
