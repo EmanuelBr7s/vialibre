@@ -19,6 +19,14 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def include_name(name, type_, parent_names):
+    """Compara solo el esquema de este servicio: sin esto el autogenerado no ve
+    sus tablas (recrea todo) y propone borrar las de los demas servicios."""
+    if type_ == "schema":
+        return name == settings.schema_name
+    return True
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
     url = config.get_main_option("sqlalchemy.url")
@@ -35,7 +43,13 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, version_table="alembic_version_match")
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table="alembic_version_match",
+        include_schemas=True,
+        include_name=include_name,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
