@@ -41,6 +41,17 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 };
 
+async function toError(response: Response): Promise<Error> {
+  const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+  const message =
+    typeof error.detail === 'string'
+      ? error.detail
+      : Array.isArray(error.detail)
+      ? error.detail.map((d: { msg?: string }) => d.msg || '').join('; ')
+      : `HTTP error! status: ${response.status}`;
+  return new Error(message || `HTTP error! status: ${response.status}`);
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -81,14 +92,7 @@ class ApiClient {
     const response = await fetch(`${this.baseUrl}${endpoint}`, config);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      const message =
-        typeof error.detail === 'string'
-          ? error.detail
-          : Array.isArray(error.detail)
-          ? error.detail.map((d: { msg?: string }) => d.msg || '').join('; ')
-          : `HTTP error! status: ${response.status}`;
-      throw new Error(message || `HTTP error! status: ${response.status}`);
+      throw await toError(response);
     }
 
     if (response.status === 204) {
@@ -144,6 +148,35 @@ class ApiClient {
       method: 'PATCH',
       body: payload,
     });
+  }
+
+  // ── Hoja de vida (PDF) ──
+  async uploadMyCv(file: File): Promise<User> {
+    const body = new FormData();
+    body.append('file', file);
+    const token = this.getToken();
+    // Sin Content-Type: el navegador fija el boundary del multipart.
+    const response = await fetch(`${this.baseUrl}/v1/auth/users/me/cv`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!response.ok) throw await toError(response);
+    return response.json();
+  }
+
+  async deleteMyCv(): Promise<null> {
+    return this.request('/v1/auth/users/me/cv', { method: 'DELETE' });
+  }
+
+  /** Descarga el CV con el token y devuelve una URL blob para <iframe> o descarga. */
+  async getUserCvBlobUrl(userId: string): Promise<string> {
+    const token = this.getToken();
+    const response = await fetch(`${this.baseUrl}/v1/auth/users/${userId}/cv`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw await toError(response);
+    return URL.createObjectURL(await response.blob());
   }
 
   // ── Challenges endpoints ──

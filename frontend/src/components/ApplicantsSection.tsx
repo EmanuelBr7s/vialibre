@@ -6,7 +6,6 @@ import type { ContactInfo, Interaction, User } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { getResumeBlobUrl, getResumeMeta } from '@/lib/profileStorage';
 
 interface ApplicantsSectionProps {
   challengeId: string;
@@ -124,19 +123,17 @@ export default function ApplicantsSection({
    * Abre la previsualización del CV del solucionador. El visto bueno no es
    * requisito: el publicador puede evaluar el perfil desde la postulación.
    */
-  const openApplicantCv = async (solucionadorId: string) => {
+  const openApplicantCv = async (applicant: ApplicantWithUser) => {
+    const solucionadorId = applicant.solucionador_id;
+    if (!applicant.user?.cv_filename) {
+      setCvNotice('Este postulado aún no ha adjuntado una hoja de vida.');
+      return;
+    }
     setCvLoadingId(solucionadorId);
     setCvNotice(null);
     try {
-      const [url, meta] = await Promise.all([
-        getResumeBlobUrl(solucionadorId),
-        Promise.resolve(getResumeMeta(solucionadorId)),
-      ]);
-      if (url && meta) {
-        setCvOpen({ url, fileName: meta.fileName });
-      } else {
-        setCvNotice('Este postulado aún no ha adjuntado una hoja de vida.');
-      }
+      const url = await api.getUserCvBlobUrl(solucionadorId);
+      setCvOpen({ url, fileName: applicant.user.cv_filename });
     } catch {
       setCvNotice('No se pudo cargar la hoja de vida de este postulado.');
     } finally {
@@ -263,7 +260,7 @@ export default function ApplicantsSection({
 
                 {applicant.status !== 'rechazado' && (
                   <button
-                    onClick={() => openApplicantCv(applicant.solucionador_id)}
+                    onClick={() => openApplicantCv(applicant)}
                     disabled={cvLoadingId === applicant.solucionador_id}
                     aria-busy={cvLoadingId === applicant.solucionador_id}
                     className={`mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-2 -mx-2 ${TOUCH_TARGET} ${FOCUS_RING}`}

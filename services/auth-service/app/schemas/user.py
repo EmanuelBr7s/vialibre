@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from typing import Annotated
+
+from pydantic import BaseModel, EmailStr, Field, StringConstraints, model_validator
 
 from vialibre_common.schemas import UserRole
 
@@ -20,6 +22,13 @@ class UserCreate(BaseModel):
     afiliacion_academica: Optional[str] = None
 
 
+SkillList = Annotated[
+    list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]],
+    Field(max_length=30),
+]
+Url = Annotated[str, StringConstraints(strip_whitespace=True, max_length=512)]
+
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=2, max_length=255)
     phone: Optional[str] = None
@@ -29,6 +38,15 @@ class UserUpdate(BaseModel):
     empresa_nombre: Optional[str] = None
     programa_academico: Optional[str] = None
     afiliacion_academica: Optional[str] = None
+    skills: Optional[SkillList] = None
+    soft_skills: Optional[SkillList] = None
+    linkedin_url: Optional[Url] = None
+    github_url: Optional[Url] = None
+    portfolio_url: Optional[Url] = None
+    ubicacion: Optional[str] = Field(None, max_length=120)
+    semestre: Optional[str] = Field(None, max_length=30)
+    anio_egreso: Optional[int] = Field(None, ge=1960, le=2100)
+    disponible: Optional[bool] = None
 
 
 class UserResponse(BaseModel):
@@ -44,6 +62,18 @@ class UserResponse(BaseModel):
     empresa_nombre: Optional[str] = None
     programa_academico: Optional[str] = None
     afiliacion_academica: Optional[str] = None
+    skills: list[str] = []
+    soft_skills: list[str] = []
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    ubicacion: Optional[str] = None
+    semestre: Optional[str] = None
+    anio_egreso: Optional[int] = None
+    disponible: bool = True
+    cv_filename: Optional[str] = None
+    cv_size: Optional[int] = None
+    cv_updated_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

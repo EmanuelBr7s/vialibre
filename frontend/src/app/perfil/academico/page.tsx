@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import ProfileEditor from '@/components/ProfileEditor';
 import ResumeUploader from '@/components/ResumeUploader';
@@ -10,7 +11,19 @@ import { FOCUS_RING } from '@/components/ui/classes';
 
 export default function PerfilAcademicoPage() {
   const allowed = useRoleGuard(TALENT_ROLES);
-  const [available, setAvailable] = useState(true);
+  const { user, updateUser } = useAuth();
+  const [savingAvailable, setSavingAvailable] = useState(false);
+  const available = user?.disponible ?? true;
+  const isGraduate = user?.role === 'egresado';
+
+  const toggleAvailable = async () => {
+    setSavingAvailable(true);
+    try {
+      await updateUser({ disponible: !available });
+    } finally {
+      setSavingAvailable(false);
+    }
+  };
 
   if (!allowed) {
     return (
@@ -30,9 +43,11 @@ export default function PerfilAcademicoPage() {
         className="flex-1 p-4 sm:p-6 lg:p-8 max-w-3xl focus:outline-none"
       >
         <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Perfil Académico</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            {isGraduate ? 'Perfil Profesional' : 'Perfil Académico'}
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Edita tus datos personales, información académica y gestiona tu hoja de vida (CV).
+            Así te ven las empresas en el banco de hojas de vida: datos, habilidades, enlaces y tu CV.
           </p>
         </header>
 
@@ -44,19 +59,23 @@ export default function PerfilAcademicoPage() {
           {/* Interruptor de disponibilidad */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-medium text-gray-900">Disponible para postulaciones</p>
+              <p className="text-sm font-medium text-gray-900">
+                {isGraduate ? 'Buscando empleo' : 'Disponible para prácticas y retos'}
+              </p>
               <p className="text-xs text-gray-500">
                 {available
-                  ? 'Recibes nuevas propuestas de problemáticas.'
-                  : 'Oculto temporalmente de nuevas propuestas.'}
+                  ? 'Las empresas pueden encontrarte en el banco de hojas de vida.'
+                  : 'Oculto temporalmente del banco de hojas de vida.'}
               </p>
             </div>
             <button
               type="button"
               role="switch"
               aria-checked={available}
-              aria-label="Disponible para postulaciones"
-              onClick={() => setAvailable((prev) => !prev)}
+              aria-label={isGraduate ? 'Buscando empleo' : 'Disponible para prácticas y retos'}
+              aria-busy={savingAvailable}
+              disabled={savingAvailable}
+              onClick={toggleAvailable}
               className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${FOCUS_RING} ${
                 available ? 'bg-secondary-500' : 'bg-gray-300'
               }`}
