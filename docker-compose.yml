@@ -26,6 +26,8 @@ services:
         condition: service_healthy
     volumes:
       - ./services/auth-service/app:/app/app
+      - ./services/auth-service/alembic:/app/alembic
+      - ./shared/python/vialibre_common:/shared/vialibre_common
 
   # ── Core Service ──
   core-service:
@@ -40,6 +42,8 @@ services:
         condition: service_healthy
     volumes:
       - ./services/core-service/app:/app/app
+      - ./services/core-service/alembic:/app/alembic
+      - ./shared/python/vialibre_common:/shared/vialibre_common
 
   # ── Match Service ──
   match-service:
@@ -54,6 +58,8 @@ services:
         condition: service_healthy
     volumes:
       - ./services/match-service/app:/app/app
+      - ./services/match-service/alembic:/app/alembic
+      - ./shared/python/vialibre_common:/shared/vialibre_common
 
   # ── Frontend ──
   frontend:

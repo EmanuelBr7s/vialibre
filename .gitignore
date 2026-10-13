@@ -35,3 +35,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# ── Alembic ──
+# Las revisiones se autogeneran por entorno (make migrate) a partir de los modelos.
+services/*/alembic/versions/
