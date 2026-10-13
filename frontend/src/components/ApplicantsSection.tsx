@@ -6,6 +6,7 @@ import type { ContactInfo, Interaction, User } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 import CvPreviewModal from '@/components/CvPreviewModal';
+import PracticeDocuments from '@/components/PracticeDocuments';
 
 interface ApplicantsSectionProps {
   challengeId: string;
@@ -159,7 +160,7 @@ export default function ApplicantsSection({
       <section aria-label="Postulados" className="bg-gray-50 rounded-xl border border-gray-200 p-6 mt-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Postulados</h3>
         <p className="text-sm text-gray-600">
-          Aún no hay postulaciones para esta problemática.
+          Aún no hay postulaciones para esta publicación.
         </p>
       </section>
     );
@@ -204,7 +205,7 @@ export default function ApplicantsSection({
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h4 className="font-medium text-gray-900">
-                      {applicant.user?.full_name || 'Solucionador'}
+                      {applicant.user?.full_name || 'Postulado'}
                     </h4>
                     <p className="text-xs text-gray-500">
                       {applicant.user?.programa_academico || 'Programa académico no disponible'}
@@ -274,6 +275,10 @@ export default function ApplicantsSection({
                       'Ver hoja de vida (CV)'
                     )}
                   </button>
+                )}
+
+                {applicant.status === 'aprobado' && (
+                  <PracticeDocuments interactionId={applicant.id} editable={false} />
                 )}
 
                 {isOpen && (

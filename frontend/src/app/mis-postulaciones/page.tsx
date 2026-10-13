@@ -3,16 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
+import PracticeDocuments from '@/components/PracticeDocuments';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { TALENT_ROLES } from '@/lib/constants';
 import api from '@/lib/api';
-import type { ContactInfo } from '@/types';
-import {
-  MY_APPLICATIONS,
-  APP_STATUS_BADGE,
-  APP_STATUS_LABEL,
-  type ApplicantStatus,
-} from '@/data/mock';
+import type { ChallengeTipo, ContactInfo, InteractionStatus } from '@/types';
+import { APP_STATUS_BADGE, APP_STATUS_LABEL } from '@/data/mock';
+import { MODULE_BY_ID } from '@/data/modules';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 
@@ -21,31 +18,35 @@ interface Row {
   challengeId: string;
   title: string;
   empresa: string;
-  status: ApplicantStatus;
+  tipo: ChallengeTipo | null;
+  status: InteractionStatus;
   message?: string;
-  contact?: ContactInfo;
 }
 
 export default function MisPostulacionesPage() {
   const allowed = useRoleGuard(TALENT_ROLES);
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [contactByRow, setContactByRow] = useState<Record<string, ContactInfo>>({});
   const [contactError, setContactError] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { interactions } = await api.getMyInteractions({});
+      const { interactions } = await api.getMyInteractions({ limit: 100 });
       const enriched = await Promise.all(
         interactions.map(async (interaction): Promise<Row> => {
-          let title = 'Problemática';
-          let empresa = 'Publicador';
+          let title = 'Publicación';
+          let empresa = 'Empresa';
+          let tipo: ChallengeTipo | null = null;
           try {
             const ch = await api.getChallenge(interaction.challenge_id);
             title = ch.title;
             empresa = ch.empresa_nombre || ch.author_name || empresa;
+            tipo = ch.tipo;
           } catch {
             // mantiene valores por defecto
           }
@@ -54,15 +55,15 @@ export default function MisPostulacionesPage() {
             challengeId: interaction.challenge_id,
             title,
             empresa,
-            status: interaction.status as ApplicantStatus,
+            tipo,
+            status: interaction.status,
             message: interaction.message ?? undefined,
           };
         })
       );
-      setRows(enriched.length > 0 ? enriched : MY_APPLICATIONS);
-    } catch {
-      // Fallback: datos mock cuando la API no está disponible / sin interacciones.
-      setRows(MY_APPLICATIONS);
+      setRows(enriched);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron cargar tus postulaciones');
     } finally {
       setLoading(false);
     }
@@ -79,8 +80,7 @@ export default function MisPostulacionesPage() {
     }
     setOpenId(row.id);
     setContactError((prev) => ({ ...prev, [row.id]: '' }));
-    // Si el contacto ya viene en el mock, se muestra directo.
-    if (row.contact) return;
+    if (contactByRow[row.id]) return;
     try {
       const info = await api.getInteractionContactInfo(row.id);
       setContactByRow((prev) => ({ ...prev, [row.id]: info }));
@@ -112,10 +112,17 @@ export default function MisPostulacionesPage() {
         <header className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis Postulaciones</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Problemáticas a las que te has postulado como solucionador. Cuando un publicador
-            apruebe tu postulación, se desbloquea el contacto.
+            Retos, prácticas y ofertas a las que te postulaste. Cuando una empresa te selecciona
+            se desbloquea su contacto; en prácticas, además, cargas tus documentos y descargas tu
+            carta de aval.
           </p>
         </header>
+
+        {error && (
+          <div role="alert" className="mb-6 text-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200">
+            {error}
+          </div>
+        )}
 
         {loading ? (
           <div className="space-y-4" role="status" aria-label="Cargando postulaciones">
@@ -123,41 +130,53 @@ export default function MisPostulacionesPage() {
               <SkeletonBlock key={i} className="h-28 w-full" />
             ))}
           </div>
+        ) : rows.length === 0 ? (
+          <div className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center">
+            <p className="text-sm text-gray-600">Aún no te has postulado a ninguna publicación.</p>
+            <Link
+              href="/feed"
+              className={`mt-4 inline-flex items-center justify-center px-5 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+            >
+              Explorar ofertas
+            </Link>
+          </div>
         ) : (
           <ul className="space-y-4">
             {rows.map((row) => {
               const isOpen = openId === row.id;
-              const contact = row.contact || contactByRow[row.id];
+              const contact = contactByRow[row.id];
+              const mod = row.tipo ? MODULE_BY_ID[row.tipo] : null;
               return (
                 <li key={row.id}>
                   <article className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            {row.empresa}
-                          </span>
-                          <span
-                            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                              APP_STATUS_BADGE[row.status]
-                            }`}
-                          >
-                            {APP_STATUS_LABEL[row.status]}
-                          </span>
-                        </div>
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          <Link
-                            href={`/feed/${row.challengeId}`}
-                            className={`hover:text-primary-700 ${FOCUS_RING} rounded`}
-                          >
-                            {row.title}
-                          </Link>
-                        </h2>
-                        {row.message && (
-                          <p className="text-sm text-gray-600 mt-1 italic">"{row.message}"</p>
-                        )}
-                      </div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        {row.empresa}
+                      </span>
+                      {mod && (
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${mod.badgeClass}`}>
+                          {mod.singular}
+                        </span>
+                      )}
+                      <span
+                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                          APP_STATUS_BADGE[row.status]
+                        }`}
+                      >
+                        {APP_STATUS_LABEL[row.status]}
+                      </span>
                     </div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      <Link
+                        href={`/feed/${row.challengeId}`}
+                        className={`hover:text-primary-700 ${FOCUS_RING} rounded`}
+                      >
+                        {row.title}
+                      </Link>
+                    </h2>
+                    {row.message && (
+                      <p className="text-sm text-gray-600 mt-1 italic">&ldquo;{row.message}&rdquo;</p>
+                    )}
 
                     {row.status === 'aprobado' && (
                       <div className="mt-4">
@@ -167,7 +186,7 @@ export default function MisPostulacionesPage() {
                           aria-controls={`contact-panel-${row.id}`}
                           className={`inline-flex items-center text-sm font-medium text-secondary-700 px-3 -mx-3 rounded-lg ${TOUCH_TARGET} ${FOCUS_RING}`}
                         >
-                          {isOpen ? 'Ocultar contacto' : 'Ver contacto del publicador'} →
+                          {isOpen ? 'Ocultar contacto' : 'Ver contacto de la empresa'} →
                         </button>
 
                         {isOpen && (
@@ -200,6 +219,8 @@ export default function MisPostulacionesPage() {
                             )}
                           </div>
                         )}
+
+                        {row.tipo === 'practica' && <PracticeDocuments interactionId={row.id} editable />}
                       </div>
                     )}
                   </article>

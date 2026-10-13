@@ -4,7 +4,7 @@
 // realistas cuando la API no cubre el flujo (problemáticas de la org, KPIs admin,
 // perfiles editables, etc.).
 
-import type { ContactInfo, UserRole } from '@/types';
+import type { UserRole } from '@/types';
 
 export type OrgChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
 
@@ -20,53 +20,9 @@ export const CHALLENGE_STATUS_BADGE: Record<OrgChallengeStatus, string> = {
   cerrado: 'bg-gray-100 text-gray-600',
 };
 
-// ── Postulaciones del solucionador (usadas como fallback cuando no hay API) ──
+// ── Estado de postulaciones ──
 
 export type ApplicantStatus = 'pendiente' | 'aprobado' | 'rechazado';
-
-export interface MyApplication {
-  id: string;
-  challengeId: string;
-  title: string;
-  empresa: string;
-  status: ApplicantStatus;
-  message?: string;
-  contact?: ContactInfo;
-}
-
-export const MY_APPLICATIONS: MyApplication[] = [
-  {
-    id: 'mock-app-1',
-    challengeId: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    title: 'Modelo predictivo para rendimiento de mango de hilaza',
-    empresa: 'Agropecuaria Malambo',
-    status: 'aprobado',
-    message:
-      'Cuento con experiencia en modelos de regresión con XGBoost y Random Forest sobre datos agroclimáticos.',
-    contact: {
-      user_id: '00000000-0000-0000-0000-000000000002',
-      full_name: 'Artesanías Llamas',
-      email: 'contacto@artesaniasllamas.com',
-      phone: '+57 300 123 4567',
-      empresa_nombre: 'Artesanías Llamas',
-    },
-  },
-  {
-    id: 'mock-app-2',
-    challengeId: 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    title: 'Diseño de plataforma E-commerce y gestión de marca',
-    empresa: 'Artesanías Llamas',
-    status: 'pendiente',
-    message: 'Propongo construir la tienda con Next.js y panel de inventario integrado.',
-  },
-  {
-    id: 'mock-app-3',
-    challengeId: 'cccc3333-cccc-cccc-cccc-cccccccccccc',
-    title: 'Auditoría de seguridad y análisis de red (ISO 27001)',
-    empresa: 'Rama Estudiantil IEEE',
-    status: 'rechazado',
-  },
-];
 
 export const APP_STATUS_LABEL: Record<ApplicantStatus, string> = {
   pendiente: 'Pendiente',

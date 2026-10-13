@@ -9,6 +9,7 @@ import ApplicantsSection from '@/components/ApplicantsSection';
 import ChallengeDetailLoading from './loading';
 import api from '@/lib/api';
 import type { Challenge } from '@/types';
+import { isTalentRole } from '@/lib/constants';
 import { LAB_CONTACT, MODALIDAD_LABEL, MODULE_BY_ID } from '@/data/modules';
 
 const DIFFICULTY_COLOR: Record<string, string> = {
@@ -205,14 +206,19 @@ export default function ChallengeDetailPage({
           )}
         </article>
 
-        {/* Condicional: dueño → listar postulados; solucionador → postularse */}
-        {isOwner ? (
+        {/* Dueño o administración → postulados; estudiante/egresado → postularse */}
+        {isOwner || user?.role === 'admin' ? (
           <ApplicantsSection
             challengeId={challenge.id}
             currentUserId={String(user?.id)}
           />
+        ) : isTalentRole(user?.role) ? (
+          <ContactSection challengeId={challenge.id} tipo={challenge.tipo} />
         ) : (
-          <ContactSection challengeId={challenge.id} />
+          <p className="mt-8 text-sm text-gray-500 bg-gray-50 rounded-xl border border-gray-200 p-6">
+            Las postulaciones son para estudiantes y egresados. Si buscas talento para una oferta
+            similar, consulta el banco de hojas de vida.
+          </p>
         )}
       </main>
     </div>

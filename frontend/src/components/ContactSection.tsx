@@ -2,15 +2,31 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
-import type { ContactInfo, Interaction } from '@/types';
+import type { ChallengeTipo, ContactInfo, Interaction } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 
 interface ContactSectionProps {
   challengeId: string;
+  tipo: ChallengeTipo;
 }
 
-export default function ContactSection({ challengeId }: ContactSectionProps) {
+const APPLY_COPY: Record<ChallengeTipo, { intro: string; button: string }> = {
+  reto: {
+    intro: '¿Te interesa este reto? Postúlate con tu semillero o de forma individual; la empresa y el Laboratorio de Innovación revisarán tu propuesta.',
+    button: 'Postularme a este reto',
+  },
+  practica: {
+    intro: '¿Te interesa esta práctica? Postúlate y, si la empresa te selecciona, podrás cargar tus documentos y descargar tu carta de aval.',
+    button: 'Postularme a esta práctica',
+  },
+  empleo: {
+    intro: '¿Te interesa esta vacante? Postúlate; la empresa revisará tu perfil y tu hoja de vida.',
+    button: 'Postularme a esta oferta',
+  },
+};
+
+export default function ContactSection({ challengeId, tipo }: ContactSectionProps) {
   const [interaction, setInteraction] = useState<Interaction | null>(null);
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [message, setMessage] = useState('');
@@ -55,7 +71,7 @@ export default function ContactSection({ challengeId }: ContactSectionProps) {
         message: message || undefined,
       });
       setInteraction(created);
-      setSuccess('Te postulaste correctamente. El publicador revisará tu propuesta.');
+      setSuccess('Te postulaste correctamente. La empresa revisará tu perfil.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo postular');
     } finally {
@@ -106,10 +122,12 @@ export default function ContactSection({ challengeId }: ContactSectionProps) {
 
           <p className="text-sm text-gray-600">
             {interaction.status === 'pendiente'
-              ? 'Tu postulación está en revisión. El publicador la evaluará y, si eres seleccionado, se desbloqueará el contacto.'
+              ? 'Tu postulación está en revisión. La empresa la evaluará y, si eres seleccionado, se desbloqueará su contacto.'
               : interaction.status === 'rechazado'
-              ? 'Tu postulación no fue seleccionada para esta problemática.'
-              : '¡Felicidades! Tu postulación fue aprobada. Puedes contactar al publicador.'}
+              ? 'Tu postulación no fue seleccionada esta vez.'
+              : tipo === 'practica'
+              ? '¡Felicidades! Fuiste seleccionado. Carga tus documentos en Mis Postulaciones y descarga tu carta de aval.'
+              : '¡Felicidades! Tu postulación fue aprobada. Ya puedes contactar a la empresa.'}
           </p>
 
           {contactInfo && (
@@ -142,10 +160,7 @@ export default function ContactSection({ challengeId }: ContactSectionProps) {
         </div>
       ) : (
         <div>
-          <p className="text-sm text-gray-600 mb-4">
-            ¿Te interesa esta problemática? Postúlate como solucionador. El publicador
-            podrá revisar múltiples postulaciones y seleccionar la mejor propuesta.
-          </p>
+          <p className="text-sm text-gray-600 mb-4">{APPLY_COPY[tipo].intro}</p>
           <label htmlFor="apply-message" className="sr-only">
             Mensaje de postulación (opcional)
           </label>
@@ -154,7 +169,7 @@ export default function ContactSection({ challengeId }: ContactSectionProps) {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
-            placeholder="Cuéntanos brevemente cómo podrías aportar a esta problemática (opcional)"
+            placeholder="Cuéntanos brevemente por qué eres un buen perfil (opcional)"
             className={inputClass}
           />
           <div aria-live="polite" className="mt-3">
@@ -175,7 +190,7 @@ export default function ContactSection({ challengeId }: ContactSectionProps) {
             aria-busy={applying}
             className={`mt-4 w-full bg-primary-600 text-white px-6 rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
           >
-            {applying ? 'Postulando…' : 'Postularme a esta Problemática'}
+            {applying ? 'Postulando…' : APPLY_COPY[tipo].button}
           </button>
         </div>
       )}

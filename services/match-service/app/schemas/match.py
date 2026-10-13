@@ -72,6 +72,29 @@ class ReactionListResponse(BaseModel):
     limit: int
 
 
+# ── Documentos requisito de practica ──
+
+class DocumentInfo(BaseModel):
+    tipo: str
+    filename: str
+    size: int
+    uploaded_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RequiredDocument(BaseModel):
+    tipo: str
+    label: str
+    documento: Optional[DocumentInfo] = None
+
+
+class DocumentChecklist(BaseModel):
+    aplica: bool  # practica en la que el estudiante fue seleccionado
+    completos: bool
+    requeridos: list[RequiredDocument]
+
+
 # ── Contact Info (for unlocked contacts) ──
 
 class ContactInfo(BaseModel):
