@@ -201,7 +201,7 @@ class ApiClient {
       });
     }
     const query = searchParams.toString();
-    return this.request(`/v1/core/challenges/${query ? `?${query}` : ''}`);
+    return this.request(`/v1/core/challenges${query ? `?${query}` : ''}`);
   }
 
   async getChallenge(id: string): Promise<Challenge> {
@@ -222,7 +222,7 @@ class ApiClient {
     modalidad?: Modalidad;
     ubicacion?: string;
   }): Promise<Challenge> {
-    return this.request('/v1/core/challenges/', {
+    return this.request('/v1/core/challenges', {
       method: 'POST',
       body: data,
     });
@@ -250,7 +250,7 @@ class ApiClient {
       });
     }
     const query = searchParams.toString();
-    return this.request(`/v1/match/interactions/${query ? `?${query}` : ''}`);
+    return this.request(`/v1/match/interactions${query ? `?${query}` : ''}`);
   }
 
   async getChallengeApplicants(challengeId: string): Promise<ChallengeApplicantsResponse> {
@@ -274,7 +274,7 @@ class ApiClient {
 
   // ── Reactions endpoints ──
   async createReaction(data: { challenge_id: string; reaction_type: 'like' | 'bookmark' }): Promise<Reaction> {
-    return this.request('/v1/match/reactions/', {
+    return this.request('/v1/match/reactions', {
       method: 'POST',
       body: data,
     });
