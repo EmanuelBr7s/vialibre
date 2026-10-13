@@ -1,6 +1,9 @@
 .PHONY: up down logs restart build clean ps init-schemas migrate setup-db seed seed-core seed-match \
         logs-auth logs-core logs-match migrate-auth migrate-core migrate-match
 
+# Nombre de la revision autogenerada: make migrate MSG=agregar_campos
+MSG ?= initial_schema
+
 up:
 	docker-compose up -d
 
@@ -37,15 +40,15 @@ init-schemas:
 	docker-compose exec postgres psql -U vialibre -d vialibre -c "CREATE SCHEMA IF NOT EXISTS vialibre_match;"
 
 migrate-auth:
-	docker-compose exec auth-service alembic revision --autogenerate -m "initial_schema" --sqlalchemy.url "postgresql+asyncpg://vialibre:vialibre_secret_dev@postgres:5432/vialibre"
+	docker-compose exec auth-service alembic revision --autogenerate -m "$(MSG)" --sqlalchemy.url "postgresql+asyncpg://vialibre:vialibre_secret_dev@postgres:5432/vialibre"
 	docker-compose exec auth-service alembic upgrade head
 
 migrate-core:
-	docker-compose exec core-service alembic revision --autogenerate -m "initial_schema" --sqlalchemy.url "postgresql+asyncpg://vialibre:vialibre_secret_dev@postgres:5432/vialibre"
+	docker-compose exec core-service alembic revision --autogenerate -m "$(MSG)" --sqlalchemy.url "postgresql+asyncpg://vialibre:vialibre_secret_dev@postgres:5432/vialibre"
 	docker-compose exec core-service alembic upgrade head
 
 migrate-match:
-	docker-compose exec match-service alembic revision --autogenerate -m "initial_schema" --sqlalchemy.url "postgresql+asyncpg://vialibre:vialibre_secret_dev@postgres:5432/vialibre"
+	docker-compose exec match-service alembic revision --autogenerate -m "$(MSG)" --sqlalchemy.url "postgresql+asyncpg://vialibre:vialibre_secret_dev@postgres:5432/vialibre"
 	docker-compose exec match-service alembic upgrade head
 
 migrate: migrate-auth migrate-core migrate-match
