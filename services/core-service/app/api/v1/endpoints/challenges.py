@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, require_role
 from app.config import settings
 from app.database import get_db
-from app.models.challenge import Challenge, ChallengeStatus
+from app.models.challenge import Challenge, ChallengeStatus, DifficultyLevel
 from app.models.category import Category
 from app.schemas.challenge import (
     CategoryCreate,
@@ -140,9 +140,12 @@ async def create_challenge(
 async def list_challenges(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    status_filter: str | None = Query(None, alias="status"),
+    # Los filtros se tipean con los enums locales del modelo (igual que `tipo`):
+    # un valor fuera del enum produce 422 de validacion en vez del 500 que
+    # provocaba comparar una cadena arbitraria contra una columna Enum.
+    status_filter: ChallengeStatus | None = Query(None, alias="status"),
     category_id: uuid.UUID | None = None,
-    difficulty: str | None = None,
+    difficulty: DifficultyLevel | None = None,
     featured_only: bool = False,
     tipo: ChallengeTipo | None = None,
     author_id: uuid.UUID | None = None,
