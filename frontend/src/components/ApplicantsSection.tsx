@@ -222,7 +222,7 @@ export default function ApplicantsSection({
                 </div>
 
                 {applicant.message && (
-                  <p className="text-sm text-gray-600 mt-3 italic">"{applicant.message}"</p>
+                  <p className="text-sm text-gray-600 mt-3 italic">&quot;{applicant.message}&quot;</p>
                 )}
 
                 {applicant.status === 'pendiente' && (
