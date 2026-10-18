@@ -27,6 +27,8 @@ services:
     volumes:
       - ./services/auth-service/app:/app/app
       - ./services/auth-service/alembic:/app/alembic
+      - ./services/auth-service/tests:/app/tests
+      - ./services/auth-service/pytest.ini:/app/pytest.ini
       - ./shared/python/vialibre_common:/shared/vialibre_common
 
   # ── Core Service ──
@@ -43,6 +45,8 @@ services:
     volumes:
       - ./services/core-service/app:/app/app
       - ./services/core-service/alembic:/app/alembic
+      - ./services/core-service/tests:/app/tests
+      - ./services/core-service/pytest.ini:/app/pytest.ini
       - ./shared/python/vialibre_common:/shared/vialibre_common
 
   # ── Match Service ──
@@ -59,6 +63,8 @@ services:
     volumes:
       - ./services/match-service/app:/app/app
       - ./services/match-service/alembic:/app/alembic
+      - ./services/match-service/tests:/app/tests
+      - ./services/match-service/pytest.ini:/app/pytest.ini
       - ./shared/python/vialibre_common:/shared/vialibre_common
 
   # ── Frontend ──

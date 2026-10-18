@@ -1,5 +1,6 @@
 .PHONY: up down logs restart build clean ps init-schemas migrate setup-db seed seed-core seed-match \
-        logs-auth logs-core logs-match migrate-auth migrate-core migrate-match
+        logs-auth logs-core logs-match migrate-auth migrate-core migrate-match \
+        test test-auth test-core test-match
 
 # Nombre de la revision autogenerada: make migrate MSG=agregar_campos
 MSG ?= initial_schema
@@ -52,6 +53,18 @@ migrate-match:
 	docker-compose exec match-service alembic upgrade head
 
 migrate: migrate-auth migrate-core migrate-match
+
+# Pruebas (pytest dentro de cada contenedor). -T evita fallos sin TTY.
+test: test-auth test-core test-match
+
+test-auth:
+	docker-compose exec -T auth-service pytest -q
+
+test-core:
+	docker-compose exec -T core-service pytest -q
+
+test-match:
+	docker-compose exec -T match-service pytest -q
 
 seed:
 	docker-compose exec auth-service python -m app.seed
