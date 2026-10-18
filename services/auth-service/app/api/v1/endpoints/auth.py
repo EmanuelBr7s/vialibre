@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.duplicates import raise_duplicate_conflict
 from app.core.security import create_access_token, hash_password, verify_password
 from app.database import get_db
 from app.models.role import Role
@@ -107,7 +109,19 @@ async def register(
     )
 
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # El indice unico ix_vialibre_auth_users_email sostiene la unicidad
+        # del correo ante carrera; se traduce a 409 con el mismo detail
+        # que el duplicado secuencial detectado mas arriba.
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="ix_vialibre_auth_users_email",
+            detail="Email already registered",
+        )
+        raise
 
     access_token = create_access_token(
         user_id=str(user.id),
