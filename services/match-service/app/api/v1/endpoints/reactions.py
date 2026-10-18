@@ -2,9 +2,11 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, AuthContext
+from app.api.duplicates import raise_duplicate_conflict
 from app.database import get_db
 from app.models.reaction import Reaction, ReactionType
 from app.schemas.match import (
@@ -43,7 +45,21 @@ async def create_reaction(
         reaction_type=data.reaction_type,
     )
     db.add(reaction)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # La restriccion uq_user_challenge_reaction_type sostiene la unicidad
+        # ante carrera; se traduce a 409 con el mismo detail secuencial.
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="uq_user_challenge_reaction_type",
+            detail=(
+                f"You already have a {data.reaction_type.value} "
+                "reaction for this challenge"
+            ),
+        )
+        raise
     return reaction
 
 
