@@ -152,7 +152,9 @@ async def list_challenge_applicants(
 async def list_my_interactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    status_filter: str | None = Query(None, alias="status"),
+    # Filtro tipeado con el enum local: un valor invalido produce 422 en vez
+    # del 500 de comparar una cadena arbitraria contra la columna Enum.
+    status_filter: InteractionStatus | None = Query(None, alias="status"),
     auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
