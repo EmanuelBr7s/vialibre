@@ -22,6 +22,7 @@ from app.schemas.match import (
     InteractionResponse,
 )
 from vialibre_common.schemas import TALENT_ROLES, UserRole
+from vialibre_common.service_auth import service_headers
 
 router = APIRouter()
 
@@ -96,16 +97,28 @@ async def list_challenge_applicants(
     Only the challenge author (publicador) can view this.
     """
     # Verify the challenge exists and get author_id
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.core_service_url}/api/v1/core/challenges/{challenge_id}",
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Challenge not found",
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.core_service_url}/api/v1/core/challenges/{challenge_id}",
             )
-        challenge_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de core: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge",
+        )
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Challenge not found",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge",
+        )
+    challenge_data = response.json()
 
     # Verify the current user is the author of the challenge
     author_id = challenge_data.get("author_id")
@@ -227,17 +240,25 @@ async def approve_interaction(
             detail="Interaction not found",
         )
 
-    # Verify the current user is the author of the challenge
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Could not verify challenge ownership",
+    # Verificar el autor del challenge ANTES de tomar el bloqueo de fila:
+    # una llamada HTTP entre servicios nunca debe esperar con un lock retenido.
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
             )
-        challenge_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de core: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge ownership",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge ownership",
+        )
+    challenge_data = response.json()
 
     author_id = challenge_data.get("author_id")
     if author_id != auth.payload.sub and auth.payload.role != UserRole.ADMIN:
@@ -353,16 +374,23 @@ async def get_contact_info(
         )
 
     # Only the solucionador or the challenge author can view contact
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Could not fetch challenge info",
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
             )
-        challenge_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de core: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch challenge info",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch challenge info",
+        )
+    challenge_data = response.json()
 
     author_id = challenge_data.get("author_id")
     if (str(interaction.solucionador_id) != auth.payload.sub and
@@ -374,20 +402,31 @@ async def get_contact_info(
         )
 
     # Contacto de la contraparte: el estudiante ve a la empresa; la empresa y
-    # la administracion ven al estudiante.
+    # la administracion ven al estudiante. La autorizacion sobre la interaccion
+    # ya se verifico arriba; la consulta a auth se hace con el token interno.
     is_solucionador = str(interaction.solucionador_id) == auth.payload.sub
     contact_id = author_id if is_solucionador else interaction.solucionador_id
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.auth_service_url}/api/v1/auth/users/{contact_id}",
-            headers={"Authorization": f"Bearer {auth.token}"},
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Could not fetch user information",
+    contact_path = f"/api/v1/auth/users/{contact_id}"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.auth_service_url}{contact_path}",
+                headers=service_headers(
+                    settings.jwt_secret_key, settings.service_name, "GET", contact_path
+                ),
             )
-        user_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de auth: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch user information",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch user information",
+        )
+    user_data = response.json()
 
     return ContactInfo(
         user_id=uuid.UUID(user_data["id"]),
