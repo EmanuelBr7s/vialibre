@@ -7,7 +7,12 @@ from app.core.security import create_access_token, hash_password, verify_passwor
 from app.database import get_db
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import (
+    PUBLIC_REGISTER_ROLES,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+)
 from vialibre_common.schemas import UserRole
 
 router = APIRouter()
@@ -58,11 +63,15 @@ async def register(
     """
     Register a new user.
 
-    Role-specific validation (handled by schema):
-    - PUBLICADOR: requires nit_empresa + empresa_nombre
-    - SOLUCIONADOR: requires programa_academico
-    - ADMIN: no additional fields required
+    The role is determined server-side: the public flow only allows
+    SOLUCIONADOR, EGRESADO or PUBLICADOR. Privileged roles (admin) are rejected.
     """
+    if request.role not in PUBLIC_REGISTER_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El registro público no permite asignar este rol",
+        )
+
     # Check duplicate email
     result = await db.execute(
         select(User).where(User.email == request.email)
