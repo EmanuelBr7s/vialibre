@@ -106,3 +106,14 @@ class UserListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class UserSummaryResponse(BaseModel):
+    """Minimal, non-sensitive display info for internal service consumption."""
+
+    id: uuid.UUID
+    full_name: str
+    empresa_nombre: Optional[str] = None
+    avatar_url: Optional[str] = None
+    programa_academico: Optional[str] = None
+    afiliacion_academica: Optional[str] = None
