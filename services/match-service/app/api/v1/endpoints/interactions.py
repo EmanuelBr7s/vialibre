@@ -4,9 +4,12 @@ from datetime import datetime
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, AuthContext
+from app.api.duplicates import raise_duplicate_conflict
+from app.api.v1.endpoints.practicas import _validate_challenge
 from app.config import settings
 from app.database import get_db
 from app.models.interaction import Interaction, InteractionStatus
@@ -52,13 +55,33 @@ async def apply_to_challenge(
             detail="You already applied to this challenge",
         )
 
+    # Validar la existencia del reto en core-service ANTES de insertar
+    # (mismo patron y contratos que _validate_challenge en create_practica):
+    # sin esta comprobacion se persistian interacciones huerfanas cuyos
+    # flujos de autores/aprobacion responden 404 o 502. Orden de
+    # validaciones intacto: autorizacion y duplicado local primero,
+    # consulta remota despues.
+    await _validate_challenge(data.challenge_id)
+
     interaction = Interaction(
         solucionador_id=uuid.UUID(auth.payload.sub),
         challenge_id=data.challenge_id,
         message=data.message,
     )
     db.add(interaction)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # La restriccion uq_solucionador_challenge (no el chequeo SELECT de
+        # arriba) es lo que garantiza la unicidad ante concurrencia: se
+        # traduce a 409 con el mismo detail que el duplicado secuencial.
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="uq_solucionador_challenge",
+            detail="You already applied to this challenge",
+        )
+        raise
     return interaction
 
 
