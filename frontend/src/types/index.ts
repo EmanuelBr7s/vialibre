@@ -227,3 +227,154 @@ export interface ProfileUpdatePayload {
   anio_egreso?: number | null;
   disponible?: boolean;
 }
+
+// ── Admin CRUD Types ──
+
+export interface TutorDocente {
+  id: string;
+  identificacion: string | null;
+  nombres: string | null;
+  apellidos: string | null;
+  email: string | null;
+  telefono: string | null;
+  programa_academico: string | null;
+  user_id: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TutorDocenteCreate {
+  identificacion?: string | null;
+  nombres?: string | null;
+  apellidos?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  programa_academico?: string | null;
+  user_id?: string | null;
+  activo?: boolean;
+}
+
+export interface TutorDocenteUpdate {
+  identificacion?: string | null;
+  nombres?: string | null;
+  apellidos?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  programa_academico?: string | null;
+  user_id?: string | null;
+  activo?: boolean | null;
+}
+
+export interface TutorDocenteListResponse {
+  tutores: TutorDocente[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface Empresa {
+  id: string;
+  nit: string | null;
+  razon_social: string | null;
+  sector: string | null;
+  representante_legal: string | null;
+  contacto_email: string | null;
+  contacto_telefono: string | null;
+  publicador_user_id: string | null;
+  activa: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmpresaCreate {
+  nit?: string | null;
+  razon_social?: string | null;
+  sector?: string | null;
+  representante_legal?: string | null;
+  contacto_email?: string | null;
+  contacto_telefono?: string | null;
+  publicador_user_id?: string | null;
+  activa?: boolean;
+}
+
+export interface EmpresaUpdate {
+  nit?: string | null;
+  razon_social?: string | null;
+  sector?: string | null;
+  representante_legal?: string | null;
+  contacto_email?: string | null;
+  contacto_telefono?: string | null;
+  publicador_user_id?: string | null;
+  activa?: boolean | null;
+}
+
+export interface EmpresaListResponse {
+  empresas: Empresa[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface Practica {
+  id: string;
+  challenge_id: string | null;
+  interaction_id: string;
+  solucionador_id: string | null;
+  empresa_id: string | null;
+  tutor_docente_id: string | null;
+  created_by: string | null;
+  estado_administrativo: string | null;
+  modalidad: string | null;
+  tipo_practica: string | null;
+  duracion_horas: number | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  anio_academico: string | null;
+  periodo_academico: string | null;
+  bilingue: boolean;
+  observaciones_institucionales: string | null;
+  fecha_formalizacion: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PracticaCreate {
+  interaction_id: string;
+  challenge_id?: string | null;
+  solucionador_id?: string | null;
+  empresa_id?: string | null;
+  tutor_docente_id?: string | null;
+  estado_administrativo?: string | null;
+  modalidad?: string | null;
+  tipo_practica?: string | null;
+  duracion_horas?: number | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  anio_academico?: string | null;
+  periodo_academico?: string | null;
+  bilingue?: boolean;
+  observaciones_institucionales?: string | null;
+}
+
+export interface PracticaUpdate {
+  empresa_id?: string | null;
+  tutor_docente_id?: string | null;
+  estado_administrativo?: string | null;
+  modalidad?: string | null;
+  tipo_practica?: string | null;
+  duracion_horas?: number | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  anio_academico?: string | null;
+  periodo_academico?: string | null;
+  bilingue?: boolean | null;
+  observaciones_institucionales?: string | null;
+}
+
+export interface PracticaListResponse {
+  practicas: Practica[];
+  total: number;
+  skip: number;
+  limit: number;
+}

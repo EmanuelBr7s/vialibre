@@ -7,12 +7,24 @@ import type {
   ContactInfo,
   DocumentChecklist,
   DocumentInfo,
+  Empresa,
+  EmpresaCreate,
+  EmpresaListResponse,
+  EmpresaUpdate,
   Interaction,
   InteractionListResponse,
+  Practica,
+  PracticaCreate,
+  PracticaListResponse,
+  PracticaUpdate,
   ProfileUpdatePayload,
   Reaction,
   ReactionListResponse,
   TokenResponse,
+  TutorDocente,
+  TutorDocenteCreate,
+  TutorDocenteListResponse,
+  TutorDocenteUpdate,
   User,
   UserListResponse,
 } from '@/types';
@@ -28,6 +40,21 @@ interface RequestOptions {
   body?: unknown;
   token?: string | null;
 }
+
+/**
+ * Error HTTP con el código de estado, para que la UI distinga
+ * 401 (sesión), 403 (permisos), 409 (conflicto) y 422 (validación).
+ */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 
 const setCookie = (name: string, value: string, days = 7) => {
   if (typeof document === 'undefined') return;
@@ -46,7 +73,7 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 };
 
-async function toError(response: Response): Promise<Error> {
+async function toError(response: Response): Promise<ApiError> {
   const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
   const message =
     typeof error.detail === 'string'
@@ -54,7 +81,7 @@ async function toError(response: Response): Promise<Error> {
       : Array.isArray(error.detail)
       ? error.detail.map((d: { msg?: string }) => d.msg || '').join('; ')
       : `HTTP error! status: ${response.status}`;
-  return new Error(message || `HTTP error! status: ${response.status}`);
+  return new ApiError(message || `HTTP error! status: ${response.status}`, response.status);
 }
 
 class ApiClient {
@@ -331,6 +358,115 @@ class ApiClient {
 
   async deleteReaction(reactionId: string): Promise<null> {
     return this.request(`/v1/match/reactions/${reactionId}`, { method: 'DELETE' });
+  }
+
+  // ── Admin: Tutores docentes (auth-service) ──
+  async listTutoresDocentes(params?: {
+    activo?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<TutorDocenteListResponse> {
+    return this.request(
+      `/v1/auth/tutores-docentes${this.buildQuery(params ?? {})}`
+    );
+  }
+
+  async getTutorDocente(tutorId: string): Promise<TutorDocente> {
+    return this.request(`/v1/auth/tutores-docentes/${tutorId}`);
+  }
+
+  async createTutorDocente(data: TutorDocenteCreate): Promise<TutorDocente> {
+    return this.request('/v1/auth/tutores-docentes', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async updateTutorDocente(
+    tutorId: string,
+    data: TutorDocenteUpdate
+  ): Promise<TutorDocente> {
+    return this.request(`/v1/auth/tutores-docentes/${tutorId}`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  // ── Admin: Empresas (core-service) ──
+  async listEmpresas(params?: {
+    activa?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<EmpresaListResponse> {
+    return this.request(`/v1/core/empresas${this.buildQuery(params ?? {})}`);
+  }
+
+  async getEmpresa(empresaId: string): Promise<Empresa> {
+    return this.request(`/v1/core/empresas/${empresaId}`);
+  }
+
+  async createEmpresa(data: EmpresaCreate): Promise<Empresa> {
+    return this.request('/v1/core/empresas', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async updateEmpresa(
+    empresaId: string,
+    data: EmpresaUpdate
+  ): Promise<Empresa> {
+    return this.request(`/v1/core/empresas/${empresaId}`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  // ── Admin: Prácticas formalizadas (match-service) ──
+  async listPracticas(params?: {
+    estado?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<PracticaListResponse> {
+    return this.request(
+      `/v1/match/practicas${this.buildQuery(params ?? {})}`
+    );
+  }
+
+  async getPractica(practicaId: string): Promise<Practica> {
+    return this.request(`/v1/match/practicas/${practicaId}`);
+  }
+
+  /** Formaliza una práctica (requiere interaction_id; 409 si ya existe). */
+  async createPractica(data: PracticaCreate): Promise<Practica> {
+    return this.request('/v1/match/practicas', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  async updatePractica(
+    practicaId: string,
+    data: PracticaUpdate
+  ): Promise<Practica> {
+    return this.request(`/v1/match/practicas/${practicaId}`, {
+      method: 'PATCH',
+      body: data,
+    });
+  }
+
+  /** Construye la query string omitiendo los valores no definidos. */
+  private buildQuery(
+    params: Record<string, string | number | boolean | undefined>
+  ): string {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        searchParams.append(key, String(value));
+      }
+    });
+    const query = searchParams.toString();
+    return query ? `?${query}` : '';
   }
 }
 
