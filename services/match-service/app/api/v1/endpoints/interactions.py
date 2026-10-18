@@ -246,14 +246,52 @@ async def approve_interaction(
             detail="Only the challenge author can approve interactions",
         )
 
-    # Update status
+    # Bloqueo de fila sobre la interaccion concreta (sin bloqueos globales) y
+    # releo del estado vigente: el estado leido antes de la llamada HTTP puede
+    # haber cambiado mientras tanto (F3). populate_existing fuerza la
+    # recarga del objeto del mapa de identidad con los valores devueltos por
+    # el SELECT ... FOR UPDATE.
+    locked = await db.execute(
+        select(Interaction)
+        .where(Interaction.id == interaction_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    interaction = locked.scalar_one_or_none()
+
+    if not interaction:
+        # La interaccion fue eliminada en paralelo.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Interaction not found",
+        )
+
+    # Maquina de estados (I2): solo pendiente -> aprobado | rechazado.
+    if interaction.status != InteractionStatus.PENDIENTE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Interaction has already been resolved",
+        )
+    if data.status not in (InteractionStatus.APROBADO, InteractionStatus.RECHAZADO):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invalid interaction status transition",
+        )
+
     interaction.status = data.status
 
-    # If approved, unlock contact
-    if data.status == InteractionStatus.APROBADO and not interaction.contact_unlocked:
+    if data.status == InteractionStatus.APROBADO:
+        # Aprobado implica contacto desbloqueado con marca de tiempo (I1).
         interaction.contact_unlocked = True
         interaction.contact_unlocked_at = datetime.utcnow()
+    else:
+        # Rechazado implica contacto bloqueado: se limpian los campos de
+        # desbloqueo para no conservar datos de una decision previa (F1).
+        interaction.contact_unlocked = False
+        interaction.contact_unlocked_at = None
 
+    # El commit llega con get_db al terminar la peticion; el bloqueo de fila
+    # se libera ahi y el estado ya quedo validado bajo el lock.
     await db.flush()
     return interaction
 
@@ -304,7 +342,11 @@ async def get_contact_info(
             detail="Interaction not found",
         )
 
-    if not interaction.contact_unlocked:
+    # Defensa en profundidad (I1): el desbloqueo por si solo no basta; el
+    # contacto solo se entrega con la interaccion APROBADA. Asi, aunque una
+    # fila anomala conserve contact_unlocked=True en estado pendiente o
+    # rechazado, no se filtran datos.
+    if not interaction.contact_unlocked or interaction.status != InteractionStatus.APROBADO:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Contact information is not unlocked yet",
