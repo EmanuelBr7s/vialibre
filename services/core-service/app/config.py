@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# .env compartido en la raiz del repo; en produccion las variables llegan del entorno.
+ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
@@ -18,15 +23,15 @@ class Settings(BaseSettings):
     schema_name: str = "vialibre_core"
 
     # Internal service URLs
-    auth_service_url: str = "http://auth-service:8000"
+    auth_service_url: str = "http://localhost:8001"
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": (ROOT_ENV, ".env"), "extra": "ignore"}
 
     def model_post_init(self, __context) -> None:
         if not self.database_url:
             self.database_url = (
                 f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
-                f"@postgres:5432/{self.postgres_db}"
+                f"@localhost:5432/{self.postgres_db}"
             )
 
 

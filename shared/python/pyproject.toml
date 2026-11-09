@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vialibre-common"
+version = "0.1.0"
+description = "Utilidades compartidas de los microservicios de VíaLibre"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["vialibre_common"]

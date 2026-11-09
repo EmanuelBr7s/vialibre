@@ -9,7 +9,8 @@ import { useRoleGuard } from '@/hooks/useRoleGuard';
 import api from '@/lib/api';
 import { CHALLENGE_STATUS_BADGE, CHALLENGE_STATUS_LABEL } from '@/data/mock';
 import { MODULES, MODULE_BY_ID } from '@/data/modules';
-import type { Challenge, ChallengeTipo } from '@/types';
+import type { Challenge } from '@/types';
+import { ChallengeTipo, UserRole } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
 interface Row extends Challenge {
@@ -17,7 +18,7 @@ interface Row extends Challenge {
 }
 
 export default function MisPublicacionesPage() {
-  const allowed = useRoleGuard('publicador');
+  const allowed = useRoleGuard(UserRole.PUBLICADOR);
   const { user } = useAuth();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);

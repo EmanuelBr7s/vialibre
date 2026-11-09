@@ -12,14 +12,23 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { FOCUS_RING, INPUT_FOCUS, TOUCH_TARGET } from '@/components/ui/classes';
-import type { ExtendedProfile, PreferredChannel, ProfileUpdatePayload } from '@/types';
+import type { ExtendedProfile, ProfileUpdatePayload } from '@/types';
+import {
+  AfiliacionAcademica,
+  PreferredChannel,
+  ProgramaAcademico,
+  Semestre,
+  Ubicacion,
+  UserRole,
+} from '@/types';
+import Select from '@/components/ui/Select';
 
 const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp';
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
 const inputClass = `w-full px-4 py-3 rounded-lg border border-gray-300 ${INPUT_FOCUS} bg-white text-gray-900`;
 
-type Role = 'solucionador' | 'publicador';
+type Role = UserRole.SOLUCIONADOR | UserRole.PUBLICADOR;
 type NoticeTone = 'success' | 'error';
 
 interface FieldError {
@@ -294,7 +303,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     cargo: '',
     departamento: '',
     enlaces_corporativos: [],
-    canal_preferido: 'correo',
+    canal_preferido: PreferredChannel.CORREO,
   });
 
   const [form, setForm] = useState<FormState>(initialForm);
@@ -305,7 +314,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
   const [enlaceInput, setEnlaceInput] = useState('');
-  const isGraduate = user?.role === 'egresado';
+  const isGraduate = user?.role === UserRole.EGRESADO;
 
   // Hidrata los campos extendidos persistidos en el navegador.
   useEffect(() => {
@@ -316,7 +325,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       cargo: extended.cargo || '',
       departamento: extended.departamento || '',
       enlaces_corporativos: extended.enlaces_corporativos || [],
-      canal_preferido: extended.canal_preferido || 'correo',
+      canal_preferido: extended.canal_preferido || PreferredChannel.CORREO,
     }));
   }, [extended]);
 
@@ -346,8 +355,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     if (form.bio.length > 500) {
       next.bio = 'La biografía no puede superar los 500 caracteres.';
     }
-    if (role === 'solucionador' && form.programa_academico.trim().length < 3) {
-      next.programa_academico = 'Indica tu programa académico.';
+    if (role === UserRole.SOLUCIONADOR && !form.programa_academico) {
+      next.programa_academico = 'Selecciona tu programa académico.';
     }
     if (form.linkedin.trim() && !isValidUrl(form.linkedin)) {
       next.linkedin = 'Ingresa una URL válida (https://…).';
@@ -362,7 +371,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     if (form.anio_egreso.trim() && (!Number.isInteger(year) || year < 1960 || year > 2100)) {
       next.anio_egreso = 'Ingresa un año válido (p. ej. 2024).';
     }
-    if (role === 'publicador' && form.cargo.trim().length < 2) {
+    if (role === UserRole.PUBLICADOR && form.cargo.trim().length < 2) {
       next.cargo = 'Indica tu cargo dentro de la organización.';
     }
     const invalidLinks = form.enlaces_corporativos.filter((link) => !isValidUrl(link));
@@ -417,12 +426,12 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
         full_name: form.full_name.trim(),
         phone: form.phone.trim() || null,
         bio: form.bio.trim() || null,
-        ubicacion: form.location.trim() || null,
+        ubicacion: (form.location as Ubicacion) || null,
       };
-      if (role === 'solucionador') {
-        payload.programa_academico = form.programa_academico.trim();
-        if (form.afiliacion_academica.trim()) {
-          payload.afiliacion_academica = form.afiliacion_academica.trim();
+      if (role === UserRole.SOLUCIONADOR) {
+        payload.programa_academico = form.programa_academico as ProgramaAcademico;
+        if (form.afiliacion_academica) {
+          payload.afiliacion_academica = form.afiliacion_academica as AfiliacionAcademica;
         }
         payload.skills = form.skills;
         payload.soft_skills = form.soft_skills;
@@ -432,10 +441,10 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
         if (isGraduate) {
           payload.anio_egreso = form.anio_egreso.trim() ? Number(form.anio_egreso) : null;
         } else {
-          payload.semestre = form.semestre.trim() || null;
+          payload.semestre = (form.semestre as Semestre) || null;
         }
       }
-      if (role === 'publicador' && form.full_name.trim()) {
+      if (role === UserRole.PUBLICADOR && form.full_name.trim()) {
         payload.empresa_nombre = form.full_name.trim();
       }
 
@@ -443,10 +452,10 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
 
       const extendedProfile: ExtendedProfile = {
         second_email: form.second_email.trim() || undefined,
-        cargo: role === 'publicador' ? form.cargo.trim() || undefined : undefined,
-        departamento: role === 'publicador' ? form.departamento.trim() || undefined : undefined,
+        cargo: role === UserRole.PUBLICADOR ? form.cargo.trim() || undefined : undefined,
+        departamento: role === UserRole.PUBLICADOR ? form.departamento.trim() || undefined : undefined,
         enlaces_corporativos:
-          role === 'publicador' ? form.enlaces_corporativos : [],
+          role === UserRole.PUBLICADOR ? form.enlaces_corporativos : [],
         canal_preferido: form.canal_preferido,
       };
       saveExtended(extendedProfile);
@@ -625,7 +634,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <Field
             id="full_name"
-            label={role === 'publicador' ? 'Nombre de la organización' : 'Nombre completo'}
+            label={role === UserRole.PUBLICADOR ? 'Nombre de la organización' : 'Nombre completo'}
             value={form.full_name}
             onChange={setField('full_name')}
             onBlur={() => {
@@ -661,13 +670,24 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             error={showError('second_email')}
             type="email"
           />
-          <Field
-            id="location"
-            label="Ubicación"
-            value={form.location}
-            onChange={setField('location')}
-            placeholder="Barranquilla, Atlántico"
-          />
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+              Ubicación
+            </label>
+            <Select
+              icon="ubicacion"
+              id="location"
+              value={form.location}
+              onChange={(e) => setField('location')(e.target.value)}
+            >
+              <option value="">Sin especificar</option>
+              {Object.values(Ubicacion).map((opcion) => (
+                <option key={opcion} value={opcion}>
+                  {opcion}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
         <div>
           <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
@@ -708,29 +728,60 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       </Section>
 
       {/* ── Bloque Solucionador ── */}
-      {role === 'solucionador' && (
+      {role === UserRole.SOLUCIONADOR && (
         <Section title={isGraduate ? 'Información Profesional' : 'Información Académica'}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field
-              id="programa_academico"
-              label="Programa académico"
-              value={form.programa_academico}
-              onChange={setField('programa_academico')}
-              onBlur={() => {
-                touch('programa_academico');
-                setErrors(validate());
-              }}
-              error={showError('programa_academico')}
-              required
-              placeholder="Ingeniería de Sistemas"
-            />
-            <Field
-              id="afiliacion_academica"
-              label="Semillero / Rama estudiantil"
-              value={form.afiliacion_academica}
-              onChange={setField('afiliacion_academica')}
-              placeholder="Laboratorio de Innovación, Rama IEEE…"
-            />
+            <div>
+              <label htmlFor="programa_academico" className="block text-sm font-medium text-gray-700 mb-1">
+                Programa académico
+                <span aria-hidden="true"> *</span>
+              </label>
+              <Select
+                icon="academico"
+                id="programa_academico"
+                value={form.programa_academico}
+                onChange={(e) => setField('programa_academico')(e.target.value)}
+                onBlur={() => {
+                  touch('programa_academico');
+                  setErrors(validate());
+                }}
+                required
+                aria-invalid={showError('programa_academico') ? true : undefined}
+                aria-describedby={showError('programa_academico') ? 'programa_academico-error' : undefined}
+              >
+                <option value="" disabled>
+                  Selecciona tu programa
+                </option>
+                {Object.values(ProgramaAcademico).map((opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ))}
+              </Select>
+              {showError('programa_academico') && (
+                <p id="programa_academico-error" className="mt-1 text-xs text-red-600" role="alert">
+                  {errors.programa_academico}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="afiliacion_academica" className="block text-sm font-medium text-gray-700 mb-1">
+                Semillero / Rama estudiantil
+              </label>
+              <Select
+                icon="grupo"
+                id="afiliacion_academica"
+                value={form.afiliacion_academica}
+                onChange={(e) => setField('afiliacion_academica')(e.target.value)}
+              >
+                <option value="">Sin especificar</option>
+                {Object.values(AfiliacionAcademica).map((opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ))}
+              </Select>
+            </div>
             {isGraduate ? (
               <Field
                 id="anio_egreso"
@@ -745,13 +796,24 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
                 placeholder="2024"
               />
             ) : (
-              <Field
-                id="semestre"
-                label="Semestre"
-                value={form.semestre}
-                onChange={setField('semestre')}
-                placeholder="8° semestre"
-              />
+              <div>
+                <label htmlFor="semestre" className="block text-sm font-medium text-gray-700 mb-1">
+                  Semestre
+                </label>
+                <Select
+                  icon="calendario"
+                  id="semestre"
+                  value={form.semestre}
+                  onChange={(e) => setField('semestre')(e.target.value)}
+                >
+                  <option value="">Sin especificar</option>
+                  {Object.values(Semestre).map((opcion) => (
+                    <option key={opcion} value={opcion}>
+                      {opcion}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -812,7 +874,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       )}
 
       {/* ── Bloque Publicador ── */}
-      {role === 'publicador' && (
+      {role === UserRole.PUBLICADOR && (
         <Section title="Información de la Organización">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field
@@ -846,18 +908,18 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             <label htmlFor="canal_preferido" className="block text-sm font-medium text-gray-700 mb-1">
               Canal de comunicación preferido
             </label>
-            <select
+            <Select
+              icon="mensaje"
               id="canal_preferido"
               value={form.canal_preferido}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, canal_preferido: e.target.value as PreferredChannel }))
               }
-              className={inputClass}
             >
-              <option value="correo">Correo electrónico</option>
-              <option value="telefono">Teléfono</option>
-              <option value="whatsapp">WhatsApp</option>
-            </select>
+              <option value={PreferredChannel.CORREO}>Correo electrónico</option>
+              <option value={PreferredChannel.TELEFONO}>Teléfono</option>
+              <option value={PreferredChannel.WHATSAPP}>WhatsApp</option>
+            </Select>
           </div>
 
           <div>

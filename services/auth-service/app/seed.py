@@ -5,7 +5,7 @@ UUIDs. Idempotent: existing users are updated with the demo profile data
 (passwords are only set on creation).
 
 Usage:
-  docker-compose exec auth-service python -m app.seed
+  python -m app.seed   (desde la carpeta del servicio)
 """
 
 import asyncio
@@ -20,6 +20,7 @@ from app.database import async_session
 from app.models.role import Role
 from app.models.user import User
 from vialibre_common.pdf import A4_HEIGHT, A4_WIDTH, Pdf
+from vialibre_common.schemas import TALENT_ROLES, AfiliacionAcademica, UserRole
 
 
 # Fixed UUIDs for deterministic seeding
@@ -34,14 +35,14 @@ USER_SOLUCIONADOR_ID = uuid.UUID("00000000-0000-0000-0000-000000000003")
 
 
 ROLES = [
-    {"id": ROLE_ADMIN_ID, "name": "admin", "description": "Administrator with full access"},
-    {"id": ROLE_PUBLICADOR_ID, "name": "publicador", "description": "Organization that publishes challenges"},
-    {"id": ROLE_SOLUCIONADOR_ID, "name": "solucionador", "description": "Student/solver that accepts challenges"},
-    {"id": ROLE_EGRESADO_ID, "name": "egresado", "description": "Graduate looking for job offers"},
+    {"id": ROLE_ADMIN_ID, "name": UserRole.ADMIN, "description": "Administrator with full access"},
+    {"id": ROLE_PUBLICADOR_ID, "name": UserRole.PUBLICADOR, "description": "Organization that publishes challenges"},
+    {"id": ROLE_SOLUCIONADOR_ID, "name": UserRole.SOLUCIONADOR, "description": "Student/solver that accepts challenges"},
+    {"id": ROLE_EGRESADO_ID, "name": UserRole.EGRESADO, "description": "Graduate looking for job offers"},
 ]
 
 AVATAR = "/seed/avatares/{}.svg"
-LAB = "Laboratorio de Innovación"
+LAB = AfiliacionAcademica.LABORATORIO_INNOVACION
 
 
 def _uid(n: int) -> uuid.UUID:
@@ -70,7 +71,7 @@ EMPRESAS = [
     {
         "id": _uid(103), "email": "talento.tecnocaribe@empresas.vialibre.edu.co", "password": "Empresa1234",
         "full_name": "TecnoCaribe Software S.A.S.", "empresa_nombre": "TecnoCaribe Software", "nit_empresa": "901.556.903-2",
-        "phone": "+57 300 000 0004", "ubicacion": "Barranquilla, Atlántico (híbrido)",
+        "phone": "+57 300 000 0004", "ubicacion": "Barranquilla, Atlántico",
         "bio": "Fábrica de software que desarrolla plataformas web y móviles para comercio, salud y logística.",
     },
     {
@@ -291,7 +292,7 @@ async def upsert_user(db: AsyncSession, data: dict, role: Role) -> None:
     if data.get("avatar"):
         user.avatar_url = AVATAR.format(data["avatar"])
     user.disponible = data.get("disponible", True)
-    if role.name in ("solucionador", "egresado") and data.get("cv", True):
+    if role.name in TALENT_ROLES and data.get("cv", True):
         user.cv_data = build_cv(data)
         user.cv_filename = _slug_filename(data["full_name"])
         user.cv_size = len(user.cv_data)
@@ -308,13 +309,13 @@ async def main():
             await upsert_user(db, {
                 "id": USER_ADMIN_ID, "email": "admin@vialibre.edu.co", "password": "Admin1234",
                 "full_name": "Juan Camilo Llamas Cardenas", "programa_academico": "Ingeniería de Sistemas",
-            }, roles["admin"])
+            }, roles[UserRole.ADMIN])
             for data in EMPRESAS:
-                await upsert_user(db, data, roles["publicador"])
+                await upsert_user(db, data, roles[UserRole.PUBLICADOR])
             for data in ESTUDIANTES:
-                await upsert_user(db, data, roles["solucionador"])
+                await upsert_user(db, data, roles[UserRole.SOLUCIONADOR])
             for data in EGRESADOS:
-                await upsert_user(db, data, roles["egresado"])
+                await upsert_user(db, data, roles[UserRole.EGRESADO])
             await db.commit()
             print("Auth seed complete!")
         except Exception as e:

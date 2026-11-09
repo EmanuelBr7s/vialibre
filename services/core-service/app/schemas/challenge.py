@@ -1,11 +1,11 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.models.challenge import ChallengeStatus, DifficultyLevel
+from vialibre_common.schemas import ChallengeStatus, ChallengeTipo, DifficultyLevel, Modalidad, Ubicacion
 
 
 class CategoryCreate(BaseModel):
@@ -23,15 +23,11 @@ class CategoryResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-ChallengeTipo = Literal["reto", "practica", "empleo"]
-Modalidad = Literal["presencial", "remoto", "hibrido"]
-
-
 class ChallengeCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=300)
     short_description: str = Field(..., min_length=10, max_length=500)
     long_description: str = Field(..., min_length=20)
-    tipo: ChallengeTipo = "reto"
+    tipo: ChallengeTipo = ChallengeTipo.RETO
     category_id: Optional[uuid.UUID] = None
     difficulty: Optional[DifficultyLevel] = None
     tags: Optional[list[str]] = None
@@ -39,7 +35,7 @@ class ChallengeCreate(BaseModel):
     deadline: Optional[datetime] = None
     image_url: Optional[str] = Field(None, max_length=512)
     modalidad: Optional[Modalidad] = None
-    ubicacion: Optional[str] = Field(None, max_length=120)
+    ubicacion: Optional[Ubicacion] = None
 
 
 class ChallengeUpdate(BaseModel):
@@ -55,7 +51,7 @@ class ChallengeUpdate(BaseModel):
     tipo: Optional[ChallengeTipo] = None
     image_url: Optional[str] = Field(None, max_length=512)
     modalidad: Optional[Modalidad] = None
-    ubicacion: Optional[str] = Field(None, max_length=120)
+    ubicacion: Optional[Ubicacion] = None
 
 
 class ChallengeResponse(BaseModel):
@@ -63,7 +59,7 @@ class ChallengeResponse(BaseModel):
     title: str
     short_description: str
     long_description: str
-    tipo: str
+    tipo: ChallengeTipo
     author_id: uuid.UUID
     category_id: Optional[uuid.UUID] = None
     status: ChallengeStatus
@@ -72,7 +68,7 @@ class ChallengeResponse(BaseModel):
     budget: Optional[Decimal] = None
     deadline: Optional[datetime] = None
     image_url: Optional[str] = None
-    modalidad: Optional[str] = None
+    modalidad: Optional[Modalidad] = None
     ubicacion: Optional[str] = None
     is_featured: bool
     featured_score: Decimal

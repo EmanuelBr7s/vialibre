@@ -8,13 +8,14 @@ import ResumeUploader from '@/components/ResumeUploader';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { TALENT_ROLES } from '@/lib/constants';
 import { FOCUS_RING } from '@/components/ui/classes';
+import { UserRole } from '@/types';
 
 export default function PerfilAcademicoPage() {
   const allowed = useRoleGuard(TALENT_ROLES);
   const { user, updateUser } = useAuth();
   const [savingAvailable, setSavingAvailable] = useState(false);
   const available = user?.disponible ?? true;
-  const isGraduate = user?.role === 'egresado';
+  const isGraduate = user?.role === UserRole.EGRESADO;
 
   const toggleAvailable = async () => {
     setSavingAvailable(true);
@@ -52,7 +53,7 @@ export default function PerfilAcademicoPage() {
         </header>
 
         <div className="space-y-5">
-          <ProfileEditor role="solucionador" />
+          <ProfileEditor role={UserRole.SOLUCIONADOR} />
 
           <ResumeUploader />
 

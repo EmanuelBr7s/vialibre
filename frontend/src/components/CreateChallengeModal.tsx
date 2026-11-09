@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import api from '@/lib/api';
-import type { Challenge, ChallengeTipo, Modalidad } from '@/types';
+import type { Challenge } from '@/types';
+import { ChallengeTipo, DifficultyLevel, Modalidad, Ubicacion } from '@/types';
 import { MODALIDAD_LABEL, MODULES, MODULE_BY_ID } from '@/data/modules';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import Select from '@/components/ui/Select';
 
 interface CreateChallengeModalProps {
   open: boolean;
@@ -27,7 +29,7 @@ const inputClass =
 
 export default function CreateChallengeModal({
   open,
-  defaultTipo = 'reto',
+  defaultTipo = ChallengeTipo.RETO,
   onClose,
   onCreated,
 }: CreateChallengeModalProps) {
@@ -36,11 +38,11 @@ export default function CreateChallengeModal({
   const [title, setTitle] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [longDescription, setLongDescription] = useState('');
-  const [difficulty, setDifficulty] = useState('medium');
+  const [difficulty, setDifficulty] = useState(DifficultyLevel.MEDIUM);
   const [tags, setTags] = useState('');
   const [tipo, setTipo] = useState<ChallengeTipo>(defaultTipo);
   const [modalidad, setModalidad] = useState<Modalidad | ''>('');
-  const [ubicacion, setUbicacion] = useState('');
+  const [ubicacion, setUbicacion] = useState<Ubicacion | ''>('');
   const [imageUrl, setImageUrl] = useState('');
 
   // Cada apertura parte del módulo de la pestaña activa.
@@ -117,10 +119,10 @@ export default function CreateChallengeModal({
         short_description: shortDescription.trim(),
         long_description: longDescription.trim(),
         tipo,
-        ...(tipo === 'reto' ? { difficulty } : {}),
+        ...(tipo === ChallengeTipo.RETO ? { difficulty } : {}),
         ...(parsedTags.length ? { tags: parsedTags } : {}),
         ...(modalidad ? { modalidad } : {}),
-        ...(ubicacion.trim() ? { ubicacion: ubicacion.trim() } : {}),
+        ...(ubicacion ? { ubicacion } : {}),
         ...(imageUrl.trim() ? { image_url: imageUrl.trim() } : {}),
       });
       onCreated(challenge);
@@ -128,7 +130,7 @@ export default function CreateChallengeModal({
       setTitle('');
       setShortDescription('');
       setLongDescription('');
-      setDifficulty('medium');
+      setDifficulty(DifficultyLevel.MEDIUM);
       setTags('');
       setModalidad('');
       setUbicacion('');
@@ -221,9 +223,9 @@ export default function CreateChallengeModal({
               aria-invalid={!!errors.title}
               aria-describedby={showError('title') ? 'title-error' : undefined}
               placeholder={
-                tipo === 'empleo'
+                tipo === ChallengeTipo.EMPLEO
                   ? 'Ej: Analista contable junior'
-                  : tipo === 'practica'
+                  : tipo === ChallengeTipo.PRACTICA
                     ? 'Ej: Practicante de desarrollo web'
                     : 'Ej: Modelo predictivo para rendimiento de cosechas'
               }
@@ -287,11 +289,12 @@ export default function CreateChallengeModal({
               <label htmlFor="modalidad" className="block text-sm font-medium text-gray-700 mb-1">
                 Modalidad
               </label>
-              <select
+              <Select
+                icon="maletin"
+                compact
                 id="modalidad"
                 value={modalidad}
                 onChange={(e) => setModalidad(e.target.value as Modalidad | '')}
-                className={inputClass}
               >
                 <option value="">Sin especificar</option>
                 {(Object.keys(MODALIDAD_LABEL) as Modalidad[]).map((m) => (
@@ -299,21 +302,26 @@ export default function CreateChallengeModal({
                     {MODALIDAD_LABEL[m]}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label htmlFor="ubicacion" className="block text-sm font-medium text-gray-700 mb-1">
                 Ubicación
               </label>
-              <input
+              <Select
+                icon="ubicacion"
+                compact
                 id="ubicacion"
-                type="text"
                 value={ubicacion}
-                onChange={(e) => setUbicacion(e.target.value)}
-                maxLength={120}
-                placeholder="Barranquilla, Atlántico"
-                className={inputClass}
-              />
+                onChange={(e) => setUbicacion(e.target.value as Ubicacion | '')}
+              >
+                <option value="">Sin especificar</option>
+                {Object.values(Ubicacion).map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
 
@@ -339,21 +347,22 @@ export default function CreateChallengeModal({
             )}
           </div>
 
-          {tipo === 'reto' && (
+          {tipo === ChallengeTipo.RETO && (
           <div>
             <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
               Dificultad
             </label>
-            <select
+            <Select
+              icon="nivel"
+              compact
               id="difficulty"
               value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-              className={inputClass}
+              onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
             >
-              <option value="easy">Fácil</option>
-              <option value="medium">Medio</option>
-              <option value="hard">Difícil</option>
-            </select>
+              <option value={DifficultyLevel.EASY}>Fácil</option>
+              <option value={DifficultyLevel.MEDIUM}>Medio</option>
+              <option value={DifficultyLevel.HARD}>Difícil</option>
+            </Select>
           </div>
           )}
 

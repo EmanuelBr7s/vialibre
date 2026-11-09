@@ -23,15 +23,10 @@ from app.models.document import InteractionDocument
 from app.models.interaction import Interaction, InteractionStatus
 from app.schemas.match import DocumentChecklist, DocumentInfo, RequiredDocument
 from vialibre_common.pdf import A4_HEIGHT, A4_WIDTH, Pdf
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import ChallengeTipo, DocumentoTipo, UserRole
 
 router = APIRouter()
 
-REQUIRED_DOCUMENTS = {
-    "documento_identidad": "Documento de identidad",
-    "certificado_matricula": "Certificado de matrícula vigente",
-    "afiliacion_eps": "Certificado de afiliación a EPS",
-}
 DOC_MAX_BYTES = 5 * 1024 * 1024
 # Firma de los formatos admitidos: PDF, JPEG y PNG.
 DOC_SIGNATURES = {
@@ -80,7 +75,9 @@ async def _load(
     return interaction, challenge, is_owner
 
 
-async def _documents(db: AsyncSession, interaction_id: uuid.UUID) -> dict[str, InteractionDocument]:
+async def _documents(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> dict[DocumentoTipo, InteractionDocument]:
     result = await db.execute(
         select(InteractionDocument).where(InteractionDocument.interaction_id == interaction_id)
     )
@@ -88,7 +85,10 @@ async def _documents(db: AsyncSession, interaction_id: uuid.UUID) -> dict[str, I
 
 
 def _applies(interaction: Interaction, challenge: dict) -> bool:
-    return challenge.get("tipo") == "practica" and interaction.status == InteractionStatus.APROBADO
+    return (
+        challenge.get("tipo") == ChallengeTipo.PRACTICA
+        and interaction.status == InteractionStatus.APROBADO
+    )
 
 
 @router.get("/{interaction_id}/documentos", response_model=DocumentChecklist)
@@ -103,10 +103,10 @@ async def list_documents(
     required = [
         RequiredDocument(
             tipo=tipo,
-            label=label,
+            label=tipo.label,
             documento=DocumentInfo.model_validate(docs[tipo]) if tipo in docs else None,
         )
-        for tipo, label in REQUIRED_DOCUMENTS.items()
+        for tipo in DocumentoTipo
     ]
     return DocumentChecklist(
         aplica=_applies(interaction, challenge),
@@ -118,14 +118,12 @@ async def list_documents(
 @router.put("/{interaction_id}/documentos/{tipo}", response_model=DocumentInfo)
 async def upload_document(
     interaction_id: uuid.UUID,
-    tipo: str,
+    tipo: DocumentoTipo,
     file: UploadFile = File(...),
     auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """El estudiante seleccionado carga (o reemplaza) un documento requisito."""
-    if tipo not in REQUIRED_DOCUMENTS:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no requerido")
     interaction, challenge, is_owner = await _load(db, interaction_id, auth)
     if not is_owner:
         raise HTTPException(
@@ -167,7 +165,7 @@ async def upload_document(
 @router.get("/{interaction_id}/documentos/{tipo}")
 async def download_document(
     interaction_id: uuid.UUID,
-    tipo: str,
+    tipo: DocumentoTipo,
     auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -277,7 +275,7 @@ async def download_endorsement_letter(
             detail="La carta de aval aplica a prácticas en las que fuiste seleccionado",
         )
     docs = await _documents(db, interaction_id)
-    missing = [label for tipo, label in REQUIRED_DOCUMENTS.items() if tipo not in docs]
+    missing = [tipo.label for tipo in DocumentoTipo if tipo not in docs]
     if missing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
