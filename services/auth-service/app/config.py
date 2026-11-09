@@ -31,6 +31,15 @@ class Settings(BaseSettings):
                 f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
                 f"@localhost:5432/{self.postgres_db}"
             )
+        else:
+            if self.database_url.startswith("postgresql://"):
+                self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif self.database_url.startswith("postgres://"):
+                self.database_url = self.database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            if "sslmode=" in self.database_url:
+                self.database_url = self.database_url.replace("sslmode=require", "ssl=require")
+            if "channel_binding=" in self.database_url:
+                self.database_url = self.database_url.replace("&channel_binding=require", "").replace("channel_binding=require", "")
 
 
 settings = Settings()
