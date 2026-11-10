@@ -18,7 +18,7 @@ from app.schemas.match import (
     InteractionListResponse,
     InteractionResponse,
 )
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import TALENT_ROLES, UserRole
 
 router = APIRouter()
 
@@ -33,10 +33,10 @@ async def apply_to_challenge(
     A Solucionador applies to a challenge.
     Creates an interaction in PENDIENTE status.
     """
-    if auth.payload.role != UserRole.SOLUCIONADOR:
+    if auth.payload.role not in TALENT_ROLES:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only solucionadores can apply to challenges",
+            detail="Solo estudiantes y egresados pueden postularse",
         )
 
     # Check if user already applied to this challenge
@@ -112,7 +112,7 @@ async def list_challenge_applicants(
     )
 
 
-@router.get("/", response_model=InteractionListResponse)
+@router.get("", response_model=InteractionListResponse)
 async def list_my_interactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -308,10 +308,13 @@ async def get_contact_info(
             detail="Not authorized to view contact info",
         )
 
-    # Fetch solucionador info from auth-service (pass real JWT)
+    # Contacto de la contraparte: el estudiante ve a la empresa; la empresa y
+    # la administracion ven al estudiante.
+    is_solucionador = str(interaction.solucionador_id) == auth.payload.sub
+    contact_id = author_id if is_solucionador else interaction.solucionador_id
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{settings.auth_service_url}/api/v1/auth/users/{interaction.solucionador_id}",
+            f"{settings.auth_service_url}/api/v1/auth/users/{contact_id}",
             headers={"Authorization": f"Bearer {auth.token}"},
         )
         if response.status_code != 200:

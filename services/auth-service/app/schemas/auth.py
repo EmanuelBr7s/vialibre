@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import AfiliacionAcademica, ProgramaAcademico, UserRole
 
 
 class LoginRequest(BaseModel):
@@ -23,8 +23,8 @@ class RegisterRequest(BaseModel):
     empresa_nombre: Optional[str] = None
 
     # SOLUCIONADOR fields (estudiantes)
-    programa_academico: Optional[str] = None
-    afiliacion_academica: Optional[str] = None
+    programa_academico: Optional[ProgramaAcademico] = None
+    afiliacion_academica: Optional[AfiliacionAcademica] = None
 
     @model_validator(mode="after")
     def validate_role_fields(self) -> "RegisterRequest":
@@ -38,10 +38,10 @@ class RegisterRequest(BaseModel):
                 raise ValueError(
                     "Publicadores must provide 'empresa_nombre'"
                 )
-        elif self.role == UserRole.SOLUCIONADOR:
+        elif self.role in (UserRole.SOLUCIONADOR, UserRole.EGRESADO):
             if not self.programa_academico:
                 raise ValueError(
-                    "Solucionadores must provide 'programa_academico'"
+                    "Estudiantes y egresados deben indicar 'programa_academico'"
                 )
         return self
 

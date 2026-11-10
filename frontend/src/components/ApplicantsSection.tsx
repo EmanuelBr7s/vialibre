@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import type { ContactInfo, Interaction, User } from '@/types';
-import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, btnPrimary, btnSecondary, btnDanger } from '@/components/ui/classes';
+import { InteractionStatus } from '@/types';
+import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnDanger } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
-import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { useBottomSheet } from '@/hooks/useBottomSheet';
-import { getResumeBlobUrl, getResumeMeta } from '@/lib/profileStorage';
+import CvPreviewModal from '@/components/CvPreviewModal';
+import PracticeDocuments from '@/components/PracticeDocuments';
 
 interface ApplicantsSectionProps {
   challengeId: string;
@@ -19,15 +19,15 @@ interface ApplicantWithUser extends Interaction {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pendiente: 'Pendiente',
-  aprobado: 'Aprobado',
-  rechazado: 'Rechazado',
+  [InteractionStatus.PENDIENTE]: 'Pendiente',
+  [InteractionStatus.APROBADO]: 'Aprobado',
+  [InteractionStatus.RECHAZADO]: 'Rechazado',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
+  [InteractionStatus.PENDIENTE]: 'bg-yellow-100 text-yellow-700',
+  [InteractionStatus.APROBADO]: 'bg-green-100 text-green-700',
+  [InteractionStatus.RECHAZADO]: 'bg-red-100 text-red-700',
 };
 
 const StatusDot = ({ active }: { active: boolean }) => (
@@ -49,12 +49,9 @@ export default function ApplicantsSection({
   const [busyId, setBusyId] = useState<string | null>(null);
 
   // Estado de previsualización del CV del postulado
-  const previewRef = useRef<HTMLDivElement>(null);
   const [cvOpen, setCvOpen] = useState<{ url: string; fileName: string } | null>(null);
   const [cvLoadingId, setCvLoadingId] = useState<string | null>(null);
   const [cvNotice, setCvNotice] = useState<string | null>(null);
-
-  const cvSheet = useBottomSheet(false);
 
   const loadApplicants = useCallback(async () => {
     setLoading(true);
@@ -87,7 +84,7 @@ export default function ApplicantsSection({
 
   const handleApproveReject = async (
     interactionId: string,
-    status: 'aprobado' | 'rechazado'
+    status: InteractionStatus.APROBADO | InteractionStatus.RECHAZADO
   ) => {
     setBusyId(interactionId);
     setActionError(null);
@@ -95,7 +92,7 @@ export default function ApplicantsSection({
     try {
       await api.approveInteraction(interactionId, status);
       setActionSuccess(
-        status === 'aprobado'
+        status === InteractionStatus.APROBADO
           ? 'Postulación aprobada. El contacto quedó desbloqueado.'
           : 'Postulación rechazada.'
       );
@@ -129,20 +126,17 @@ export default function ApplicantsSection({
    * Abre la previsualización del CV del solucionador. El visto bueno no es
    * requisito: el publicador puede evaluar el perfil desde la postulación.
    */
-  const openApplicantCv = async (solucionadorId: string) => {
+  const openApplicantCv = async (applicant: ApplicantWithUser) => {
+    const solucionadorId = applicant.solucionador_id;
+    if (!applicant.user?.cv_filename) {
+      setCvNotice('Este postulado aún no ha adjuntado una hoja de vida.');
+      return;
+    }
     setCvLoadingId(solucionadorId);
     setCvNotice(null);
     try {
-      const [url, meta] = await Promise.all([
-        getResumeBlobUrl(solucionadorId),
-        Promise.resolve(getResumeMeta(solucionadorId)),
-      ]);
-      if (url && meta) {
-        setCvOpen({ url, fileName: meta.fileName });
-        cvSheet.openSheet();
-      } else {
-        setCvNotice('Este postulado aún no ha adjuntado una hoja de vida.');
-      }
+      const url = await api.getUserCvBlobUrl(solucionadorId);
+      setCvOpen({ url, fileName: applicant.user.cv_filename });
     } catch {
       setCvNotice('No se pudo cargar la hoja de vida de este postulado.');
     } finally {
@@ -171,7 +165,7 @@ export default function ApplicantsSection({
       <section aria-label="Postulados" className="bg-gray-50 rounded-xl border border-gray-200 p-4 sm:p-6 mt-8">
         <h3 className="text-fluid-lg font-semibold text-gray-900 mb-2">Postulados</h3>
         <p className="text-fluid-sm text-gray-600">
-          Aún no hay postulaciones para esta problemática.
+          Aún no hay postulaciones para esta publicación.
         </p>
       </section>
     );
@@ -216,7 +210,7 @@ export default function ApplicantsSection({
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                   <div className="min-w-0">
                     <h4 className="font-medium text-gray-900 truncate">
-                      {applicant.user?.full_name || 'Solucionador'}
+                      {applicant.user?.full_name || 'Postulado'}
                     </h4>
                     <p className="text-fluid-xs text-gray-500">
                       {applicant.user?.programa_academico || 'Programa académico no disponible'}
@@ -234,10 +228,10 @@ export default function ApplicantsSection({
                   <p className="text-fluid-sm text-gray-600 mt-3 italic">“{applicant.message}”</p>
                 )}
 
-                {applicant.status === 'pendiente' && (
+                {applicant.status === InteractionStatus.PENDIENTE && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-4">
                     <button
-                      onClick={() => handleApproveReject(applicant.id, 'aprobado')}
+                      onClick={() => handleApproveReject(applicant.id, InteractionStatus.APROBADO)}
                       disabled={isBusy}
                       aria-busy={isBusy}
                       className={`${btnPrimary} w-full sm:w-auto`}
@@ -245,7 +239,7 @@ export default function ApplicantsSection({
                       {isBusy ? 'Actualizando…' : 'Aprobar y desbloquear contacto'}
                     </button>
                     <button
-                      onClick={() => handleApproveReject(applicant.id, 'rechazado')}
+                      onClick={() => handleApproveReject(applicant.id, InteractionStatus.RECHAZADO)}
                       disabled={isBusy}
                       className={`${btnDanger} w-full sm:w-auto`}
                     >
@@ -265,9 +259,9 @@ export default function ApplicantsSection({
                   </button>
                 )}
 
-                {applicant.status !== 'rechazado' && (
+                {applicant.status !== InteractionStatus.RECHAZADO && (
                   <button
-                    onClick={() => openApplicantCv(applicant.solucionador_id)}
+                    onClick={() => openApplicantCv(applicant)}
                     disabled={cvLoadingId === applicant.solucionador_id}
                     aria-busy={cvLoadingId === applicant.solucionador_id}
                     className={`mt-3 inline-flex items-center gap-2 text-fluid-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-2 -mx-2 ${TOUCH_TARGET} ${FOCUS_RING}`}
@@ -284,6 +278,10 @@ export default function ApplicantsSection({
                       'Ver hoja de vida (CV)'
                     )}
                   </button>
+                )}
+
+                {applicant.status === InteractionStatus.APROBADO && (
+                  <PracticeDocuments interactionId={applicant.id} editable={false} />
                 )}
 
                 {isOpen && (
@@ -320,58 +318,14 @@ export default function ApplicantsSection({
         })}
       </ul>
 
-      {/* Bottom Sheet de previsualización del CV del postulado */}
-      {cvOpen && cvSheet.open && (
-        <div
-          className="fixed inset-0 z-50 flex lg:items-center lg:justify-center bg-black/50 p-4"
-          role="presentation"
-        >
-          <div
-            ref={cvSheet.sheetRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="applicant-cv-preview-title"
-            className="w-full max-w-3xl bg-white rounded-t-2xl lg:rounded-xl shadow-xl flex flex-col max-h-[90vh] lg:max-h-[85vh] animate-slide-up"
-            style={{ transform: `translateY(${cvSheet.dragOffset}px)` }}
-            onTouchStart={cvSheet.onTouchStart}
-            onTouchMove={cvSheet.onTouchMove}
-            onTouchEnd={cvSheet.onTouchEnd}
-          >
-            <div className="bottom-sheet-handle" aria-hidden="true" />
-            <header className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h3 id="applicant-cv-preview-title" className="text-fluid-base font-bold text-gray-900 truncate">
-                Hoja de vida del postulado
-              </h3>
-              <button
-                type="button"
-                onClick={cvSheet.closeSheet}
-                aria-label="Cerrar hoja de vida"
-                className={`inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 text-2xl leading-none rounded-lg hover:bg-gray-100 ${TOUCH_TARGET_LG} ${FOCUS_RING}`}
-              >
-                <span aria-hidden="true">×</span>
-              </button>
-            </header>
-            <div className="flex-1 overflow-hidden">
-              <iframe
-                src={cvOpen.url}
-                title={`Previsualización de ${cvOpen.fileName}`}
-                className="w-full h-full border-0"
-              />
-            </div>
-            <footer className="p-4 border-t border-gray-200 bg-white">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                <p className="text-fluid-sm text-gray-500 truncate">{cvOpen.fileName}</p>
-                <a
-                  href={cvOpen.url}
-                  download={cvOpen.fileName}
-                  className={`${btnPrimary} w-full sm:w-auto`}
-                >
-                  Descargar PDF
-                </a>
-              </div>
-            </footer>
-          </div>
-        </div>
+      {/* Modal de previsualización del CV del postulado */}
+      {cvOpen && (
+        <CvPreviewModal
+          url={cvOpen.url}
+          fileName={cvOpen.fileName}
+          title="Hoja de vida del postulado"
+          onClose={() => setCvOpen(null)}
+        />
       )}
     </section>
   );

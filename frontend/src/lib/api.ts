@@ -3,6 +3,8 @@ import type {
   ChallengeApplicantsResponse,
   ChallengeListResponse,
   ContactInfo,
+  DocumentChecklist,
+  DocumentInfo,
   Interaction,
   InteractionListResponse,
   ProfileUpdatePayload,
@@ -10,7 +12,9 @@ import type {
   ReactionListResponse,
   TokenResponse,
   User,
+  UserListResponse,
 } from '@/types';
+import { ChallengeTipo, InteractionStatus, Modalidad, ReactionType, UserRole } from '@/types';
 import { AUTH_COOKIE_NAME } from '@/lib/constants';
 import { mockApi } from '@/lib/mockApi';
 
@@ -19,7 +23,7 @@ export { AUTH_COOKIE_NAME };
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Modo mockup autocontenido: responde con datos locales (src/lib/mockApi.ts)
-// en lugar de llamar a la infraestructura real (auth/core/match vía nginx).
+// en lugar de llamar a la infraestructura real (auth/core/match vía el proxy de Next.js).
 const MOCK_MODE = process.env.NEXT_PUBLIC_API_MOCK === 'true';
 
 interface RequestOptions {
@@ -45,6 +49,17 @@ const deleteCookie = (name: string) => {
   if (typeof document === 'undefined') return;
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 };
+
+async function toError(response: Response): Promise<Error> {
+  const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+  const message =
+    typeof error.detail === 'string'
+      ? error.detail
+      : Array.isArray(error.detail)
+      ? error.detail.map((d: { msg?: string }) => d.msg || '').join('; ')
+      : `HTTP error! status: ${response.status}`;
+  return new Error(message || `HTTP error! status: ${response.status}`);
+}
 
 class ApiClient {
   private baseUrl: string;
@@ -86,14 +101,7 @@ class ApiClient {
     const response = await fetch(`${this.baseUrl}${endpoint}`, config);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-      const message =
-        typeof error.detail === 'string'
-          ? error.detail
-          : Array.isArray(error.detail)
-          ? error.detail.map((d: { msg?: string }) => d.msg || '').join('; ')
-          : `HTTP error! status: ${response.status}`;
-      throw new Error(message || `HTTP error! status: ${response.status}`);
+      throw await toError(response);
     }
 
     if (response.status === 204) {
@@ -166,6 +174,81 @@ class ApiClient {
     });
   }
 
+  /** Banco de hojas de vida (solo empresas y administración). */
+  async searchTalent(params: {
+    role?: UserRole.SOLUCIONADOR | UserRole.EGRESADO;
+    q?: string;
+    programa?: string;
+    afiliacion?: string;
+    con_cv?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<UserListResponse> {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== false) {
+        searchParams.append(key, String(value));
+      }
+    });
+    const query = searchParams.toString();
+    return this.request(`/v1/auth/users/talent${query ? `?${query}` : ''}`);
+  }
+
+  // ── Archivos (multipart y descargas autenticadas) ──
+  private async uploadFile<T>(endpoint: string, file: File): Promise<T> {
+    const body = new FormData();
+    body.append('file', file);
+    const token = this.getToken();
+    // Sin Content-Type: el navegador fija el boundary del multipart.
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      method: 'PUT',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body,
+    });
+    if (!response.ok) throw await toError(response);
+    return response.json();
+  }
+
+  /** Descarga con el token y devuelve una URL blob para <iframe> o descarga. */
+  private async fetchBlobUrl(endpoint: string): Promise<string> {
+    const token = this.getToken();
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw await toError(response);
+    return URL.createObjectURL(await response.blob());
+  }
+
+  // ── Hoja de vida (PDF) ──
+  async uploadMyCv(file: File): Promise<User> {
+    return this.uploadFile('/v1/auth/users/me/cv', file);
+  }
+
+  async deleteMyCv(): Promise<null> {
+    return this.request('/v1/auth/users/me/cv', { method: 'DELETE' });
+  }
+
+  async getUserCvBlobUrl(userId: string): Promise<string> {
+    return this.fetchBlobUrl(`/v1/auth/users/${userId}/cv`);
+  }
+
+  // ── Documentos de práctica y carta de aval ──
+  async getPracticeDocuments(interactionId: string): Promise<DocumentChecklist> {
+    return this.request(`/v1/match/interactions/${interactionId}/documentos`);
+  }
+
+  async uploadPracticeDocument(interactionId: string, tipo: string, file: File): Promise<DocumentInfo> {
+    return this.uploadFile(`/v1/match/interactions/${interactionId}/documentos/${tipo}`, file);
+  }
+
+  async getPracticeDocumentBlobUrl(interactionId: string, tipo: string): Promise<string> {
+    return this.fetchBlobUrl(`/v1/match/interactions/${interactionId}/documentos/${tipo}`);
+  }
+
+  async getEndorsementLetterBlobUrl(interactionId: string): Promise<string> {
+    return this.fetchBlobUrl(`/v1/match/interactions/${interactionId}/carta-aval`);
+  }
+
   // ── Challenges endpoints ──
   async getChallenges(params?: {
     skip?: number;
@@ -174,6 +257,8 @@ class ApiClient {
     category_id?: string;
     difficulty?: string;
     featured_only?: boolean;
+    tipo?: ChallengeTipo;
+    author_id?: string;
   }): Promise<ChallengeListResponse> {
     if (MOCK_MODE) return mockApi.getChallenges(params);
     const searchParams = new URLSearchParams();
@@ -185,7 +270,7 @@ class ApiClient {
       });
     }
     const query = searchParams.toString();
-    return this.request(`/v1/core/challenges/${query ? `?${query}` : ''}`);
+    return this.request(`/v1/core/challenges${query ? `?${query}` : ''}`);
   }
 
   async getChallenge(id: string): Promise<Challenge> {
@@ -197,14 +282,18 @@ class ApiClient {
     title: string;
     short_description: string;
     long_description: string;
+    tipo: ChallengeTipo;
     category_id?: string;
     difficulty?: string;
     tags?: string[];
     budget?: number;
     deadline?: string;
+    image_url?: string;
+    modalidad?: Modalidad;
+    ubicacion?: string;
   }): Promise<Challenge> {
     if (MOCK_MODE) return mockApi.createChallenge(data);
-    return this.request('/v1/core/challenges/', {
+    return this.request('/v1/core/challenges', {
       method: 'POST',
       body: data,
     });
@@ -234,7 +323,7 @@ class ApiClient {
       });
     }
     const query = searchParams.toString();
-    return this.request(`/v1/match/interactions/${query ? `?${query}` : ''}`);
+    return this.request(`/v1/match/interactions${query ? `?${query}` : ''}`);
   }
 
   async getChallengeApplicants(challengeId: string): Promise<ChallengeApplicantsResponse> {
@@ -242,7 +331,7 @@ class ApiClient {
     return this.request(`/v1/match/interactions/challenge/${challengeId}`);
   }
 
-  async approveInteraction(interactionId: string, status: 'aprobado' | 'rechazado'): Promise<Interaction> {
+  async approveInteraction(interactionId: string, status: InteractionStatus.APROBADO | InteractionStatus.RECHAZADO): Promise<Interaction> {
     if (MOCK_MODE) return mockApi.approveInteraction(interactionId, status);
     return this.request(`/v1/match/interactions/${interactionId}/approve`, {
       method: 'PATCH',
@@ -261,9 +350,9 @@ class ApiClient {
   }
 
   // ── Reactions endpoints ──
-  async createReaction(data: { challenge_id: string; reaction_type: 'like' | 'bookmark' }): Promise<Reaction> {
+  async createReaction(data: { challenge_id: string; reaction_type: ReactionType }): Promise<Reaction> {
     if (MOCK_MODE) return mockApi.createReaction(data);
-    return this.request('/v1/match/reactions/', {
+    return this.request('/v1/match/reactions', {
       method: 'POST',
       body: data,
     });

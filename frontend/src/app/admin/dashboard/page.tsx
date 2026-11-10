@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { ADMIN_KPIS, ADMIN_USERS, ROLE_LABEL, type AdminUserRow } from '@/data/mock';
 import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, btnSecondary, btnDanger } from '@/components/ui/classes';
+import { UserRole } from '@/types';
 
 const ACCENT: Record<string, string> = {
   primary: 'bg-primary-100 text-primary-700',
@@ -14,9 +15,10 @@ const ACCENT: Record<string, string> = {
 };
 
 const ROLE_BADGE: Record<string, string> = {
-  admin: 'bg-secondary-100 text-secondary-700',
-  publicador: 'bg-primary-100 text-primary-700',
-  solucionador: 'bg-gray-100 text-gray-700',
+  [UserRole.ADMIN]: 'bg-secondary-100 text-secondary-700',
+  [UserRole.PUBLICADOR]: 'bg-primary-100 text-primary-700',
+  [UserRole.SOLUCIONADOR]: 'bg-gray-100 text-gray-700',
+  [UserRole.EGRESADO]: 'bg-amber-100 text-amber-700',
 };
 
 const CalendarIcon = () => (
@@ -30,7 +32,7 @@ const StatusDot = ({ active }: { active: boolean }) => (
 );
 
 export default function AdminDashboardPage() {
-  const allowed = useRoleGuard('admin');
+  const allowed = useRoleGuard(UserRole.ADMIN);
   const [users, setUsers] = useState<AdminUserRow[]>(ADMIN_USERS);
   const [feedback, setFeedback] = useState<string | null>(null);
 

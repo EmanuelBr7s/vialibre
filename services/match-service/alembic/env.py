@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import settings
 from app.database import Base
-from app.models import interaction, reaction  # noqa: F401 - Import models for Alembic
+from app.models import document, interaction, reaction  # noqa: F401 - Import models for Alembic
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -17,6 +17,14 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
+
+
+def include_name(name, type_, parent_names):
+    """Compara solo el esquema de este servicio: sin esto el autogenerado no ve
+    sus tablas (recrea todo) y propone borrar las de los demas servicios."""
+    if type_ == "schema":
+        return name == settings.schema_name
+    return True
 
 
 def run_migrations_offline() -> None:
@@ -35,7 +43,13 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, version_table="alembic_version_match")
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table="alembic_version_match",
+        include_schemas=True,
+        include_name=include_name,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

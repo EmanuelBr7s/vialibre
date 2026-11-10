@@ -3,9 +3,10 @@
 import Sidebar from '@/components/Sidebar';
 import ProfileEditor from '@/components/ProfileEditor';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { UserRole } from '@/types';
 
 export default function PerfilOrganizacionPage() {
-  const allowed = useRoleGuard('publicador');
+  const allowed = useRoleGuard(UserRole.PUBLICADOR);
 
   if (!allowed) {
     return (
@@ -31,7 +32,7 @@ export default function PerfilOrganizacionPage() {
           </p>
         </header>
 
-        <ProfileEditor role="publicador" />
+        <ProfileEditor role={UserRole.PUBLICADOR} />
       </main>
     </div>
   );

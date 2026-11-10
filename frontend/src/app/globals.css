@@ -163,6 +163,19 @@ body {
   line-height: 1.8;
 }
 
+/* Espaciado de texto (WCAG 1.4.12): separa palabras, letras y líneas para
+   lectores con dislexia que se pierden cuando las palabras están muy juntas. */
+[data-text-spacing='on'] body {
+  word-spacing: 0.16em;
+  letter-spacing: 0.12em;
+  line-height: 1.5;
+}
+[data-text-spacing='on'] p,
+[data-text-spacing='on'] li,
+[data-text-spacing='on'] dd {
+  line-height: 1.8;
+}
+
 /* Reducción de movimiento forzada (independiente de la preferencia del sistema). */
 [data-reduce-motion='on'] *,
 [data-reduce-motion='on'] *::before,

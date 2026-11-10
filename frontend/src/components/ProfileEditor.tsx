@@ -11,13 +11,22 @@ import {
 } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, selectClass, btnPrimary, btnSecondary } from '@/components/ui/classes';
-import type { ExtendedProfile, PreferredChannel, ProfileUpdatePayload } from '@/types';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, btnPrimary, btnSecondary } from '@/components/ui/classes';
+import type { ExtendedProfile, ProfileUpdatePayload } from '@/types';
+import {
+  AfiliacionAcademica,
+  PreferredChannel,
+  ProgramaAcademico,
+  Semestre,
+  Ubicacion,
+  UserRole,
+} from '@/types';
+import Select from '@/components/ui/Select';
 
 const AVATAR_ACCEPT = 'image/jpeg,image/png,image/webp';
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 
-type Role = 'solucionador' | 'publicador';
+type Role = UserRole.SOLUCIONADOR | UserRole.PUBLICADOR;
 type NoticeTone = 'success' | 'error';
 
 interface FieldError {
@@ -29,6 +38,7 @@ interface FieldError {
   linkedin?: string;
   github?: string;
   portfolio?: string;
+  anio_egreso?: string;
   cargo?: string;
   departamento?: string;
   enlaces_corporativos?: string;
@@ -46,6 +56,9 @@ interface FormState {
   github: string;
   portfolio: string;
   skills: string[];
+  soft_skills: string[];
+  semestre: string;
+  anio_egreso: string;
   cargo: string;
   departamento: string;
   enlaces_corporativos: string[];
@@ -145,6 +158,84 @@ function Field({
   );
 }
 
+interface ChipInputProps {
+  id: string;
+  label: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+  placeholder?: string;
+  tone?: 'primary' | 'secondary';
+}
+
+const CHIP_TONE = {
+  primary: 'bg-primary-50 text-primary-700',
+  secondary: 'bg-secondary-50 text-secondary-700',
+};
+
+/** Lista de etiquetas editable: Enter o coma agrega, Retroceso quita la última. */
+function ChipInput({ id, label, values, onChange, placeholder, tone = 'primary' }: ChipInputProps) {
+  const [input, setInput] = useState('');
+
+  const add = () => {
+    const value = input.trim().replace(/,+$/, '').replace(/^,/, '');
+    if (value && !values.includes(value)) onChange([...values, value]);
+    setInput('');
+  };
+
+  const handleKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      add();
+      return;
+    }
+    if (e.key === 'Backspace' && input === '' && values.length > 0) {
+      onChange(values.slice(0, -1));
+    }
+  };
+
+  return (
+    <div>
+      <label htmlFor={id} className={labelClass}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={add}
+        placeholder={placeholder}
+        aria-describedby={`${id}-hint`}
+        className={inputClass}
+        inputMode="text"
+      />
+      <p id={`${id}-hint`} className={hintClass}>
+        Presiona Enter o coma para agregar. Borra con Retroceso para quitar la última.
+      </p>
+      {values.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label={`${label} agregadas`}>
+          {values.map((value) => (
+            <li key={value}>
+              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-fluid-xs font-medium whitespace-nowrap ${CHIP_TONE[tone]}`}>
+                {value}
+                <button
+                  type="button"
+                  onClick={() => onChange(values.filter((v) => v !== value))}
+                  aria-label={`Quitar ${value}`}
+                  className={`p-0.5 rounded-full opacity-70 hover:opacity-100 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                >
+                  ×
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 interface SectionProps {
   title: string;
   children: ReactNode;
@@ -198,18 +289,21 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     full_name: user?.full_name || '',
     phone: user?.phone || '',
     second_email: '',
-    location: '',
+    location: user?.ubicacion || '',
     bio: user?.bio || '',
     programa_academico: user?.programa_academico || '',
     afiliacion_academica: user?.afiliacion_academica || '',
-    linkedin: '',
-    github: '',
-    portfolio: '',
-    skills: [],
+    linkedin: user?.linkedin_url || '',
+    github: user?.github_url || '',
+    portfolio: user?.portfolio_url || '',
+    skills: user?.skills ?? [],
+    soft_skills: user?.soft_skills ?? [],
+    semestre: user?.semestre || '',
+    anio_egreso: user?.anio_egreso ? String(user.anio_egreso) : '',
     cargo: '',
     departamento: '',
     enlaces_corporativos: [],
-    canal_preferido: 'correo',
+    canal_preferido: PreferredChannel.CORREO,
   });
 
   const [form, setForm] = useState<FormState>(initialForm);
@@ -219,8 +313,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
   const [saving, setSaving] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
-  const [skillInput, setSkillInput] = useState('');
   const [enlaceInput, setEnlaceInput] = useState('');
+  const isGraduate = user?.role === UserRole.EGRESADO;
 
   // Hidrata los campos extendidos persistidos en el navegador.
   useEffect(() => {
@@ -228,15 +322,10 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     setForm((prev) => ({
       ...prev,
       second_email: extended.second_email || '',
-      location: extended.location || '',
-      linkedin: extended.linkedin || '',
-      github: extended.github || '',
-      portfolio: extended.portfolio || '',
-      skills: extended.skills || [],
       cargo: extended.cargo || '',
       departamento: extended.departamento || '',
       enlaces_corporativos: extended.enlaces_corporativos || [],
-      canal_preferido: extended.canal_preferido || 'correo',
+      canal_preferido: extended.canal_preferido || PreferredChannel.CORREO,
     }));
   }, [extended]);
 
@@ -266,8 +355,8 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     if (form.bio.length > 500) {
       next.bio = 'La biografía no puede superar los 500 caracteres.';
     }
-    if (role === 'solucionador' && form.programa_academico.trim().length < 3) {
-      next.programa_academico = 'Indica tu programa académico.';
+    if (role === UserRole.SOLUCIONADOR && !form.programa_academico) {
+      next.programa_academico = 'Selecciona tu programa académico.';
     }
     if (form.linkedin.trim() && !isValidUrl(form.linkedin)) {
       next.linkedin = 'Ingresa una URL válida (https://…).';
@@ -278,7 +367,11 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     if (form.portfolio.trim() && !isValidUrl(form.portfolio)) {
       next.portfolio = 'Ingresa una URL válida (https://…).';
     }
-    if (role === 'publicador' && form.cargo.trim().length < 2) {
+    const year = Number(form.anio_egreso);
+    if (form.anio_egreso.trim() && (!Number.isInteger(year) || year < 1960 || year > 2100)) {
+      next.anio_egreso = 'Ingresa un año válido (p. ej. 2024).';
+    }
+    if (role === UserRole.PUBLICADOR && form.cargo.trim().length < 2) {
       next.cargo = 'Indica tu cargo dentro de la organización.';
     }
     const invalidLinks = form.enlaces_corporativos.filter((link) => !isValidUrl(link));
@@ -302,6 +395,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
           'linkedin',
           'github',
           'portfolio',
+          'anio_egreso',
           'cargo',
           'departamento',
           'enlaces_corporativos',
@@ -332,14 +426,25 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
         full_name: form.full_name.trim(),
         phone: form.phone.trim() || null,
         bio: form.bio.trim() || null,
+        ubicacion: (form.location as Ubicacion) || null,
       };
-      if (role === 'solucionador') {
-        payload.programa_academico = form.programa_academico.trim();
-        if (form.afiliacion_academica.trim()) {
-          payload.afiliacion_academica = form.afiliacion_academica.trim();
+      if (role === UserRole.SOLUCIONADOR) {
+        payload.programa_academico = form.programa_academico as ProgramaAcademico;
+        if (form.afiliacion_academica) {
+          payload.afiliacion_academica = form.afiliacion_academica as AfiliacionAcademica;
+        }
+        payload.skills = form.skills;
+        payload.soft_skills = form.soft_skills;
+        payload.linkedin_url = form.linkedin.trim() || null;
+        payload.github_url = form.github.trim() || null;
+        payload.portfolio_url = form.portfolio.trim() || null;
+        if (isGraduate) {
+          payload.anio_egreso = form.anio_egreso.trim() ? Number(form.anio_egreso) : null;
+        } else {
+          payload.semestre = (form.semestre as Semestre) || null;
         }
       }
-      if (role === 'publicador' && form.full_name.trim()) {
+      if (role === UserRole.PUBLICADOR && form.full_name.trim()) {
         payload.empresa_nombre = form.full_name.trim();
       }
 
@@ -347,15 +452,10 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
 
       const extendedProfile: ExtendedProfile = {
         second_email: form.second_email.trim() || undefined,
-        location: form.location.trim() || undefined,
-        skills: form.skills,
-        linkedin: form.linkedin.trim() || undefined,
-        github: form.github.trim() || undefined,
-        portfolio: form.portfolio.trim() || undefined,
-        cargo: role === 'publicador' ? form.cargo.trim() || undefined : undefined,
-        departamento: role === 'publicador' ? form.departamento.trim() || undefined : undefined,
+        cargo: role === UserRole.PUBLICADOR ? form.cargo.trim() || undefined : undefined,
+        departamento: role === UserRole.PUBLICADOR ? form.departamento.trim() || undefined : undefined,
         enlaces_corporativos:
-          role === 'publicador' ? form.enlaces_corporativos : [],
+          role === UserRole.PUBLICADOR ? form.enlaces_corporativos : [],
         canal_preferido: form.canal_preferido,
       };
       saveExtended(extendedProfile);
@@ -412,36 +512,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
     }
   };
 
-  // ── Chips (habilidades / enlaces corporativos) ──
-  const addSkill = () => {
-    const value = skillInput.trim().replace(/,+$/, '').replace(/^,/, '');
-    if (!value) {
-      setSkillInput('');
-      return;
-    }
-    if (form.skills.includes(value)) {
-      setSkillInput('');
-      return;
-    }
-    setForm((prev) => ({ ...prev, skills: [...prev.skills, value] }));
-    setSkillInput('');
-  };
-
-  const handleSkillKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      addSkill();
-      return;
-    }
-    if (e.key === 'Backspace' && skillInput === '' && form.skills.length > 0) {
-      setForm((prev) => ({ ...prev, skills: prev.skills.slice(0, -1) }));
-    }
-  };
-
-  const removeSkill = (skill: string) => {
-    setForm((prev) => ({ ...prev, skills: prev.skills.filter((s) => s !== skill) }));
-  };
-
+  // ── Chips (enlaces corporativos) ──
   const addEnlace = () => {
     const value = enlaceInput.trim().replace(/,+$/, '').replace(/^,/, '');
     if (!value) return;
@@ -563,7 +634,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <Field
             id="full_name"
-            label={role === 'publicador' ? 'Nombre de la organización' : 'Nombre completo'}
+            label={role === UserRole.PUBLICADOR ? 'Nombre de la organización' : 'Nombre completo'}
             value={form.full_name}
             onChange={setField('full_name')}
             onBlur={() => {
@@ -573,7 +644,7 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             error={showError('full_name')}
             required
             inputMode="text"
-            autoComplete={role === 'publicador' ? 'organization' : 'name'}
+            autoComplete={role === UserRole.PUBLICADOR ? 'organization' : 'name'}
           />
           <Field
             id="phone"
@@ -606,15 +677,24 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             inputMode="email"
             autoComplete="email"
           />
-          <Field
-            id="location"
-            label="Ubicación"
-            value={form.location}
-            onChange={setField('location')}
-            placeholder="Barranquilla, Atlántico"
-            inputMode="text"
-            autoComplete="address-level2"
-          />
+          <div>
+            <label htmlFor="location" className={labelClass}>
+              Ubicación
+            </label>
+            <Select
+              icon="ubicacion"
+              id="location"
+              value={form.location}
+              onChange={(e) => setField('location')(e.target.value)}
+            >
+              <option value="">Sin especificar</option>
+              {Object.values(Ubicacion).map((opcion) => (
+                <option key={opcion} value={opcion}>
+                  {opcion}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
         <div>
           <label htmlFor="bio" className={labelClass}>
@@ -656,31 +736,93 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
       </Section>
 
       {/* ── Bloque Solucionador ── */}
-      {role === 'solucionador' && (
-        <Section title="Información Académica">
+      {role === UserRole.SOLUCIONADOR && (
+        <Section title={isGraduate ? 'Información Profesional' : 'Información Académica'}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
-            <Field
-              id="programa_academico"
-              label="Programa académico"
-              value={form.programa_academico}
-              onChange={setField('programa_academico')}
-              onBlur={() => {
-                touch('programa_academico');
-                setErrors(validate());
-              }}
-              error={showError('programa_academico')}
-              required
-              placeholder="Ingeniería de Sistemas"
-              inputMode="text"
-            />
-            <Field
-              id="afiliacion_academica"
-              label="Semillero / Rama estudiantil"
-              value={form.afiliacion_academica}
-              onChange={setField('afiliacion_academica')}
-              placeholder="Rama Estudiantil IEEE"
-              inputMode="text"
-            />
+            <div>
+              <label htmlFor="programa_academico" className={labelClass}>
+                Programa académico
+                <span aria-hidden="true"> *</span>
+              </label>
+              <Select
+                icon="academico"
+                id="programa_academico"
+                value={form.programa_academico}
+                onChange={(e) => setField('programa_academico')(e.target.value)}
+                onBlur={() => {
+                  touch('programa_academico');
+                  setErrors(validate());
+                }}
+                required
+                aria-invalid={showError('programa_academico') ? true : undefined}
+                aria-describedby={showError('programa_academico') ? 'programa_academico-error' : undefined}
+              >
+                <option value="" disabled>
+                  Selecciona tu programa
+                </option>
+                {Object.values(ProgramaAcademico).map((opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ))}
+              </Select>
+              {showError('programa_academico') && (
+                <p id="programa_academico-error" className={errorClass} role="alert">
+                  {errors.programa_academico}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="afiliacion_academica" className={labelClass}>
+                Semillero / Rama estudiantil
+              </label>
+              <Select
+                icon="grupo"
+                id="afiliacion_academica"
+                value={form.afiliacion_academica}
+                onChange={(e) => setField('afiliacion_academica')(e.target.value)}
+              >
+                <option value="">Sin especificar</option>
+                {Object.values(AfiliacionAcademica).map((opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            {isGraduate ? (
+              <Field
+                id="anio_egreso"
+                label="Año de egreso"
+                value={form.anio_egreso}
+                onChange={setField('anio_egreso')}
+                onBlur={() => {
+                  touch('anio_egreso');
+                  setErrors(validate());
+                }}
+                error={showError('anio_egreso')}
+                placeholder="2024"
+              />
+            ) : (
+              <div>
+                <label htmlFor="semestre" className={labelClass}>
+                  Semestre
+                </label>
+                <Select
+                  icon="calendario"
+                  id="semestre"
+                  value={form.semestre}
+                  onChange={(e) => setField('semestre')(e.target.value)}
+                >
+                  <option value="">Sin especificar</option>
+                  {Object.values(Semestre).map((opcion) => (
+                    <option key={opcion} value={opcion}>
+                      {opcion}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
             <Field
@@ -727,49 +869,26 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             />
           </div>
 
-          {/* Habilidades */}
-          <div>
-            <label htmlFor="skills" className={labelClass}>
-              Habilidades técnicas
-            </label>
-            <input
-              id="skills"
-              type="text"
-              value={skillInput}
-              onChange={(e) => setSkillInput(e.target.value)}
-              onKeyDown={handleSkillKeyDown}
-              placeholder="Escribe una habilidad y presiona Enter"
-              className={inputClass}
-              inputMode="text"
-            />
-            <p id="skills-hint" className={hintClass}>
-              Presiona Enter o coma para agregar. Borra con Retroceso para quitar la última.
-            </p>
-            {form.skills.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Habilidades agregadas">
-                {form.skills.map((skill) => (
-                  <li key={skill}>
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-50 text-primary-700 text-fluid-xs font-medium whitespace-nowrap">
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(skill)}
-                        aria-label={`Quitar habilidad ${skill}`}
-                        className={`p-0.5 rounded-full text-primary-500 hover:text-primary-700 hover:bg-primary-100 ${TOUCH_TARGET} ${FOCUS_RING}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <ChipInput
+            id="skills"
+            label="Habilidades técnicas"
+            values={form.skills}
+            onChange={(skills) => setForm((prev) => ({ ...prev, skills }))}
+            placeholder="Python, Excel avanzado, AutoCAD… y presiona Enter"
+          />
+          <ChipInput
+            id="soft_skills"
+            label="Habilidades blandas"
+            values={form.soft_skills}
+            onChange={(soft_skills) => setForm((prev) => ({ ...prev, soft_skills }))}
+            placeholder="Liderazgo, comunicación asertiva… y presiona Enter"
+            tone="secondary"
+          />
         </Section>
       )}
 
       {/* ── Bloque Publicador ── */}
-      {role === 'publicador' && (
+      {role === UserRole.PUBLICADOR && (
         <Section title="Información de la Organización">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <Field
@@ -805,18 +924,18 @@ export default function ProfileEditor({ role }: ProfileEditorProps) {
             <label htmlFor="canal_preferido" className={labelClass}>
               Canal de comunicación preferido
             </label>
-            <select
+            <Select
+              icon="mensaje"
               id="canal_preferido"
               value={form.canal_preferido}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, canal_preferido: e.target.value as PreferredChannel }))
               }
-              className={selectClass}
             >
-              <option value="correo">Correo electrónico</option>
-              <option value="telefono">Teléfono</option>
-              <option value="whatsapp">WhatsApp</option>
-            </select>
+              <option value={PreferredChannel.CORREO}>Correo electrónico</option>
+              <option value={PreferredChannel.TELEFONO}>Teléfono</option>
+              <option value={PreferredChannel.WHATSAPP}>WhatsApp</option>
+            </Select>
           </div>
 
           <div>

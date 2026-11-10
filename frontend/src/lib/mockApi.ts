@@ -1,7 +1,7 @@
 // ── Cliente API en modo mock (NEXT_PUBLIC_API_MOCK=true) ──
 // Replica el comportamiento del ApiClient real con datos locales persistentes
 // en localStorage, de modo que el frontend funcione de extremo a extremo como
-// mockup sin depender de la infraestructura (auth/core/match + nginx).
+// mockup sin depender de la infraestructura (auth/core/match).
 
 import type {
   Challenge,
@@ -16,7 +16,16 @@ import type {
   TokenResponse,
   User,
 } from '@/types';
-import { AUTH_COOKIE_NAME } from '@/lib/constants';
+import {
+  ChallengeStatus,
+  ChallengeTipo,
+  DifficultyLevel,
+  InteractionStatus,
+  Modalidad,
+  ReactionType,
+  UserRole,
+} from '@/types';
+import { AUTH_COOKIE_NAME, isTalentRole } from '@/lib/constants';
 import {
   MOCK_CHALLENGES,
   MOCK_INTERACTIONS,
@@ -24,7 +33,7 @@ import {
 } from '@/data/mock';
 
 const MOCK_DB_KEY = 'vialibre_mock_db_v1';
-const MOCK_DB_VERSION = 1;
+const MOCK_DB_VERSION = 2;
 
 interface MockDb {
   version: number;
@@ -170,7 +179,12 @@ export class MockApiClient {
       await sleep(200);
       throw new Error('El correo ya está registrado.');
     }
-    const role: User['role'] = data.role === 'publicador' ? 'publicador' : 'solucionador';
+    const role: UserRole =
+      data.role === UserRole.PUBLICADOR
+        ? UserRole.PUBLICADOR
+        : data.role === UserRole.EGRESADO
+          ? UserRole.EGRESADO
+          : UserRole.SOLUCIONADOR;
     const user: User = {
       id: uid(),
       email: key,
@@ -184,6 +198,9 @@ export class MockApiClient {
       afiliacion_academica: data.afiliacion_academica || null,
       avatar_url: null,
       bio: null,
+      skills: [],
+      soft_skills: [],
+      disponible: true,
       created_at: now(),
       updated_at: now(),
     };
@@ -223,6 +240,15 @@ export class MockApiClient {
       'empresa_nombre',
       'programa_academico',
       'afiliacion_academica',
+      'skills',
+      'soft_skills',
+      'linkedin_url',
+      'github_url',
+      'portfolio_url',
+      'ubicacion',
+      'semestre',
+      'anio_egreso',
+      'disponible',
     ] as const) {
       if (payload[key] !== undefined) {
         (user as unknown as Record<string, unknown>)[key] = payload[key];
@@ -242,6 +268,8 @@ export class MockApiClient {
     category_id?: string;
     difficulty?: string;
     featured_only?: boolean;
+    tipo?: ChallengeTipo;
+    author_id?: string;
   }): Promise<ChallengeListResponse> {
     const db = loadDb();
     await sleep();
@@ -252,6 +280,8 @@ export class MockApiClient {
         if (params?.category_id && c.category_id !== params.category_id) return false;
         if (params?.difficulty && c.difficulty !== params.difficulty) return false;
         if (params?.featured_only && !c.is_featured) return false;
+        if (params?.tipo && c.tipo !== params.tipo) return false;
+        if (params?.author_id && String(c.author_id) !== String(params.author_id)) return false;
         return true;
       });
     const total = filtered.length;
@@ -280,15 +310,19 @@ export class MockApiClient {
     title: string;
     short_description: string;
     long_description: string;
+    tipo: ChallengeTipo;
     category_id?: string;
     difficulty?: string;
     tags?: string[];
     budget?: number;
     deadline?: string;
+    image_url?: string;
+    modalidad?: Modalidad;
+    ubicacion?: string;
   }): Promise<Challenge> {
     const db = loadDb();
     const user = currentUser(db);
-    if (user.role !== 'publicador' && user.role !== 'admin') {
+    if (user.role !== UserRole.PUBLICADOR && user.role !== UserRole.ADMIN) {
       throw new Error('Solo el publicador puede crear problemáticas.');
     }
     if (!db.challenges.some((c) => c.title.toLowerCase() === data.title.trim().toLowerCase())) {
@@ -297,13 +331,17 @@ export class MockApiClient {
         title: data.title,
         short_description: data.short_description,
         long_description: data.long_description,
+        tipo: data.tipo,
         author_id: user.id,
         category_id: data.category_id || null,
-        status: 'abierto',
-        difficulty: (data.difficulty as Challenge['difficulty']) || 'medium',
+        status: ChallengeStatus.ABIERTO,
+        difficulty: (data.difficulty as DifficultyLevel | undefined) || DifficultyLevel.MEDIUM,
         tags: data.tags || [],
         budget: data.budget ?? null,
         deadline: data.deadline || null,
+        image_url: data.image_url || null,
+        modalidad: data.modalidad ?? null,
+        ubicacion: data.ubicacion || null,
         is_featured: false,
         featured_score: 0,
         created_at: now(),
@@ -324,14 +362,14 @@ export class MockApiClient {
   async applyToChallenge(data: { challenge_id: string; message?: string }): Promise<Interaction> {
     const db = loadDb();
     const user = currentUser(db);
-    if (user.role !== 'solucionador') {
+    if (!isTalentRole(user.role)) {
       throw new Error('Solo los solucionadores pueden postularse a problemáticas.');
     }
     const challenge = db.challenges.find((c) => c.id === data.challenge_id);
     if (!challenge) {
       throw new Error('Problemática no encontrada.');
     }
-    if (challenge.status === 'cerrado') {
+    if (challenge.status === ChallengeStatus.CERRADO) {
       throw new Error('Esta problemática está cerrada y ya no acepta postulaciones.');
     }
     if (db.interactions.some((i) => i.solucionador_id === user.id && i.challenge_id === data.challenge_id)) {
@@ -341,7 +379,7 @@ export class MockApiClient {
       id: uid(),
       solucionador_id: user.id,
       challenge_id: data.challenge_id,
-      status: 'pendiente',
+      status: InteractionStatus.PENDIENTE,
       message: data.message || null,
       contact_unlocked: false,
       created_at: now(),
@@ -390,14 +428,14 @@ export class MockApiClient {
 
   async approveInteraction(
     interactionId: string,
-    status: 'aprobado' | 'rechazado'
+    status: InteractionStatus.APROBADO | InteractionStatus.RECHAZADO
   ): Promise<Interaction> {
     const db = loadDb();
     const interaction = db.interactions.find((i) => i.id === interactionId);
     if (!interaction) throw new Error('Interacción no encontrada.');
     interaction.status = status;
     interaction.updated_at = now();
-    if (status === 'aprobado') {
+    if (status === InteractionStatus.APROBADO) {
       interaction.contact_unlocked = true;
       interaction.contact_unlocked_at = now();
     }
@@ -447,7 +485,7 @@ export class MockApiClient {
   // ── Reactions ──
   async createReaction(data: {
     challenge_id: string;
-    reaction_type: 'like' | 'bookmark';
+    reaction_type: ReactionType;
   }): Promise<Reaction> {
     const db = loadDb();
     const user = currentUser(db);

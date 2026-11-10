@@ -5,8 +5,10 @@ import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useTour } from '@/contexts/TourContext';
-import type { UserRole } from '@/types';
-import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, btnPrimary, btnSecondary, selectClass } from '@/components/ui/classes';
+import { UserRole } from '@/types';
+import { isTalentRole } from '@/lib/constants';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, btnPrimary, btnSecondary } from '@/components/ui/classes';
+import Select from '@/components/ui/Select';
 
 interface SettingsState {
   notifPostulaciones: boolean;
@@ -41,9 +43,10 @@ const DEFAULT_SETTINGS: SettingsState = {
 };
 
 const ROLE_LABEL: Record<UserRole, { tab: string; title: string }> = {
-  publicador: { tab: 'Organización', title: 'Ajustes de la organización' },
-  solucionador: { tab: 'Perfil académico', title: 'Ajustes de tu perfil académico' },
-  admin: { tab: 'Sistema', title: 'Parámetros del sistema' },
+  [UserRole.PUBLICADOR]: { tab: 'Organización', title: 'Ajustes de la organización' },
+  [UserRole.SOLUCIONADOR]: { tab: 'Perfil académico', title: 'Ajustes de tu perfil académico' },
+  [UserRole.EGRESADO]: { tab: 'Perfil profesional', title: 'Ajustes de tu perfil profesional' },
+  [UserRole.ADMIN]: { tab: 'Sistema', title: 'Parámetros del sistema' },
 };
 
 const CHANNELS = [
@@ -351,7 +354,7 @@ export default function SettingsPage() {
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 sm:p-6 space-y-2">
             <h2 className="text-fluid-lg font-semibold text-gray-900">{ROLE_LABEL[role].title}</h2>
 
-            {role === 'publicador' && (
+            {role === UserRole.PUBLICADOR && (
               <div className="space-y-2">
                 <Switch
                   checked={settings.privacidadDatos}
@@ -386,7 +389,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {role === 'solucionador' && (
+            {isTalentRole(role) && (
               <div className="space-y-2">
                 <Switch
                   checked={settings.perfilVisible}
@@ -429,7 +432,7 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {role === 'admin' && (
+            {role === UserRole.ADMIN && (
               <div className="space-y-2">
                 <div>
                   <label htmlFor="params" className={labelClass}>
@@ -448,16 +451,16 @@ export default function SettingsPage() {
                   <label htmlFor="backups" className={labelClass}>
                     Frecuencia de respaldos
                   </label>
-                  <select
+                  <Select
+                    icon="respaldo"
                     id="backups"
                     value={settings.frecuenciaBackups}
                     onChange={(e) => update({ frecuenciaBackups: e.target.value })}
-                    className={selectClass}
                   >
                     <option value="diaria">Diaria</option>
                     <option value="semanal">Semanal</option>
                     <option value="mensual">Mensual</option>
-                  </select>
+                  </Select>
                 </div>
                 <Switch
                   checked={settings.correosAuto}

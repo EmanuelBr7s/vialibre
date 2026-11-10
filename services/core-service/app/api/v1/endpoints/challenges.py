@@ -17,6 +17,7 @@ from app.schemas.challenge import (
     ChallengeCreate,
     ChallengeListResponse,
     ChallengeResponse,
+    ChallengeTipo,
     ChallengeUpdate,
 )
 from vialibre_common.schemas import TokenPayload, UserRole
@@ -66,7 +67,8 @@ async def _attach_authors(
                 "id", "title", "short_description", "long_description",
                 "author_id", "category_id", "status", "difficulty", "tags",
                 "budget", "deadline", "is_featured", "featured_score",
-                "created_at", "updated_at",
+                "created_at", "updated_at", "tipo", "image_url", "modalidad",
+                "ubicacion",
             )},
         }
         info = author_map.get(str(challenge.author_id), {})
@@ -136,11 +138,14 @@ async def list_challenges(
     category_id: uuid.UUID | None = None,
     difficulty: str | None = None,
     featured_only: bool = False,
+    tipo: ChallengeTipo | None = None,
+    author_id: uuid.UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
     List challenges.
-    By default, returns only ABIERTO challenges for the feed.
+    By default, returns only ABIERTO challenges for the feed. When filtering by
+    author_id (publicaciones de una empresa) every status is returned.
     """
     query = select(Challenge)
     count_query = select(func.count(Challenge.id))
@@ -149,9 +154,17 @@ async def list_challenges(
     if status_filter:
         query = query.where(Challenge.status == status_filter)
         count_query = count_query.where(Challenge.status == status_filter)
-    else:
+    elif not author_id:
         query = query.where(Challenge.status == ChallengeStatus.ABIERTO)
         count_query = count_query.where(Challenge.status == ChallengeStatus.ABIERTO)
+
+    if tipo:
+        query = query.where(Challenge.tipo == tipo)
+        count_query = count_query.where(Challenge.tipo == tipo)
+
+    if author_id:
+        query = query.where(Challenge.author_id == author_id)
+        count_query = count_query.where(Challenge.author_id == author_id)
 
     if category_id:
         query = query.where(Challenge.category_id == category_id)

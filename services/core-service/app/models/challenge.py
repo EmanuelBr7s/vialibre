@@ -1,24 +1,18 @@
 import uuid
-import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Numeric, String, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-
-
-class ChallengeStatus(str, enum.Enum):
-    ABIERTO = "abierto"
-    EN_PROGRESO = "en_progreso"
-    CERRADO = "cerrado"
-
-
-class DifficultyLevel(str, enum.Enum):
-    EASY = "easy"
-    MEDIUM = "medium"
-    HARD = "hard"
+from vialibre_common.schemas import (
+    ChallengeStatus,
+    ChallengeTipo,
+    DifficultyLevel,
+    Modalidad,
+    enum_values,
+)
 
 
 class Challenge(Base):
@@ -27,6 +21,14 @@ class Challenge(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(300), nullable=False, index=True)
+    # Modulo de la empresa: reto (laboratorio de innovacion), practica o empleo
+    tipo = Column(
+        Enum(ChallengeTipo, native_enum=False, length=20, values_callable=enum_values),
+        default=ChallengeTipo.RETO,
+        server_default=text("'reto'"),
+        nullable=False,
+        index=True,
+    )
     short_description = Column(String(500), nullable=False)
     long_description = Column(Text, nullable=False)
 
@@ -42,6 +44,12 @@ class Challenge(Base):
     tags = Column(JSONB, nullable=True)
     budget = Column(Numeric(12, 2), nullable=True)
     deadline = Column(DateTime, nullable=True)
+    image_url = Column(String(512), nullable=True)
+    modalidad = Column(
+        Enum(Modalidad, native_enum=False, length=20, values_callable=enum_values),
+        nullable=True,
+    )
+    ubicacion = Column(String(120), nullable=True)
 
     # Featured algorithm
     is_featured = Column(Boolean, default=False, nullable=False)

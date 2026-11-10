@@ -4,8 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.models.interaction import InteractionStatus
-from app.models.reaction import ReactionType
+from vialibre_common.schemas import DocumentoTipo, InteractionStatus, ReactionType
 
 
 # ── Interaction Schemas ──
@@ -70,6 +69,29 @@ class ReactionListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+# ── Documentos requisito de practica ──
+
+class DocumentInfo(BaseModel):
+    tipo: DocumentoTipo
+    filename: str
+    size: int
+    uploaded_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RequiredDocument(BaseModel):
+    tipo: DocumentoTipo
+    label: str
+    documento: Optional[DocumentInfo] = None
+
+
+class DocumentChecklist(BaseModel):
+    aplica: bool  # practica en la que el estudiante fue seleccionado
+    completos: bool
+    requeridos: list[RequiredDocument]
 
 
 # ── Contact Info (for unlocked contacts) ──

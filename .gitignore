@@ -17,7 +17,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ── Docker ──
+# ── Logs ──
 *.log
 
 # ── IDE ──
@@ -38,3 +38,6 @@ Thumbs.db
 
 # ── TypeScript incremental build info ──
 *.tsbuildinfo
+# ── Alembic ──
+# Las revisiones se autogeneran por entorno (make migrate) a partir de los modelos.
+services/*/alembic/versions/

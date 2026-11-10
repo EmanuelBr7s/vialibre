@@ -4,122 +4,37 @@
 // realistas cuando la API no cubre el flujo (problemáticas de la org, KPIs admin,
 // perfiles editables, etc.).
 
-import type { Challenge, ContactInfo, Interaction, User, UserRole } from '@/types';
+import type { Challenge, ContactInfo, Interaction, User } from '@/types';
+import { ChallengeStatus, ChallengeTipo, DifficultyLevel, InteractionStatus, Modalidad, UserRole } from '@/types';
 
-// IDs reales de las problemáticas sembradas por el publicador (Artesanías Llamas).
-export const ORG_CHALLENGE_IDS = [
-  'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa', // Modelo predictivo mango
-  'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb', // Plataforma E-commerce
-  'cccc3333-cccc-cccc-cccc-cccccccccccc', // Auditoría ISO 27001
-];
-
-export type OrgChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
-
-export interface OrgChallenge {
-  id: string;
-  title: string;
-  status: OrgChallengeStatus;
-  applicantsCount: number;
-  shortDescription: string;
-}
-
-export const ORG_CHALLENGES: OrgChallenge[] = [
-  {
-    id: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    title: 'Modelo predictivo para rendimiento de mango de hilaza',
-    status: 'en_progreso',
-    applicantsCount: 8,
-    shortDescription:
-      'Aplicar modelos de Machine Learning con variables agroclimáticas para predecir cosechas.',
-  },
-  {
-    id: 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    title: 'Diseño de plataforma E-commerce y gestión de marca',
-    status: 'abierto',
-    applicantsCount: 12,
-    shortDescription:
-      'Digitalizar el catálogo de productos artesanales y posicionar la marca a nivel regional.',
-  },
-  {
-    id: 'cccc3333-cccc-cccc-cccc-cccccccccccc',
-    title: 'Auditoría de seguridad y análisis de red (ISO 27001)',
-    status: 'cerrado',
-    applicantsCount: 5,
-    shortDescription:
-      'Análisis de vulnerabilidades y levantamiento de la estructura de red actual.',
-  },
-];
+export type OrgChallengeStatus = ChallengeStatus;
 
 export const CHALLENGE_STATUS_LABEL: Record<OrgChallengeStatus, string> = {
-  abierto: 'Abierta',
-  en_progreso: 'En Progreso',
-  cerrado: 'Cerrada',
+  [ChallengeStatus.ABIERTO]: 'Abierta',
+  [ChallengeStatus.EN_PROGRESO]: 'En Progreso',
+  [ChallengeStatus.CERRADO]: 'Cerrada',
 };
 
 export const CHALLENGE_STATUS_BADGE: Record<OrgChallengeStatus, string> = {
-  abierto: 'bg-green-100 text-green-700',
-  en_progreso: 'bg-blue-100 text-blue-700',
-  cerrado: 'bg-gray-100 text-gray-600',
+  [ChallengeStatus.ABIERTO]: 'bg-green-100 text-green-700',
+  [ChallengeStatus.EN_PROGRESO]: 'bg-blue-100 text-blue-700',
+  [ChallengeStatus.CERRADO]: 'bg-gray-100 text-gray-600',
 };
 
-// ── Postulaciones del solucionador (usadas como fallback cuando no hay API) ──
+// ── Estado de postulaciones ──
 
-export type ApplicantStatus = 'pendiente' | 'aprobado' | 'rechazado';
-
-export interface MyApplication {
-  id: string;
-  challengeId: string;
-  title: string;
-  empresa: string;
-  status: ApplicantStatus;
-  message?: string;
-  contact?: ContactInfo;
-}
-
-export const MY_APPLICATIONS: MyApplication[] = [
-  {
-    id: 'mock-app-1',
-    challengeId: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
-    title: 'Modelo predictivo para rendimiento de mango de hilaza',
-    empresa: 'Agropecuaria Malambo',
-    status: 'aprobado',
-    message:
-      'Cuento con experiencia en modelos de regresión con XGBoost y Random Forest sobre datos agroclimáticos.',
-    contact: {
-      user_id: '00000000-0000-0000-0000-000000000002',
-      full_name: 'Artesanías Llamas',
-      email: 'contacto@artesaniasllamas.com',
-      phone: '+57 300 123 4567',
-      empresa_nombre: 'Artesanías Llamas',
-    },
-  },
-  {
-    id: 'mock-app-2',
-    challengeId: 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-    title: 'Diseño de plataforma E-commerce y gestión de marca',
-    empresa: 'Artesanías Llamas',
-    status: 'pendiente',
-    message: 'Propongo construir la tienda con Next.js y panel de inventario integrado.',
-  },
-  {
-    id: 'mock-app-3',
-    challengeId: 'cccc3333-cccc-cccc-cccc-cccccccccccc',
-    title: 'Auditoría de seguridad y análisis de red (ISO 27001)',
-    empresa: 'Rama Estudiantil IEEE',
-    status: 'rechazado',
-  },
-];
+export type ApplicantStatus = InteractionStatus;
 
 export const APP_STATUS_LABEL: Record<ApplicantStatus, string> = {
-  pendiente: 'Pendiente',
-  aprobado: 'Aprobado',
-  rechazado: 'Rechazado',
+  [InteractionStatus.PENDIENTE]: 'Pendiente',
+  [InteractionStatus.APROBADO]: 'Aprobado',
+  [InteractionStatus.RECHAZADO]: 'Rechazado',
 };
 
 export const APP_STATUS_BADGE: Record<ApplicantStatus, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
+  [InteractionStatus.PENDIENTE]: 'bg-yellow-100 text-yellow-700',
+  [InteractionStatus.APROBADO]: 'bg-green-100 text-green-700',
+  [InteractionStatus.RECHAZADO]: 'bg-red-100 text-red-700',
 };
 
 // ── Perfiles / datos simulados ──
@@ -182,7 +97,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000001',
     full_name: 'Juan Camilo Llamas Cardenas',
     email: 'admin@vialibre.edu.co',
-    role: 'admin',
+    role: UserRole.ADMIN,
     is_active: true,
     created_at: '2026-01-10',
   },
@@ -190,7 +105,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000002',
     full_name: 'Artesanías Llamas',
     email: 'contacto@artesaniasllamas.com',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     created_at: '2026-02-14',
   },
@@ -198,7 +113,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000003',
     full_name: 'Leonardo Barraza',
     email: 'leonardo@vialibre.edu.co',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     created_at: '2026-03-02',
   },
@@ -206,7 +121,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000004',
     full_name: 'Agropecuaria Malambo',
     email: 'contacto@malambo.com',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     created_at: '2026-04-21',
   },
@@ -214,7 +129,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000005',
     full_name: 'Rama Estudiantil IEEE',
     email: 'ieee@vialibre.edu.co',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: false,
     created_at: '2026-05-11',
   },
@@ -222,16 +137,17 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000006',
     full_name: 'Valentina Gómez',
     email: 'valentina@vialibre.edu.co',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     created_at: '2026-06-30',
   },
 ];
 
 export const ROLE_LABEL: Record<UserRole, string> = {
-  publicador: 'Publicador',
-  solucionador: 'Solucionador',
-  admin: 'Admin',
+  [UserRole.PUBLICADOR]: 'Empresa',
+  [UserRole.SOLUCIONADOR]: 'Estudiante',
+  [UserRole.EGRESADO]: 'Egresado',
+  [UserRole.ADMIN]: 'Administración',
 };
 
 // ── Modo mock: universo de datos autocontenido ──
@@ -262,19 +178,19 @@ export interface DemoAccount {
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
-    role: 'admin',
+    role: UserRole.ADMIN,
     label: 'Admin',
     email: 'admin@vialibre.edu.co',
     description: 'Juan Camilo Llamas · dashboard de administración',
   },
   {
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     label: 'Publicador',
     email: 'contacto@artesaniasllamas.com',
     description: 'Artesanías Llamas · publica y gestiona problemáticas',
   },
   {
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     label: 'Solucionador',
     email: 'leonardo@vialibre.edu.co',
     description: 'Leonardo Barraza · explora y postúlate',
@@ -286,8 +202,11 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.admin,
     email: 'admin@vialibre.edu.co',
     full_name: 'Juan Camilo Llamas Cardenas',
-    role: 'admin',
+    role: UserRole.ADMIN,
     is_active: true,
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-01-10T09:00:00Z',
     updated_at: '2026-01-10T09:00:00Z',
   },
@@ -295,11 +214,14 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.artesanias,
     email: 'contacto@artesaniasllamas.com',
     full_name: 'Artesanías Llamas',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     phone: '+57 300 123 4567',
     empresa_nombre: 'Artesanías Llamas',
     bio: 'Empresa familiar con más de 20 años fabricando hamacas, chinchorros y tejidos tradicionales de la costa colombiana.',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-02-14T09:00:00Z',
     updated_at: '2026-02-14T09:00:00Z',
   },
@@ -307,12 +229,15 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.leonardo,
     email: 'leonardo@vialibre.edu.co',
     full_name: 'Leonardo Barraza',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     phone: '+57 301 555 0103',
     programa_academico: 'Ingeniería de Sistemas',
     afiliacion_academica: 'Rama Estudiantil IEEE',
     bio: 'Estudiante de Ingeniería de Sistemas, apasionado por ML aplicado al agro.',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-03-02T09:00:00Z',
     updated_at: '2026-03-02T09:00:00Z',
   },
@@ -320,10 +245,13 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.malambo,
     email: 'contacto@malambo.com',
     full_name: 'Agropecuaria Malambo',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     phone: '+57 305 555 0104',
     empresa_nombre: 'Agropecuaria Malambo',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-04-21T09:00:00Z',
     updated_at: '2026-04-21T09:00:00Z',
   },
@@ -331,10 +259,13 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.valentina,
     email: 'valentina@vialibre.edu.co',
     full_name: 'Valentina Gómez',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     phone: '+57 302 555 0106',
     programa_academico: 'Ingeniería Industrial',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-06-30T09:00:00Z',
     updated_at: '2026-06-30T09:00:00Z',
   },
@@ -342,11 +273,14 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.camila,
     email: 'camila.torres@vialibre.edu.co',
     full_name: 'Camila Torres',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     phone: '+57 303 555 0107',
     programa_academico: 'Ingeniería de Sistemas',
     afiliacion_academica: 'Semillero IA Caribe',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-07-05T09:00:00Z',
     updated_at: '2026-07-05T09:00:00Z',
   },
@@ -354,10 +288,13 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.andres,
     email: 'andres.martinez@vialibre.edu.co',
     full_name: 'Andrés Martínez',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     phone: '+57 304 555 0108',
     programa_academico: 'Ingeniería Electrónica',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-07-12T09:00:00Z',
     updated_at: '2026-07-12T09:00:00Z',
   },
@@ -365,11 +302,14 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.maria,
     email: 'maria.lopez@vialibre.edu.co',
     full_name: 'María Fernanda López',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     phone: '+57 301 555 0109',
     programa_academico: 'Matemáticas',
     afiliacion_academica: 'Semillero de Optimización',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-07-20T09:00:00Z',
     updated_at: '2026-07-20T09:00:00Z',
   },
@@ -377,10 +317,13 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.sebastian,
     email: 'sebastian.rojas@vialibre.edu.co',
     full_name: 'Sebastián Rojas',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     phone: '+57 305 555 0110',
     programa_academico: 'Ingeniería Ambiental',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-08-01T09:00:00Z',
     updated_at: '2026-08-01T09:00:00Z',
   },
@@ -388,10 +331,13 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.cafe,
     email: 'contacto@cafedelrio.com',
     full_name: 'Cooperativa Café del Río',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     phone: '+57 302 555 0111',
     empresa_nombre: 'Cooperativa Café del Río',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-05-18T09:00:00Z',
     updated_at: '2026-05-18T09:00:00Z',
   },
@@ -399,19 +345,22 @@ export const MOCK_USERS: User[] = [
     id: MOCK_USER_IDS.alcaldia,
     email: 'datos@soledad.gov.co',
     full_name: 'Alcaldía de Soledad',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     phone: '+57 300 555 0112',
     empresa_nombre: 'Alcaldía de Soledad',
+    skills: [],
+    soft_skills: [],
+    disponible: true,
     created_at: '2026-04-02T09:00:00Z',
     updated_at: '2026-04-02T09:00:00Z',
   },
 ];
 
 export const MOCK_CHALLENGE_IDS = {
-  mango: ORG_CHALLENGE_IDS[0],
-  ecommerce: ORG_CHALLENGE_IDS[1],
-  iso27001: ORG_CHALLENGE_IDS[2],
+  mango: 'aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  ecommerce: 'bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  iso27001: 'cccc3333-cccc-cccc-cccc-cccccccccccc',
   frio: 'dddd4444-4444-4d44-8d44-444444444444',
   cafe: 'eeee5555-5555-4e55-8e55-555555555555',
   bi: 'ffff6666-6666-4f66-8f66-666666666666',
@@ -426,10 +375,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Aplicar modelos de Machine Learning con variables agroclimáticas para predecir cosechas.',
     long_description:
       'Artesanías Llamas cultiva mango de hilaza en el Atlántico y necesita anticipar el rendimiento de cada cosecha para planear compras, logística y exportación. Esperamos un modelo supervisado con variables agroclimáticas (precipitación, temperatura, humedad) e históricos de producción que entregue proyecciones por finca y por temporada, con un dashboard sencillo para el equipo agrícola.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.artesanias,
     category_id: 'cat:agro',
-    status: 'en_progreso',
-    difficulty: 'medium',
+    status: ChallengeStatus.EN_PROGRESO,
+    difficulty: DifficultyLevel.MEDIUM,
     tags: ['Machine Learning', 'Agro', 'Python'],
     budget: 12000000,
     deadline: '2026-12-15T23:59:59-05:00',
@@ -447,10 +397,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Digitalizar el catálogo de productos artesanales y posicionar la marca a nivel regional.',
     long_description:
       'Buscamos digitalizar el catálogo de hamacas, chinchorros y tejidos tradicionales. Se requiere una tienda en línea con gestión de inventario, pasarela de pagos y una estrategia de marca que posicione el producto a nivel regional y nacional, manteniendo la identidad artesanal.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.artesanias,
     category_id: 'cat:comercio',
-    status: 'abierto',
-    difficulty: 'medium',
+    status: ChallengeStatus.ABIERTO,
+    difficulty: DifficultyLevel.MEDIUM,
     tags: ['E-commerce', 'Diseño de marca', 'React'],
     budget: 10000000,
     deadline: '2026-11-30T23:59:59-05:00',
@@ -468,10 +419,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Análisis de vulnerabilidades y levantamiento de la estructura de red actual.',
     long_description:
       'La organización mantiene su operación comercial sobre una red local con varios puntos de venta y teletrabajo. Se requiere un análisis de vulnerabilidades, levantamiento de la arquitectura de red actual y recomendaciones priorizadas para cumplir los controles básicos de ISO/IEC 27001.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.artesanias,
     category_id: 'cat:seguridad',
-    status: 'cerrado',
-    difficulty: 'hard',
+    status: ChallengeStatus.CERRADO,
+    difficulty: DifficultyLevel.HARD,
     tags: ['Seguridad', 'ISO 27001', 'Redes'],
     budget: 15000000,
     deadline: '2026-09-20T23:59:59-05:00',
@@ -489,10 +441,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Reducir pérdidas en la cadena de frío con sensores IoT y optimización de rutas.',
     long_description:
       'Agropecuaria Malambo exporta flores y necesita reducir pérdidas en la cadena de frío. Buscamos un modelo de optimización de rutas y temperaturas con sensores IoT para minimizar mermas y consumo energético sin afectar la calidad del producto.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.malambo,
     category_id: 'cat:logistica',
-    status: 'abierto',
-    difficulty: 'medium',
+    status: ChallengeStatus.ABIERTO,
+    difficulty: DifficultyLevel.MEDIUM,
     tags: ['Logística', 'Optimización', 'IoT'],
     budget: 18000000,
     deadline: '2026-12-05T23:59:59-05:00',
@@ -510,10 +463,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Clasificar el café pergamino por calidad con modelos de visión por computador.',
     long_description:
       'La Cooperativa Café del Río quiere sortear el café por calidad con visión por computador. Se requiere un clasificador por imágenes (defectos, tamaño, color) que se integre con el proceso actual de secado y beneficio.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.cafe,
     category_id: 'cat:agro',
-    status: 'abierto',
-    difficulty: 'hard',
+    status: ChallengeStatus.ABIERTO,
+    difficulty: DifficultyLevel.HARD,
     tags: ['Visión por computador', 'Python', 'Sostenibilidad'],
     budget: 9000000,
     deadline: '2026-11-15T23:59:59-05:00',
@@ -531,10 +485,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Panel de indicadores abiertos para transparentar la gestión y priorizar proyectos.',
     long_description:
       'La Alcaldía de Soledad busca un panel de indicadores con los datos públicos de gestión (inversión, movilidad, seguridad) para transparentar la información y priorizar proyectos con evidencia.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.alcaldia,
     category_id: 'cat:bi',
-    status: 'abierto',
-    difficulty: 'medium',
+    status: ChallengeStatus.ABIERTO,
+    difficulty: DifficultyLevel.MEDIUM,
     tags: ['Business Intelligence', 'Datos abiertos', 'Dashboards'],
     budget: 22000000,
     deadline: '2026-12-20T23:59:59-05:00',
@@ -552,10 +507,11 @@ export const MOCK_CHALLENGES: Challenge[] = [
       'Diseño de un sistema de riego económico para invernaderos con sensores de humedad.',
     long_description:
       'Diseño de un sistema de riego de bajo consumo para hortalizas de invernadero usando sensores de humedad de suelo y una lógica de control simple, pensado para pequeños agricultores de la región Caribe.',
+    tipo: ChallengeTipo.RETO,
     author_id: MOCK_USER_IDS.malambo,
     category_id: 'cat:agro',
-    status: 'abierto',
-    difficulty: 'easy',
+    status: ChallengeStatus.ABIERTO,
+    difficulty: DifficultyLevel.EASY,
     tags: ['IoT', 'Riego', 'Agro'],
     budget: 5000000,
     deadline: '2026-10-30T23:59:59-05:00',
@@ -575,7 +531,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-app-1',
     solucionador_id: MOCK_USER_IDS.leonardo,
     challenge_id: MOCK_CHALLENGE_IDS.mango,
-    status: 'aprobado',
+    status: InteractionStatus.APROBADO,
     message:
       'Cuento con experiencia en modelos de regresión con XGBoost y Random Forest sobre datos agroclimáticos.',
     contact_unlocked: true,
@@ -587,7 +543,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-app-2',
     solucionador_id: MOCK_USER_IDS.leonardo,
     challenge_id: MOCK_CHALLENGE_IDS.ecommerce,
-    status: 'pendiente',
+    status: InteractionStatus.PENDIENTE,
     message: 'Propongo construir la tienda con Next.js y un panel de inventario integrado.',
     contact_unlocked: false,
     created_at: '2026-08-20T10:30:00Z',
@@ -597,7 +553,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-app-3',
     solucionador_id: MOCK_USER_IDS.leonardo,
     challenge_id: MOCK_CHALLENGE_IDS.iso27001,
-    status: 'rechazado',
+    status: InteractionStatus.RECHAZADO,
     message: null,
     contact_unlocked: false,
     created_at: '2026-07-22T09:00:00Z',
@@ -607,7 +563,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-aaaa-1',
     solucionador_id: MOCK_USER_IDS.valentina,
     challenge_id: MOCK_CHALLENGE_IDS.mango,
-    status: 'pendiente',
+    status: InteractionStatus.PENDIENTE,
     message: 'He trabajado con series temporales en proyectos académicos del sector agroindustrial.',
     contact_unlocked: false,
     created_at: '2026-08-14T12:00:00Z',
@@ -617,7 +573,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-aaaa-2',
     solucionador_id: MOCK_USER_IDS.camila,
     challenge_id: MOCK_CHALLENGE_IDS.mango,
-    status: 'pendiente',
+    status: InteractionStatus.PENDIENTE,
     message: 'Domino XGBoost, Random Forest y el preprocesamiento de datos climáticos.',
     contact_unlocked: false,
     created_at: '2026-08-16T17:20:00Z',
@@ -627,7 +583,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-aaaa-3',
     solucionador_id: MOCK_USER_IDS.andres,
     challenge_id: MOCK_CHALLENGE_IDS.mango,
-    status: 'pendiente',
+    status: InteractionStatus.PENDIENTE,
     message: 'Experiencia con sensores agroclimáticos y despliegue de dashboards en la nube.',
     contact_unlocked: false,
     created_at: '2026-08-18T08:40:00Z',
@@ -637,7 +593,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-bbbb-1',
     solucionador_id: MOCK_USER_IDS.maria,
     challenge_id: MOCK_CHALLENGE_IDS.ecommerce,
-    status: 'pendiente',
+    status: InteractionStatus.PENDIENTE,
     message: 'Propongo un diseño centrado en el usuario con foco en la conversión de catálogo.',
     contact_unlocked: false,
     created_at: '2026-08-22T15:10:00Z',
@@ -647,7 +603,7 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     id: 'mock-int-bbbb-2',
     solucionador_id: MOCK_USER_IDS.sebastian,
     challenge_id: MOCK_CHALLENGE_IDS.ecommerce,
-    status: 'pendiente',
+    status: InteractionStatus.PENDIENTE,
     message: 'Cuento con portafolio en comercio electrónico y estrategia de marca local.',
     contact_unlocked: false,
     created_at: '2026-08-24T09:05:00Z',

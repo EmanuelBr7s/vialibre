@@ -6,9 +6,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PROMO_CONFIG } from '@/config/promo';
 import { DEMO_ACCOUNTS } from '@/data/mock';
 import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, btnPrimary, navLinkClass, roleButtonClass } from '@/components/ui/classes';
+import { AfiliacionAcademica, ProgramaAcademico, UserRole } from '@/types';
+import Select from '@/components/ui/Select';
 
 type AuthMode = 'login' | 'register';
-type RegisterRole = 'publicador' | 'solucionador';
+type RegisterRole = UserRole.PUBLICADOR | UserRole.SOLUCIONADOR | UserRole.EGRESADO;
+
+const REGISTER_ROLES: { id: RegisterRole; label: string; hint: string }[] = [
+  { id: UserRole.SOLUCIONADOR, label: 'Estudiante', hint: 'Prácticas y retos' },
+  { id: UserRole.EGRESADO, label: 'Egresado', hint: 'Ofertas laborales' },
+  { id: UserRole.PUBLICADOR, label: 'Empresa', hint: 'Publica y busca talento' },
+];
 
 interface FieldErrors {
   email?: string;
@@ -25,7 +33,7 @@ interface AuthFormProps {
 
 export default function AuthForm({ mode }: AuthFormProps) {
   const { login, register, loading: authLoading } = useAuth();
-  const [role, setRole] = useState<RegisterRole>('solucionador');
+  const [role, setRole] = useState<RegisterRole>(UserRole.SOLUCIONADOR);
 
   // Auth fields
   const [email, setEmail] = useState('');
@@ -35,8 +43,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [fullName, setFullName] = useState('');
   const [nitEmpresa, setNitEmpresa] = useState('');
   const [empresaNombre, setEmpresaNombre] = useState('');
-  const [programaAcademico, setProgramaAcademico] = useState('');
-  const [afiliacionAcademica, setAfiliacionAcademica] = useState('');
+  const [programaAcademico, setProgramaAcademico] = useState<ProgramaAcademico | ''>('');
+  const [afiliacionAcademica, setAfiliacionAcademica] = useState<AfiliacionAcademica | ''>('');
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<string[]>([]);
@@ -81,7 +89,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
       if (!fullName.trim()) {
         next.fullName = 'Este campo es obligatorio';
       }
-      if (role === 'publicador') {
+      if (role === UserRole.PUBLICADOR) {
         if (!empresaNombre.trim()) {
           next.empresaNombre = 'Este campo es obligatorio';
         }
@@ -109,8 +117,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
   };
 
   const handleChange =
-    (name: string, setter: (v: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
-      setter(e.target.value);
+    <T extends string>(name: string, setter: (v: T) => void) =>
+    (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setter(e.target.value as T);
       if (isFieldTouched(name)) setErrors(validate());
     };
 
@@ -122,8 +131,8 @@ export default function AuthForm({ mode }: AuthFormProps) {
     // Mark all fields as touched on submit so errors show immediately
     const allFields: string[] = ['email', 'password'];
     if (isRegister) allFields.push('fullName');
-    if (isRegister && role === 'publicador') allFields.push('empresaNombre', 'nitEmpresa');
-    if (isRegister && role === 'solucionador') allFields.push('programaAcademico');
+    if (isRegister && role === UserRole.PUBLICADOR) allFields.push('empresaNombre', 'nitEmpresa');
+    if (isRegister && role !== UserRole.PUBLICADOR) allFields.push('programaAcademico');
     setTouched(Array.from(new Set([...touched, ...allFields])));
 
     if (Object.keys(validation).length > 0) return;
@@ -141,10 +150,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
           password,
           full_name: fullName,
           role,
-          ...(role === 'publicador'
+          ...(role === UserRole.PUBLICADOR
             ? { nit_empresa: nitEmpresa, empresa_nombre: empresaNombre }
             : {
-                programa_academico: programaAcademico,
+                programa_academico: programaAcademico || undefined,
                 afiliacion_academica: afiliacionAcademica || undefined,
               }),
         });
@@ -211,31 +220,20 @@ export default function AuthForm({ mode }: AuthFormProps) {
             {isRegister && (
               <fieldset className="space-y-3">
                 <legend className={labelClass}>Tipo de cuenta</legend>
-                <div className="flex flex-col sm:flex-row gap-3" role="radiogroup" aria-label="Tipo de usuario">
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={role === 'solucionador'}
-                    onClick={() => setRole('solucionador')}
-                    className={roleButtonClass(role === 'solucionador')}
-                  >
-                    <span className="font-medium">Solucionador</span>
-                    <span className="block text-fluid-xs font-normal text-gray-400 hidden sm:block">
-                      Estudiante / Semillero
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="radio"
-                    aria-checked={role === 'publicador'}
-                    onClick={() => setRole('publicador')}
-                    className={roleButtonClass(role === 'publicador')}
-                  >
-                    <span className="font-medium">Publicador</span>
-                    <span className="block text-fluid-xs font-normal text-gray-400 hidden sm:block">
-                      Empresa / Fundación
-                    </span>
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Tipo de usuario">
+                  {REGISTER_ROLES.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={role === option.id}
+                      onClick={() => setRole(option.id)}
+                      className={roleButtonClass(role === option.id)}
+                    >
+                      <span className="font-medium">{option.label}</span>
+                      <span className="block text-fluid-xs font-normal text-gray-400">{option.hint}</span>
+                    </button>
+                  ))}
                 </div>
               </fieldset>
             )}
@@ -243,7 +241,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             {isRegister && (
               <div>
                 <label htmlFor="fullName" className={labelClass}>
-                  {role === 'publicador' ? 'Nombre de la empresa o fundación' : 'Nombre completo'}
+                  {role === UserRole.PUBLICADOR ? 'Nombre de la empresa o fundación' : 'Nombre completo'}
                 </label>
                 <input
                   id="fullName"
@@ -254,7 +252,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                   required
                   aria-invalid={!!errors.fullName}
                   aria-describedby={errors.fullName ? 'fullName-error' : undefined}
-                  placeholder={role === 'publicador' ? 'Empresa Ejemplo S.A.S' : 'Juan Pérez'}
+                  placeholder={role === UserRole.PUBLICADOR ? 'Empresa Ejemplo S.A.S' : 'Juan Pérez'}
                   className={inputClass}
                   inputMode="text"
                   autoComplete="name"
@@ -263,7 +261,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               </div>
             )}
 
-            {isRegister && role === 'publicador' && (
+            {isRegister && role === UserRole.PUBLICADOR && (
               <div className="space-y-5">
                 <div>
                   <label htmlFor="empresaNombre" className={labelClass}>
@@ -307,40 +305,50 @@ export default function AuthForm({ mode }: AuthFormProps) {
               </div>
             )}
 
-            {isRegister && role === 'solucionador' && (
+            {isRegister && role !== UserRole.PUBLICADOR && (
               <div className="space-y-5">
                 <div>
                   <label htmlFor="programaAcademico" className={labelClass}>
                     Programa académico
                   </label>
-                  <input
+                  <Select
+                    icon="academico"
                     id="programaAcademico"
-                    type="text"
                     value={programaAcademico}
-                    onChange={handleChange('programaAcademico', setProgramaAcademico)}
+                    onChange={handleChange<ProgramaAcademico | ''>('programaAcademico', setProgramaAcademico)}
                     onBlur={() => handleBlur('programaAcademico')}
                     required
                     aria-invalid={!!errors.programaAcademico}
                     aria-describedby={errors.programaAcademico ? 'programaAcademico-error' : undefined}
-                    placeholder="Ingeniería de Sistemas"
-                    className={inputClass}
-                    inputMode="text"
-                  />
+                  >
+                    <option value="" disabled>
+                      Selecciona tu programa
+                    </option>
+                    {Object.values(ProgramaAcademico).map((programa) => (
+                      <option key={programa} value={programa}>
+                        {programa}
+                      </option>
+                    ))}
+                  </Select>
                   {fieldError('programaAcademico', 'programaAcademico-error')}
                 </div>
                 <div>
                   <label htmlFor="afiliacionAcademica" className={labelClass}>
                     Afiliación académica (opcional)
                   </label>
-                  <input
+                  <Select
+                    icon="grupo"
                     id="afiliacionAcademica"
-                    type="text"
                     value={afiliacionAcademica}
-                    onChange={(e) => setAfiliacionAcademica(e.target.value)}
-                    placeholder="Rama estudiantil IEEE, semillero…"
-                    className={inputClass}
-                    inputMode="text"
-                  />
+                    onChange={(e) => setAfiliacionAcademica(e.target.value as AfiliacionAcademica | '')}
+                  >
+                    <option value="">Sin especificar</option>
+                    {Object.values(AfiliacionAcademica).map((afiliacion) => (
+                      <option key={afiliacion} value={afiliacion}>
+                        {afiliacion}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
               </div>
             )}
@@ -361,6 +369,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 className={inputClass}
                 inputMode="email"
               />
+              {isRegister && !showError('email') && (
+                <p className={hintClass}>
+                  Puedes usar tu correo personal; no necesitas el institucional.
+                </p>
+              )}
               {fieldError('email', 'email-error')}
             </div>
 

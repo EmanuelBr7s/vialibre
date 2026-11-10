@@ -15,16 +15,16 @@ export default function Banner({ onCreateProblematica, modalOpen = false }: Bann
         Bienvenido a ViaLibre
       </h1>
       <p className="text-base sm:text-lg text-primary-100 mt-2 max-w-2xl">
-        Conectando las problemáticas del sector productivo con el talento universitario
-        de la Universidad Libre Seccional Barranquilla.
+        Retos empresariales, prácticas y ofertas laborales: el puente entre las empresas y
+        el talento de la Universidad Libre Seccional Barranquilla.
       </p>
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6">
         <a
-          href="#problematicas"
+          href="#module-panel"
           data-tour="explorar"
           className={`inline-flex items-center justify-center bg-white text-primary-600 px-6 rounded-lg font-medium hover:bg-primary-50 transition-colors text-center ${TOUCH_TARGET} ${FOCUS_RING}`}
         >
-          Explorar Problemáticas
+          Explorar publicaciones
         </a>
         {onCreateProblematica && (
           <button
@@ -35,7 +35,7 @@ export default function Banner({ onCreateProblematica, modalOpen = false }: Bann
             aria-haspopup="dialog"
             className={`inline-flex items-center justify-center border border-white/30 text-white px-6 rounded-lg font-medium hover:bg-white/10 transition-colors ${TOUCH_TARGET} ${FOCUS_RING}`}
           >
-            Publicar Problemática
+            Publicar oferta o reto
           </button>
         )}
       </div>

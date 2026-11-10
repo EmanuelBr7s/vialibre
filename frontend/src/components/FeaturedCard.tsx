@@ -1,21 +1,23 @@
 ﻿import Link from 'next/link';
 import type { Challenge } from '@/types';
+import { DifficultyLevel } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { MODALIDAD_LABEL, MODULE_BY_ID } from '@/data/modules';
 
 interface FeaturedCardProps {
   challenge: Challenge;
 }
 
 const DIFFICULTY_COLOR: Record<string, string> = {
-  easy: 'bg-green-100 text-green-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  hard: 'bg-red-100 text-red-700',
+  [DifficultyLevel.EASY]: 'bg-green-100 text-green-700',
+  [DifficultyLevel.MEDIUM]: 'bg-yellow-100 text-yellow-700',
+  [DifficultyLevel.HARD]: 'bg-red-100 text-red-700',
 };
 
 const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'Fácil',
-  medium: 'Medio',
-  hard: 'Difícil',
+  [DifficultyLevel.EASY]: 'Fácil',
+  [DifficultyLevel.MEDIUM]: 'Medio',
+  [DifficultyLevel.HARD]: 'Difícil',
 };
 
 const ChevronRightIcon = () => (
@@ -26,13 +28,23 @@ const ChevronRightIcon = () => (
 
 export default function FeaturedCard({ challenge }: FeaturedCardProps) {
   const difficulty = challenge.difficulty ?? '';
+  const mod = MODULE_BY_ID[challenge.tipo];
+  const empresa = challenge.empresa_nombre || challenge.author_name || 'Empresa';
 
   return (
     <Link href={`/feed/${challenge.id}`} className={`block h-full rounded-xl ${FOCUS_RING}`}>
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow cursor-pointer h-full flex flex-col">
-        {/* Placeholder Image - aspect-ratio 16:9 en móvil, 4:3 en desktop */}
-        <div className="relative aspect-[16/9] bg-gradient-to-br from-primary-100 to-primary-200 sm:aspect-[4/3]">
-          <div className="absolute inset-0 flex items-center justify-center">
+        {/* Portada: imagen de la publicación o gradiente de respaldo */}
+        {challenge.image_url ? (
+          <div className="relative aspect-[16/9] sm:aspect-[4/3] bg-gray-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={challenge.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+            <p className="absolute bottom-0 inset-x-0 px-4 py-2 text-fluid-sm font-medium text-white bg-gradient-to-t from-black/70 to-transparent truncate">
+              {empresa}
+            </p>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-br from-primary-100 to-primary-200 aspect-[16/9] sm:aspect-[4/3] flex items-center justify-center">
             <div className="text-center">
               <div className="w-16 h-16 bg-white/80 rounded-full flex items-center justify-center mx-auto mb-2">
                 <svg
@@ -40,6 +52,7 @@ export default function FeaturedCard({ challenge }: FeaturedCardProps) {
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
                   <path
                     strokeLinecap="round"
@@ -49,16 +62,25 @@ export default function FeaturedCard({ challenge }: FeaturedCardProps) {
                   />
                 </svg>
               </div>
-              <p className="text-fluid-sm font-medium text-primary-700">
-                {challenge.empresa_nombre || challenge.author_name || 'Empresa'}
-              </p>
+              <p className="text-fluid-sm font-medium text-primary-700">{empresa}</p>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Content */}
         <div className="p-4 sm:p-6 flex-1 flex flex-col">
-          <div className="flex items-start justify-between mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {mod && (
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${mod.badgeClass}`}>
+                {mod.singular}
+              </span>
+            )}
+            {challenge.modalidad && (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                {MODALIDAD_LABEL[challenge.modalidad]}
+                {challenge.ubicacion ? ` · ${challenge.ubicacion}` : ''}
+              </span>
+            )}
             {difficulty && (
               <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium ${DIFFICULTY_COLOR[difficulty] || 'bg-gray-100 text-gray-700'}`}>
                 {DIFFICULTY_LABEL[difficulty] || difficulty}
@@ -83,7 +105,7 @@ export default function FeaturedCard({ challenge }: FeaturedCardProps) {
                   </span>
                 ))}
             </div>
-            <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-fluid-sm font-medium text-primary-600 hover:text-primary-700 {TOUCH_TARGET} {FOCUS_RING}">
+            <button className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 text-fluid-sm font-medium text-primary-600 hover:text-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}>
               Ver Detalle
               <ChevronRightIcon />
             </button>

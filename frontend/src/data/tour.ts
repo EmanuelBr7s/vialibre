@@ -1,9 +1,10 @@
+import { UserRole } from '@/types';
 /**
  * Datos y constantes del sistema de onboarding (wizard) y recorrido guiado.
  * Cada rol (publicador, solucionador, admin) tiene sus propios pasos.
  */
 
-export type TourRole = 'publicador' | 'solucionador' | 'admin';
+export type TourRole = UserRole.PUBLICADOR | UserRole.SOLUCIONADOR | UserRole.ADMIN;
 
 export type OnboardingIcon =
   | 'community'
@@ -46,7 +47,7 @@ export const TOUR_MENU_BODY_CLASS = 'tour-menu-open';
 export const TOUR_MENU_EVENT = 'vialibre:tour-menu';
 
 export const ONBOARDING_STEPS: Record<TourRole, OnboardingSlide[]> = {
-  publicador: [
+  [UserRole.PUBLICADOR]: [
     {
       icon: 'community',
       title: 'Bienvenido a VíaLibre',
@@ -66,7 +67,7 @@ export const ONBOARDING_STEPS: Record<TourRole, OnboardingSlide[]> = {
         'Revisa los postulados a cada problemática, evalúa perfiles y CV, y libera la información de contacto de los mejores candidatos.',
     },
   ],
-  solucionador: [
+  [UserRole.SOLUCIONADOR]: [
     {
       icon: 'community',
       title: 'Bienvenido a VíaLibre',
@@ -109,7 +110,7 @@ export const ONBOARDING_STEPS: Record<TourRole, OnboardingSlide[]> = {
 };
 
 export const TOUR_STEPS: Record<TourRole, TourStep[]> = {
-  publicador: [
+  [UserRole.PUBLICADOR]: [
     {
       id: 'perfil-org',
       title: 'Perfil de Organización',
@@ -133,7 +134,7 @@ export const TOUR_STEPS: Record<TourRole, TourStep[]> = {
       selector: '[data-tour="feed-section"]',
     },
   ],
-  solucionador: [
+  [UserRole.SOLUCIONADOR]: [
     {
       id: 'mi-perfil',
       title: 'Mi Perfil Académico',

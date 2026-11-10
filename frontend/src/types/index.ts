@@ -1,6 +1,76 @@
 // ── Auth Types ──
 
-export type UserRole = 'admin' | 'publicador' | 'solucionador';
+/** SOLUCIONADOR = estudiante; EGRESADO = graduado en búsqueda de empleo. */
+export enum UserRole {
+  ADMIN = 'admin',
+  PUBLICADOR = 'publicador',
+  SOLUCIONADOR = 'solucionador',
+  EGRESADO = 'egresado',
+}
+
+// ── Campos con opciones fijas (el valor es el texto que se muestra) ──
+
+/** Programas académicos de la universidad. */
+export enum ProgramaAcademico {
+  INGENIERIA_SISTEMAS = 'Ingeniería de Sistemas',
+  INGENIERIA_INDUSTRIAL = 'Ingeniería Industrial',
+  INGENIERIA_AMBIENTAL = 'Ingeniería Ambiental',
+  CONTADURIA_PUBLICA = 'Contaduría Pública',
+  DERECHO = 'Derecho',
+  ADMINISTRACION_EMPRESAS = 'Administración de Empresas',
+  OTRO = 'Otro',
+}
+
+/** Semilleros, ramas y consultorios. */
+export enum AfiliacionAcademica {
+  LABORATORIO_INNOVACION = 'Laboratorio de Innovación',
+  RAMA_IEEE = 'Rama Estudiantil IEEE',
+  CONSULTORIO_JURIDICO = 'Consultorio Jurídico',
+  SEMILLERO_FINANZAS = 'Semillero de Finanzas Sostenibles',
+  OTRO = 'Otro',
+}
+
+/** Semestre en curso del estudiante. */
+export enum Semestre {
+  PRIMERO = '1° semestre',
+  SEGUNDO = '2° semestre',
+  TERCERO = '3° semestre',
+  CUARTO = '4° semestre',
+  QUINTO = '5° semestre',
+  SEXTO = '6° semestre',
+  SEPTIMO = '7° semestre',
+  OCTAVO = '8° semestre',
+  NOVENO = '9° semestre',
+  DECIMO = '10° semestre',
+}
+
+/** Municipios del Atlántico. */
+export enum Ubicacion {
+  BARRANQUILLA = 'Barranquilla, Atlántico',
+  BARANOA = 'Baranoa, Atlántico',
+  CAMPO_DE_LA_CRUZ = 'Campo de la Cruz, Atlántico',
+  CANDELARIA = 'Candelaria, Atlántico',
+  GALAPA = 'Galapa, Atlántico',
+  JUAN_DE_ACOSTA = 'Juan de Acosta, Atlántico',
+  LURUACO = 'Luruaco, Atlántico',
+  MALAMBO = 'Malambo, Atlántico',
+  MANATI = 'Manatí, Atlántico',
+  PALMAR_DE_VARELA = 'Palmar de Varela, Atlántico',
+  PIOJO = 'Piojó, Atlántico',
+  POLONUEVO = 'Polonuevo, Atlántico',
+  PONEDERA = 'Ponedera, Atlántico',
+  PUERTO_COLOMBIA = 'Puerto Colombia, Atlántico',
+  REPELON = 'Repelón, Atlántico',
+  SABANAGRANDE = 'Sabanagrande, Atlántico',
+  SABANALARGA = 'Sabanalarga, Atlántico',
+  SANTA_LUCIA = 'Santa Lucía, Atlántico',
+  SANTO_TOMAS = 'Santo Tomás, Atlántico',
+  SOLEDAD = 'Soledad, Atlántico',
+  SUAN = 'Suan, Atlántico',
+  TUBARA = 'Tubará, Atlántico',
+  USIACURI = 'Usiacurí, Atlántico',
+  OTRA_CIUDAD = 'Otra ciudad',
+}
 
 export interface User {
   id: string;
@@ -15,8 +85,28 @@ export interface User {
   empresa_nombre?: string | null;
   programa_academico?: string | null;
   afiliacion_academica?: string | null;
+  // Perfil profesional (estudiantes y egresados), visible para las empresas
+  skills: string[];
+  soft_skills: string[];
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  ubicacion?: string | null;
+  semestre?: string | null;
+  anio_egreso?: number | null;
+  disponible: boolean;
+  cv_filename?: string | null;
+  cv_size?: number | null;
+  cv_updated_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface UserListResponse {
+  users: User[];
+  total: number;
+  skip: number;
+  limit: number;
 }
 
 export interface LoginRequest {
@@ -32,8 +122,8 @@ export interface RegisterRequest {
   phone?: string;
   nit_empresa?: string;
   empresa_nombre?: string;
-  programa_academico?: string;
-  afiliacion_academica?: string;
+  programa_academico?: ProgramaAcademico;
+  afiliacion_academica?: AfiliacionAcademica;
 }
 
 export interface TokenResponse {
@@ -46,8 +136,27 @@ export interface TokenResponse {
 
 // ── Challenge Types (aligned with core-service schemas) ──
 
-export type ChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
-export type DifficultyLevel = 'easy' | 'medium' | 'hard';
+export enum ChallengeStatus {
+  ABIERTO = 'abierto',
+  EN_PROGRESO = 'en_progreso',
+  CERRADO = 'cerrado',
+}
+export enum DifficultyLevel {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
+}
+/** Módulo de la publicación: reto (laboratorio), práctica o empleo. */
+export enum ChallengeTipo {
+  RETO = 'reto',
+  PRACTICA = 'practica',
+  EMPLEO = 'empleo',
+}
+export enum Modalidad {
+  PRESENCIAL = 'presencial',
+  REMOTO = 'remoto',
+  HIBRIDO = 'hibrido',
+}
 
 export interface Category {
   id: string;
@@ -61,6 +170,7 @@ export interface Challenge {
   title: string;
   short_description: string;
   long_description: string;
+  tipo: ChallengeTipo;
   author_id: string;
   category_id?: string | null;
   status: ChallengeStatus;
@@ -68,6 +178,9 @@ export interface Challenge {
   tags?: string[] | null;
   budget?: number | null;
   deadline?: string | null;
+  image_url?: string | null;
+  modalidad?: Modalidad | null;
+  ubicacion?: string | null;
   is_featured: boolean;
   featured_score: number;
   created_at: string;
@@ -85,8 +198,15 @@ export interface ChallengeListResponse {
 
 // ── Match Types (aligned with match-service schemas) ──
 
-export type InteractionStatus = 'pendiente' | 'aprobado' | 'rechazado';
-export type ReactionType = 'like' | 'bookmark';
+export enum InteractionStatus {
+  PENDIENTE = 'pendiente',
+  APROBADO = 'aprobado',
+  RECHAZADO = 'rechazado',
+}
+export enum ReactionType {
+  LIKE = 'like',
+  BOOKMARK = 'bookmark',
+}
 
 export interface Interaction {
   id: string;
@@ -137,18 +257,45 @@ export interface ContactInfo {
   afiliacion_academica?: string | null;
 }
 
+// ── Documentos de práctica (carta de aval) ──
+
+export enum DocumentoTipo {
+  DOCUMENTO_IDENTIDAD = 'documento_identidad',
+  CERTIFICADO_MATRICULA = 'certificado_matricula',
+  AFILIACION_EPS = 'afiliacion_eps',
+}
+
+export interface DocumentInfo {
+  tipo: DocumentoTipo;
+  filename: string;
+  size: number;
+  uploaded_at: string;
+}
+
+export interface RequiredDocument {
+  tipo: DocumentoTipo;
+  label: string;
+  documento?: DocumentInfo | null;
+}
+
+export interface DocumentChecklist {
+  /** Práctica en la que el estudiante fue seleccionado. */
+  aplica: boolean;
+  completos: boolean;
+  requeridos: RequiredDocument[];
+}
+
 // ── Profile / Resume types (client-persisted extended data) ──
 
-export type PreferredChannel = 'correo' | 'telefono' | 'whatsapp';
+export enum PreferredChannel {
+  CORREO = 'correo',
+  TELEFONO = 'telefono',
+  WHATSAPP = 'whatsapp',
+}
 
 export interface ExtendedProfile {
   /** Campos que el backend aún no persiste; se guardan en el navegador. */
   second_email?: string;
-  location?: string;
-  skills: string[];
-  linkedin?: string;
-  github?: string;
-  portfolio?: string;
   cargo?: string;
   departamento?: string;
   enlaces_corporativos: string[];
@@ -170,6 +317,15 @@ export interface ProfileUpdatePayload {
   bio?: string | null;
   avatar_url?: string | null;
   empresa_nombre?: string;
-  programa_academico?: string;
-  afiliacion_academica?: string;
+  programa_academico?: ProgramaAcademico;
+  afiliacion_academica?: AfiliacionAcademica;
+  skills?: string[];
+  soft_skills?: string[];
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  portfolio_url?: string | null;
+  ubicacion?: Ubicacion | null;
+  semestre?: Semestre | null;
+  anio_egreso?: number | null;
+  disponible?: boolean;
 }

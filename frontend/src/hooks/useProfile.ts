@@ -2,18 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import api from '@/lib/api';
 import {
-  clearResumeMeta,
   deleteAvatar,
-  deleteResume,
   getAvatarBlobUrl,
   getExtendedProfile,
-  getResumeBlobUrl,
-  getResumeMeta,
   saveAvatar,
   saveExtendedProfile,
-  saveResume,
-  saveResumeMeta,
 } from '@/lib/profileStorage';
 import type { ExtendedProfile, ResumeInfo } from '@/types';
 
@@ -38,12 +33,13 @@ export interface UseProfileResult {
 
 /**
  * Fuente de verdad cliente del módulo de perfil: combina el usuario
- * autenticado (AuthContext) con los datos extendidos y la hoja de vida
- * persistidos localmente (profileStorage).
+ * autenticado (AuthContext), la hoja de vida guardada en la API y los datos
+ * extendidos persistidos localmente (profileStorage).
  */
 export function useProfile(): UseProfileResult {
-  const { user } = useAuth();
+  const { user, syncUser } = useAuth();
   const userId = user?.id ?? null;
+  const hasCv = !!user?.cv_filename;
 
   const [loading, setLoading] = useState(true);
   const [extended, setExtended] = useState<ExtendedProfile | null>(null);
@@ -63,15 +59,13 @@ export function useProfile(): UseProfileResult {
     (async () => {
       try {
         const ext = getExtendedProfile(userId);
-        const meta = getResumeMeta(userId);
         const [av, rv] = await Promise.all([
-          getAvatarBlobUrl(userId),
-          getResumeBlobUrl(userId),
+          getAvatarBlobUrl(userId).catch(() => null),
+          hasCv ? api.getUserCvBlobUrl(userId).catch(() => null) : null,
         ]);
         if (cancelled) return;
         setExtended(ext);
         setAvatarUrl(av);
-        setResumeInfo(meta);
         setResumeUrl(rv);
       } catch {
         // Almacenamiento local no disponible (p. ej. modo incógnito): se continúa sin datos extendidos.
@@ -86,7 +80,21 @@ export function useProfile(): UseProfileResult {
       revokeUrl(previousResume);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, hasCv]);
+
+  // Metadatos del CV derivados del usuario autenticado (fuente: API).
+  useEffect(() => {
+    setResumeInfo(
+      user?.cv_filename
+        ? {
+            id: user.cv_updated_at ?? user.cv_filename,
+            fileName: user.cv_filename,
+            size: user.cv_size ?? 0,
+            updatedAt: user.cv_updated_at ?? '',
+          }
+        : null
+    );
+  }, [user?.cv_filename, user?.cv_size, user?.cv_updated_at]);
 
   const saveExtended = useCallback(
     (profile: ExtendedProfile) => {
@@ -121,34 +129,24 @@ export function useProfile(): UseProfileResult {
   const uploadResume = useCallback(
     async (file: File) => {
       if (!userId) return;
-      await saveResume(userId, file);
-      const meta: ResumeInfo = {
-        id: typeof crypto !== 'undefined' && 'randomUUID' in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}`,
-        fileName: file.name,
-        size: file.size,
-        updatedAt: new Date().toISOString(),
-      };
-      saveResumeMeta(userId, meta);
+      const updated = await api.uploadMyCv(file);
       revokeUrl(resumeUrl);
-      const url = await getResumeBlobUrl(userId);
-      setResumeInfo(meta);
-      setResumeUrl(url);
+      // El PDF recién subido se previsualiza sin volver a descargarlo.
+      setResumeUrl(URL.createObjectURL(file));
+      syncUser(updated);
     },
-    [userId, resumeUrl]
+    [userId, resumeUrl, syncUser]
   );
 
   const removeResume = useCallback(
     async (disabled: boolean) => {
-      if (!userId || disabled) return;
-      await deleteResume(userId);
-      clearResumeMeta(userId);
+      if (!userId || !user || disabled) return;
+      await api.deleteMyCv();
       revokeUrl(resumeUrl);
-      setResumeInfo(null);
       setResumeUrl(null);
+      syncUser({ ...user, cv_filename: null, cv_size: null, cv_updated_at: null });
     },
-    [userId, resumeUrl]
+    [userId, user, resumeUrl, syncUser]
   );
 
   return {
