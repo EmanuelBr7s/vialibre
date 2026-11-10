@@ -13,10 +13,12 @@ from urllib.parse import quote
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import undefer
 
 from app.api.deps import AuthContext, get_current_user
+from app.api.duplicates import raise_duplicate_conflict
 from app.config import settings
 from app.database import get_db
 from app.models.document import InteractionDocument
@@ -24,6 +26,7 @@ from app.models.interaction import Interaction, InteractionStatus
 from app.schemas.match import DocumentChecklist, DocumentInfo, RequiredDocument
 from vialibre_common.pdf import A4_HEIGHT, A4_WIDTH, Pdf
 from vialibre_common.schemas import ChallengeTipo, DocumentoTipo, UserRole
+from vialibre_common.service_auth import service_headers
 
 router = APIRouter()
 
@@ -41,15 +44,28 @@ MESES = [
 ]
 
 
-async def _fetch_json(url: str) -> dict:
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.get(url)
+async def _fetch_json(url: str, headers: dict | None = None) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(url, headers=headers)
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de un servicio relacionado: 502 con
+        # mensaje estatico, sin exponer URL interna, host ni la excepcion.
+        # Solo httpx.HTTPError: un error de programacion propaga sin enmascarar.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo consultar un servicio relacionado",
+        )
     if response.status_code != 200:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="No se pudo consultar un servicio relacionado",
         )
     return response.json()
+
+
+def _service_headers(method: str, path: str) -> dict:
+    return service_headers(settings.jwt_secret_key, settings.service_name, method, path)
 
 
 async def _load(
@@ -158,7 +174,19 @@ async def upload_document(
     doc.data = content
     doc.uploaded_at = datetime.utcnow()
     db.add(doc)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # El upsert secuencial reemplaza el documento; bajo carrera, la
+        # restriccion uq_interaction_document_tipo convierte la doble carga
+        # concurrente en 409 (nuevo detalle: no existia duplicado secuencial).
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="uq_interaction_document_tipo",
+            detail="El documento fue cargado por otra solicitud; intentalo de nuevo",
+        )
+        raise
     return DocumentInfo.model_validate(doc)
 
 
@@ -283,8 +311,16 @@ async def download_endorsement_letter(
         )
 
     auth_url = f"{settings.auth_service_url}/api/v1/auth/users"
-    student = await _fetch_json(f"{auth_url}/{interaction.solucionador_id}")
-    company = await _fetch_json(f"{auth_url}/{challenge['author_id']}")
+    student_path = f"/api/v1/auth/users/{interaction.solucionador_id}"
+    company_path = f"/api/v1/auth/users/{challenge['author_id']}"
+    student = await _fetch_json(
+        f"{auth_url}/{interaction.solucionador_id}",
+        headers=_service_headers("GET", student_path),
+    )
+    company = await _fetch_json(
+        f"{auth_url}/{challenge['author_id']}",
+        headers=_service_headers("GET", company_path),
+    )
     pdf = build_endorsement_letter(
         student, company, challenge, interaction, max(d.uploaded_at for d in docs.values())
     )

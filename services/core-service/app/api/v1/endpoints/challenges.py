@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_role
 from app.config import settings
 from app.database import get_db
-from app.models.challenge import Challenge, ChallengeStatus
+from app.models.challenge import Challenge, ChallengeStatus, DifficultyLevel
 from app.models.category import Category
 from app.schemas.challenge import (
     CategoryCreate,
@@ -21,6 +21,7 @@ from app.schemas.challenge import (
     ChallengeUpdate,
 )
 from vialibre_common.schemas import TokenPayload, UserRole
+from vialibre_common.service_auth import service_headers
 
 router = APIRouter()
 
@@ -28,12 +29,17 @@ router = APIRouter()
 async def _resolve_author(author_id: uuid.UUID) -> dict:
     """
     Fetch a single author's display info from auth-service.
+    Uses a request-bound internal service token; only display fields are returned.
     Returns fields (author_name, empresa_nombre) or empty dict on failure.
     """
+    path = f"/api/v1/auth/users/{author_id}/resumen"
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(
-                f"{settings.auth_service_url}/api/v1/auth/users/{author_id}",
+                f"{settings.auth_service_url}{path}",
+                headers=service_headers(
+                    settings.jwt_secret_key, settings.service_name, "GET", path
+                ),
             )
             if response.status_code != 200:
                 return {}
@@ -83,7 +89,7 @@ async def _attach_authors(
 @router.post("/categories", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(
     data: CategoryCreate,
-    current_user: TokenPayload = Depends(get_current_user),
+    current_user: TokenPayload = Depends(require_role(UserRole.ADMIN)),
     db: AsyncSession = Depends(get_db),
 ):
     category = Category(**data.model_dump())
@@ -134,9 +140,12 @@ async def create_challenge(
 async def list_challenges(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    status_filter: str | None = Query(None, alias="status"),
+    # Los filtros se tipean con los enums locales del modelo (igual que `tipo`):
+    # un valor fuera del enum produce 422 de validacion en vez del 500 que
+    # provocaba comparar una cadena arbitraria contra una columna Enum.
+    status_filter: ChallengeStatus | None = Query(None, alias="status"),
     category_id: uuid.UUID | None = None,
-    difficulty: str | None = None,
+    difficulty: DifficultyLevel | None = None,
     featured_only: bool = False,
     tipo: ChallengeTipo | None = None,
     author_id: uuid.UUID | None = None,

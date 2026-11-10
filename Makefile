@@ -1,7 +1,8 @@
 .PHONY: install install-auth install-core install-match install-frontend \
         dev-auth dev-core dev-match dev-frontend \
         init-schemas migrate migrate-auth migrate-core migrate-match \
-        seed seed-core seed-match setup-db
+        seed seed-core seed-match setup-db \
+        test test-auth test-core test-match
 
 # Desarrollo local sin contenedores: PostgreSQL 16 instalado (o administrado),
 # Python 3.11+ con el entorno virtual activo y Node.js 20+.
@@ -41,6 +42,12 @@ migrate-%:
 	cd services/$*-service && alembic revision --autogenerate -m "$(MSG)" && alembic upgrade head
 
 migrate: migrate-auth migrate-core migrate-match
+
+# ── Pruebas (pytest en cada servicio, con el entorno virtual activo) ──
+test: test-auth test-core test-match
+
+test-%:
+	cd services/$*-service && pytest -q
 
 seed:
 	cd services/auth-service && python -m app.seed

@@ -20,6 +20,11 @@ app = FastAPI(
     description="Authentication and user management microservice",
     version="0.1.0",
     lifespan=lifespan,
+    # Igual que core-service y match-service: colecciones sin slash final y sin
+    # redirecciones. Un 307 aqui apunta al host interno del gateway y rompe las
+    # peticiones que llegan a traves del proxy de Next.js (p. ej. el listado
+    # de /tutores-docentes).
+    redirect_slashes=False,
 )
 
 # CORS middleware

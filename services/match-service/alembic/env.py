@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import settings
 from app.database import Base
-from app.models import document, interaction, reaction  # noqa: F401 - Import models for Alembic
+from app.models import document, interaction, reaction, practica  # noqa: F401 - Import models for Alembic
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)

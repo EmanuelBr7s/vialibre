@@ -1,13 +1,20 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.api.duplicates import raise_duplicate_conflict
 from app.core.security import create_access_token, hash_password, verify_password
 from app.database import get_db
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import (
+    PUBLIC_REGISTER_ROLES,
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+)
 from vialibre_common.schemas import UserRole
 
 router = APIRouter()
@@ -58,11 +65,15 @@ async def register(
     """
     Register a new user.
 
-    Role-specific validation (handled by schema):
-    - PUBLICADOR: requires nit_empresa + empresa_nombre
-    - SOLUCIONADOR: requires programa_academico
-    - ADMIN: no additional fields required
+    The role is determined server-side: the public flow only allows
+    SOLUCIONADOR, EGRESADO or PUBLICADOR. Privileged roles (admin) are rejected.
     """
+    if request.role not in PUBLIC_REGISTER_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El registro público no permite asignar este rol",
+        )
+
     # Check duplicate email
     result = await db.execute(
         select(User).where(User.email == request.email)
@@ -98,7 +109,19 @@ async def register(
     )
 
     db.add(user)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # El indice unico ix_vialibre_auth_users_email sostiene la unicidad
+        # del correo ante carrera; se traduce a 409 con el mismo detail
+        # que el duplicado secuencial detectado mas arriba.
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="ix_vialibre_auth_users_email",
+            detail="Email already registered",
+        )
+        raise
 
     access_token = create_access_token(
         user_id=str(user.id),
