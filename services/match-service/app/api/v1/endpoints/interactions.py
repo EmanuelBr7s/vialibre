@@ -4,9 +4,12 @@ from datetime import datetime
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, AuthContext
+from app.api.duplicates import raise_duplicate_conflict
+from app.api.v1.endpoints.practicas import _validate_challenge
 from app.config import settings
 from app.database import get_db
 from app.models.interaction import Interaction, InteractionStatus
@@ -19,6 +22,7 @@ from app.schemas.match import (
     InteractionResponse,
 )
 from vialibre_common.schemas import TALENT_ROLES, UserRole
+from vialibre_common.service_auth import service_headers
 
 router = APIRouter()
 
@@ -52,13 +56,33 @@ async def apply_to_challenge(
             detail="You already applied to this challenge",
         )
 
+    # Validar la existencia del reto en core-service ANTES de insertar
+    # (mismo patron y contratos que _validate_challenge en create_practica):
+    # sin esta comprobacion se persistian interacciones huerfanas cuyos
+    # flujos de autores/aprobacion responden 404 o 502. Orden de
+    # validaciones intacto: autorizacion y duplicado local primero,
+    # consulta remota despues.
+    await _validate_challenge(data.challenge_id)
+
     interaction = Interaction(
         solucionador_id=uuid.UUID(auth.payload.sub),
         challenge_id=data.challenge_id,
         message=data.message,
     )
     db.add(interaction)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # La restriccion uq_solucionador_challenge (no el chequeo SELECT de
+        # arriba) es lo que garantiza la unicidad ante concurrencia: se
+        # traduce a 409 con el mismo detail que el duplicado secuencial.
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="uq_solucionador_challenge",
+            detail="You already applied to this challenge",
+        )
+        raise
     return interaction
 
 
@@ -73,16 +97,28 @@ async def list_challenge_applicants(
     Only the challenge author (publicador) can view this.
     """
     # Verify the challenge exists and get author_id
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.core_service_url}/api/v1/core/challenges/{challenge_id}",
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Challenge not found",
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.core_service_url}/api/v1/core/challenges/{challenge_id}",
             )
-        challenge_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de core: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge",
+        )
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Challenge not found",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge",
+        )
+    challenge_data = response.json()
 
     # Verify the current user is the author of the challenge
     author_id = challenge_data.get("author_id")
@@ -116,7 +152,9 @@ async def list_challenge_applicants(
 async def list_my_interactions(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    status_filter: str | None = Query(None, alias="status"),
+    # Filtro tipeado con el enum local: un valor invalido produce 422 en vez
+    # del 500 de comparar una cadena arbitraria contra la columna Enum.
+    status_filter: InteractionStatus | None = Query(None, alias="status"),
     auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -204,17 +242,25 @@ async def approve_interaction(
             detail="Interaction not found",
         )
 
-    # Verify the current user is the author of the challenge
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Could not verify challenge ownership",
+    # Verificar el autor del challenge ANTES de tomar el bloqueo de fila:
+    # una llamada HTTP entre servicios nunca debe esperar con un lock retenido.
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
             )
-        challenge_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de core: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge ownership",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not verify challenge ownership",
+        )
+    challenge_data = response.json()
 
     author_id = challenge_data.get("author_id")
     if author_id != auth.payload.sub and auth.payload.role != UserRole.ADMIN:
@@ -223,14 +269,52 @@ async def approve_interaction(
             detail="Only the challenge author can approve interactions",
         )
 
-    # Update status
+    # Bloqueo de fila sobre la interaccion concreta (sin bloqueos globales) y
+    # releo del estado vigente: el estado leido antes de la llamada HTTP puede
+    # haber cambiado mientras tanto (F3). populate_existing fuerza la
+    # recarga del objeto del mapa de identidad con los valores devueltos por
+    # el SELECT ... FOR UPDATE.
+    locked = await db.execute(
+        select(Interaction)
+        .where(Interaction.id == interaction_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    interaction = locked.scalar_one_or_none()
+
+    if not interaction:
+        # La interaccion fue eliminada en paralelo.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Interaction not found",
+        )
+
+    # Maquina de estados (I2): solo pendiente -> aprobado | rechazado.
+    if interaction.status != InteractionStatus.PENDIENTE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Interaction has already been resolved",
+        )
+    if data.status not in (InteractionStatus.APROBADO, InteractionStatus.RECHAZADO):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invalid interaction status transition",
+        )
+
     interaction.status = data.status
 
-    # If approved, unlock contact
-    if data.status == InteractionStatus.APROBADO and not interaction.contact_unlocked:
+    if data.status == InteractionStatus.APROBADO:
+        # Aprobado implica contacto desbloqueado con marca de tiempo (I1).
         interaction.contact_unlocked = True
         interaction.contact_unlocked_at = datetime.utcnow()
+    else:
+        # Rechazado implica contacto bloqueado: se limpian los campos de
+        # desbloqueo para no conservar datos de una decision previa (F1).
+        interaction.contact_unlocked = False
+        interaction.contact_unlocked_at = None
 
+    # El commit llega con get_db al terminar la peticion; el bloqueo de fila
+    # se libera ahi y el estado ya quedo validado bajo el lock.
     await db.flush()
     return interaction
 
@@ -281,23 +365,34 @@ async def get_contact_info(
             detail="Interaction not found",
         )
 
-    if not interaction.contact_unlocked:
+    # Defensa en profundidad (I1): el desbloqueo por si solo no basta; el
+    # contacto solo se entrega con la interaccion APROBADA. Asi, aunque una
+    # fila anomala conserve contact_unlocked=True en estado pendiente o
+    # rechazado, no se filtran datos.
+    if not interaction.contact_unlocked or interaction.status != InteractionStatus.APROBADO:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Contact information is not unlocked yet",
         )
 
     # Only the solucionador or the challenge author can view contact
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Could not fetch challenge info",
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.core_service_url}/api/v1/core/challenges/{interaction.challenge_id}",
             )
-        challenge_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de core: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch challenge info",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch challenge info",
+        )
+    challenge_data = response.json()
 
     author_id = challenge_data.get("author_id")
     if (str(interaction.solucionador_id) != auth.payload.sub and
@@ -309,20 +404,31 @@ async def get_contact_info(
         )
 
     # Contacto de la contraparte: el estudiante ve a la empresa; la empresa y
-    # la administracion ven al estudiante.
+    # la administracion ven al estudiante. La autorizacion sobre la interaccion
+    # ya se verifico arriba; la consulta a auth se hace con el token interno.
     is_solucionador = str(interaction.solucionador_id) == auth.payload.sub
     contact_id = author_id if is_solucionador else interaction.solucionador_id
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            f"{settings.auth_service_url}/api/v1/auth/users/{contact_id}",
-            headers={"Authorization": f"Bearer {auth.token}"},
-        )
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="Could not fetch user information",
+    contact_path = f"/api/v1/auth/users/{contact_id}"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                f"{settings.auth_service_url}{contact_path}",
+                headers=service_headers(
+                    settings.jwt_secret_key, settings.service_name, "GET", contact_path
+                ),
             )
-        user_data = response.json()
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de auth: 502 sin exponer la URL interna.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch user information",
+        )
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not fetch user information",
+        )
+    user_data = response.json()
 
     return ContactInfo(
         user_id=uuid.UUID(user_data["id"]),

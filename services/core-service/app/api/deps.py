@@ -3,7 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import settings
 from vialibre_common.auth import TokenVerificationError, verify_token
-from vialibre_common.schemas import TokenPayload
+from vialibre_common.schemas import TokenPayload, UserRole
 
 security = HTTPBearer()
 
@@ -25,3 +25,23 @@ async def get_current_user(
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def require_role(*roles: UserRole):
+    """
+    Dependency factory that requires the authenticated user to hold one of
+    the given roles. Denies by default: insufficient role -> 403.
+    """
+    allowed = {r.value for r in roles}
+
+    async def _checker(
+        current_user: TokenPayload = Depends(get_current_user),
+    ) -> TokenPayload:
+        if current_user.role.value not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos suficientes para esta operación",
+            )
+        return current_user
+
+    return _checker

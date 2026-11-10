@@ -151,6 +151,9 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
         case UserRole.ADMIN:
           return [
             { id: 'panel-admin', label: 'Panel de Administración', href: '/admin/dashboard' },
+            { id: 'gestion-tutores', label: 'Tutores Docentes', href: '/admin/tutores' },
+            { id: 'gestion-empresas', label: 'Empresas', href: '/admin/empresas' },
+            { id: 'gestion-practicas', label: 'Prácticas Formalizadas', href: '/admin/practicas' },
             { id: 'talento', label: 'Banco de Hojas de Vida', href: '/talento' },
             { id: 'gestion-anuncios', label: 'Gestión de Anuncios / Pautas', href: '/admin/anuncios' },
           ];

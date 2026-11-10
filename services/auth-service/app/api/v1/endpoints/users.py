@@ -7,11 +7,21 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, undefer
 
-from app.api.deps import get_current_user
+from app.api.deps import (
+    Principal,
+    get_current_user,
+    get_principal,
+    require_internal_service,
+)
 from app.database import get_db
 from app.models.role import Role
 from app.models.user import User
-from app.schemas.user import UserListResponse, UserResponse, UserUpdate
+from app.schemas.user import (
+    UserListResponse,
+    UserResponse,
+    UserSummaryResponse,
+    UserUpdate,
+)
 from vialibre_common.schemas import TALENT_ROLES, TokenPayload, UserRole
 
 CV_MAX_BYTES = 5 * 1024 * 1024
@@ -207,16 +217,52 @@ async def get_user_cv(
     )
 
 
+@router.get("/{user_id}/resumen", response_model=UserSummaryResponse)
+async def get_user_summary(
+    user_id: uuid.UUID,
+    _: None = Depends(require_internal_service),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Minimal display info for internal service consumption (core/match).
+    Restricted to trusted internal services via the shared service token.
+    """
+    user = await _get_user_or_404(db, user_id)
+    return UserSummaryResponse(
+        id=user.id,
+        full_name=user.full_name,
+        empresa_nombre=user.empresa_nombre,
+        avatar_url=user.avatar_url,
+        programa_academico=user.programa_academico,
+        afiliacion_academica=user.afiliacion_academica,
+    )
+
+
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user_by_id(
     user_id: uuid.UUID,
+    principal: Principal = Depends(get_principal),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Get a user by ID.
-    This is used by other services (core/match) via internal calls and by
-    the frontend for resolving public display info.
+
+    Authorization: the owner, publicadores, the administration or a trusted
+    internal service. Anonymous or unauthorized callers are rejected.
     """
+    if not principal.is_service:
+        current_user = principal.user
+        is_owner = current_user is not None and current_user.sub == str(user_id)
+        is_privileged = current_user is not None and current_user.role in (
+            UserRole.PUBLICADOR,
+            UserRole.ADMIN,
+        )
+        if not is_owner and not is_privileged:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No autorizado para consultar este usuario",
+            )
+
     user = await _get_user_or_404(db, user_id)
 
     return user_to_response(user)
