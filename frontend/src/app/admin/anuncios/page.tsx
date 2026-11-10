@@ -6,6 +6,7 @@ import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useAdvertisement } from '@/contexts/AdvertisementContext';
 import { currentAd, type AdSlot } from '@/data/ads';
 import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
+import { UserRole } from '@/types';
 
 function toLocalInput(iso?: string): string {
   if (!iso) return '';
@@ -29,7 +30,7 @@ interface FormState {
 }
 
 export default function AdminAnunciosPage() {
-  const allowed = useRoleGuard('admin');
+  const allowed = useRoleGuard(UserRole.ADMIN);
   const { ad, updateAd } = useAdvertisement();
   const [form, setForm] = useState<FormState>({
     empresa: ad?.empresa || '',

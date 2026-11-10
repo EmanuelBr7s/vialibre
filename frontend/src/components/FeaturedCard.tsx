@@ -1,5 +1,6 @@
 ﻿import Link from 'next/link';
 import type { Challenge } from '@/types';
+import { DifficultyLevel } from '@/types';
 import { FOCUS_RING } from '@/components/ui/classes';
 import { MODALIDAD_LABEL, MODULE_BY_ID } from '@/data/modules';
 
@@ -8,15 +9,15 @@ interface FeaturedCardProps {
 }
 
 const DIFFICULTY_COLOR: Record<string, string> = {
-  easy: 'bg-green-100 text-green-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  hard: 'bg-red-100 text-red-700',
+  [DifficultyLevel.EASY]: 'bg-green-100 text-green-700',
+  [DifficultyLevel.MEDIUM]: 'bg-yellow-100 text-yellow-700',
+  [DifficultyLevel.HARD]: 'bg-red-100 text-red-700',
 };
 
 const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'Fácil',
-  medium: 'Medio',
-  hard: 'Difícil',
+  [DifficultyLevel.EASY]: 'Fácil',
+  [DifficultyLevel.MEDIUM]: 'Medio',
+  [DifficultyLevel.HARD]: 'Difícil',
 };
 
 export default function FeaturedCard({ challenge }: FeaturedCardProps) {

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { UserRole } from '@/types';
 
 interface AdminShellProps {
   title: string;
@@ -11,12 +12,12 @@ interface AdminShellProps {
 }
 
 /**
- * Chrome de las pantallas administrativas: aplica `useRoleGuard('admin')`
+ * Chrome de las pantallas administrativas: aplica `useRoleGuard(UserRole.ADMIN)`
  * (la autorización real sigue siendo la del backend) y reutiliza la misma
  * estructura Sidebar + <main> que el resto de la aplicación.
  */
 export default function AdminShell({ title, subtitle, children }: AdminShellProps) {
-  const allowed = useRoleGuard('admin');
+  const allowed = useRoleGuard(UserRole.ADMIN);
 
   if (!allowed) {
     return (

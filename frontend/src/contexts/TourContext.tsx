@@ -19,6 +19,7 @@ import {
   type TourRole,
   type TourStep,
 } from '@/data/tour';
+import { UserRole } from '@/types';
 
 interface TourContextValue {
   active: boolean;
@@ -53,8 +54,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   // El rol admin reutiliza los pasos del Publicador.
   const stepsForRole = useCallback((): TourStep[] => {
-    const role = user?.role ?? 'publicador';
-    const tourRole: TourRole = isTalentRole(role) ? 'solucionador' : 'publicador';
+    const role = user?.role ?? UserRole.PUBLICADOR;
+    const tourRole: TourRole = isTalentRole(role) ? UserRole.SOLUCIONADOR : UserRole.PUBLICADOR;
     return TOUR_STEPS[tourRole];
   }, [user?.role]);
 

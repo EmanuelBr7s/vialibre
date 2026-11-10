@@ -7,7 +7,8 @@ import SkeletonBlock from '@/components/ui/SkeletonBlock';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import api from '@/lib/api';
 import { TALENT_TABS } from '@/data/modules';
-import type { ChallengeTipo, User } from '@/types';
+import type { User } from '@/types';
+import { ChallengeTipo, UserRole } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
 
 function initials(name: string): string {
@@ -17,7 +18,7 @@ function initials(name: string): string {
 
 function TalentCard({ person, onOpenCv, cvLoading }: { person: User; onOpenCv: () => void; cvLoading: boolean }) {
   const nivel =
-    person.role === 'egresado'
+    person.role === UserRole.EGRESADO
       ? person.anio_egreso
         ? `Egresado ${person.anio_egreso}`
         : 'Egresado'
@@ -115,8 +116,8 @@ function TalentCard({ person, onOpenCv, cvLoading }: { person: User; onOpenCv: (
 }
 
 export default function BancoTalentoPage() {
-  const allowed = useRoleGuard(['publicador', 'admin']);
-  const [tab, setTab] = useState<ChallengeTipo>('practica');
+  const allowed = useRoleGuard([UserRole.PUBLICADOR, UserRole.ADMIN]);
+  const [tab, setTab] = useState<ChallengeTipo>(ChallengeTipo.PRACTICA);
   const [q, setQ] = useState('');
   const [programa, setPrograma] = useState('');
   const [conCv, setConCv] = useState(false);

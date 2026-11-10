@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
-import type { ChallengeTipo, ContactInfo, Interaction } from '@/types';
+import type { ContactInfo, Interaction } from '@/types';
+import { ChallengeTipo, InteractionStatus } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 
@@ -12,15 +13,15 @@ interface ContactSectionProps {
 }
 
 const APPLY_COPY: Record<ChallengeTipo, { intro: string; button: string }> = {
-  reto: {
+  [ChallengeTipo.RETO]: {
     intro: '¿Te interesa este reto? Postúlate con tu semillero o de forma individual; la empresa y el Laboratorio de Innovación revisarán tu propuesta.',
     button: 'Postularme a este reto',
   },
-  practica: {
+  [ChallengeTipo.PRACTICA]: {
     intro: '¿Te interesa esta práctica? Postúlate y, si la empresa te selecciona, podrás cargar tus documentos y descargar tu carta de aval.',
     button: 'Postularme a esta práctica',
   },
-  empleo: {
+  [ChallengeTipo.EMPLEO]: {
     intro: '¿Te interesa esta vacante? Postúlate; la empresa revisará tu perfil y tu hoja de vida.',
     button: 'Postularme a esta oferta',
   },
@@ -105,27 +106,27 @@ export default function ContactSection({ challengeId, tipo }: ContactSectionProp
           <div className="flex items-center gap-2 mb-3">
             <span
               className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                interaction.status === 'aprobado'
+                interaction.status === InteractionStatus.APROBADO
                   ? 'bg-green-100 text-green-700'
-                  : interaction.status === 'rechazado'
+                  : interaction.status === InteractionStatus.RECHAZADO
                   ? 'bg-red-100 text-red-700'
                   : 'bg-yellow-100 text-yellow-700'
               }`}
             >
-              {interaction.status === 'aprobado'
+              {interaction.status === InteractionStatus.APROBADO
                 ? 'Postulación Aprobada'
-                : interaction.status === 'rechazado'
+                : interaction.status === InteractionStatus.RECHAZADO
                 ? 'Postulación Rechazada'
                 : 'Postulación Pendiente'}
             </span>
           </div>
 
           <p className="text-sm text-gray-600">
-            {interaction.status === 'pendiente'
+            {interaction.status === InteractionStatus.PENDIENTE
               ? 'Tu postulación está en revisión. La empresa la evaluará y, si eres seleccionado, se desbloqueará su contacto.'
-              : interaction.status === 'rechazado'
+              : interaction.status === InteractionStatus.RECHAZADO
               ? 'Tu postulación no fue seleccionada esta vez.'
-              : tipo === 'practica'
+              : tipo === ChallengeTipo.PRACTICA
               ? '¡Felicidades! Fuiste seleccionado. Carga tus documentos en Mis Postulaciones y descarga tu carta de aval.'
               : '¡Felicidades! Tu postulación fue aprobada. Ya puedes contactar a la empresa.'}
           </p>

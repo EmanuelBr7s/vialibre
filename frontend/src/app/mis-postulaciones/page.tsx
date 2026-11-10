@@ -7,7 +7,8 @@ import PracticeDocuments from '@/components/PracticeDocuments';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { TALENT_ROLES } from '@/lib/constants';
 import api from '@/lib/api';
-import type { ChallengeTipo, ContactInfo, InteractionStatus } from '@/types';
+import type { ContactInfo } from '@/types';
+import { ChallengeTipo, InteractionStatus } from '@/types';
 import { APP_STATUS_BADGE, APP_STATUS_LABEL } from '@/data/mock';
 import { MODULE_BY_ID } from '@/data/modules';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
@@ -178,7 +179,7 @@ export default function MisPostulacionesPage() {
                       <p className="text-sm text-gray-600 mt-1 italic">&ldquo;{row.message}&rdquo;</p>
                     )}
 
-                    {row.status === 'aprobado' && (
+                    {row.status === InteractionStatus.APROBADO && (
                       <div className="mt-4">
                         <button
                           onClick={() => handleToggleContact(row)}
@@ -220,7 +221,7 @@ export default function MisPostulacionesPage() {
                           </div>
                         )}
 
-                        {row.tipo === 'practica' && <PracticeDocuments interactionId={row.id} editable />}
+                        {row.tipo === ChallengeTipo.PRACTICA && <PracticeDocuments interactionId={row.id} editable />}
                       </div>
                     )}
                   </article>

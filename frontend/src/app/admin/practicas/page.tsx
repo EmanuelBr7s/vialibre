@@ -24,10 +24,11 @@ import type {
   PracticaCreate,
   PracticaUpdate,
 } from '@/types';
+import { ChallengeStatus } from '@/types';
 
 const LIMIT = 20;
 const OPTIONS_LIMIT = 100;
-const CHALLENGE_STATUSES = ['abierto', 'en_progreso', 'cerrado'] as const;
+const CHALLENGE_STATUSES = Object.values(ChallengeStatus);
 
 const EMPTY_DRAFT: PracticaDraft = {
   estado_administrativo: '',

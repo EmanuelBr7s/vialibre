@@ -5,7 +5,7 @@ the companies created by the auth-service seed. Idempotent: existing rows
 are updated with the demo data.
 
 Usage:
-  docker-compose exec core-service python -m app.seed_core
+  python -m app.seed_core   (desde la carpeta del servicio)
 """
 
 import asyncio
@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
-from app.models.challenge import Challenge, ChallengeStatus, DifficultyLevel
+from app.models.challenge import Challenge, ChallengeStatus, ChallengeTipo, DifficultyLevel, Modalidad
 
 
 def _uid(n: int) -> uuid.UUID:
@@ -46,7 +46,7 @@ def _in(days: int) -> datetime:
 CHALLENGES = [
     # ── Retos empresariales (Laboratorio de Innovación) ──
     {
-        "id": uuid.UUID("aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "tipo": "reto", "author_id": MALAMBO,
+        "id": uuid.UUID("aaaa1111-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), "tipo": ChallengeTipo.RETO, "author_id": MALAMBO,
         "title": "Modelo predictivo para rendimiento de mango de hilaza",
         "short_description": "Buscamos estudiantes que apliquen Machine Learning (XGBoost, Random Forest) con variables agroclimáticas para predecir cosechas.",
         "long_description": """Agropecuaria Malambo enfrenta desafíos en la planificación de sus cosechas de mango de hilaza. Hoy las decisiones se basan en la experiencia y en observaciones directas, lo que genera pérdidas por sobreproducción o subproducción en distintas temporadas.
@@ -63,11 +63,11 @@ El modelo debe predecir con 3 a 6 meses de anticipación y presentarse en un tab
 
 Tecnologías sugeridas: Python, scikit-learn, XGBoost, Pandas, Streamlit.""",
         "difficulty": DifficultyLevel.HARD, "tags": ["Python", "Machine Learning", "Agronomía", "Dashboard"],
-        "image": "mango-hilaza", "modalidad": "hibrido", "ubicacion": "Malambo, Atlántico",
+        "image": "mango-hilaza", "modalidad": Modalidad.HIBRIDO, "ubicacion": "Malambo, Atlántico",
         "budget": 4500000, "deadline": _in(45), "is_featured": True, "featured_score": 9.5,
     },
     {
-        "id": uuid.UUID("bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), "tipo": "reto", "author_id": ARTESANIAS,
+        "id": uuid.UUID("bbbb2222-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), "tipo": ChallengeTipo.RETO, "author_id": ARTESANIAS,
         "title": "Diseño de plataforma e-commerce y gestión de marca",
         "short_description": "Necesitamos digitalizar nuestro catálogo de hamacas y tejidos artesanales y posicionar la marca a nivel regional.",
         "long_description": """Artesanías Llamas es una empresa familiar dedicada a hamacas, chinchorros y tejidos tradicionales de la costa colombiana. Tenemos una marca reconocida localmente, pero casi ninguna presencia digital.
@@ -82,11 +82,11 @@ El reto consiste en:
 
 Además, queremos apoyo con la identidad visual: logotipo, paleta de colores, tipografía y guía para redes sociales. Público objetivo: compradores de artesanías en Barranquilla, Santa Marta y Bogotá, de 25 a 55 años.""",
         "difficulty": DifficultyLevel.MEDIUM, "tags": ["E-commerce", "Branding", "React", "Diseño UI/UX"],
-        "image": "ecommerce-artesanias", "modalidad": "remoto", "ubicacion": "Barranquilla, Atlántico",
+        "image": "ecommerce-artesanias", "modalidad": Modalidad.REMOTO, "ubicacion": "Barranquilla, Atlántico",
         "budget": 3000000, "deadline": _in(30), "is_featured": True, "featured_score": 8.8,
     },
     {
-        "id": uuid.UUID("cccc3333-cccc-cccc-cccc-cccccccccccc"), "tipo": "reto", "author_id": ARTESANIAS,
+        "id": uuid.UUID("cccc3333-cccc-cccc-cccc-cccccccccccc"), "tipo": ChallengeTipo.RETO, "author_id": ARTESANIAS,
         "title": "Auditoría de seguridad y análisis de red (ISO 27001)",
         "short_description": "Se requiere un análisis de vulnerabilidades y el levantamiento de la estructura de red actual del taller y la tienda.",
         "long_description": """Con la llegada de la tienda en línea necesitamos un diagnóstico de la red y la seguridad informática del taller y del punto de venta.
@@ -101,11 +101,11 @@ Alcance:
 
 Herramientas sugeridas: Nmap, OpenVAS, Wireshark.""",
         "difficulty": DifficultyLevel.HARD, "tags": ["Redes", "ISO 27001", "Pentesting", "Análisis"],
-        "image": "auditoria-redes", "modalidad": "presencial", "ubicacion": "Barranquilla, Atlántico",
+        "image": "auditoria-redes", "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Barranquilla, Atlántico",
         "budget": 2000000, "deadline": _in(20), "is_featured": False, "featured_score": 7.5,
     },
     {
-        "id": _pub(1), "tipo": "reto", "author_id": PUERTO_CARIBE,
+        "id": _pub(1), "tipo": ChallengeTipo.RETO, "author_id": PUERTO_CARIBE,
         "title": "Optimización de rutas de última milla en el área metropolitana",
         "short_description": "Queremos reducir kilómetros y tiempos de entrega de nuestra flota urbana con un modelo de ruteo.",
         "long_description": """Puerto Caribe Logística distribuye diariamente más de 600 pedidos en Barranquilla, Soledad, Malambo y Puerto Colombia con 18 vehículos. Las rutas se arman a mano cada mañana.
@@ -118,11 +118,11 @@ Buscamos un equipo que proponga:
 
 Contamos con 6 meses de históricos de pedidos y tiempos de entrega anonimizados.""",
         "difficulty": DifficultyLevel.HARD, "tags": ["Investigación de operaciones", "Python", "Logística", "OR-Tools"],
-        "image": "rutas-ultima-milla", "modalidad": "hibrido", "ubicacion": "Barranquilla, Atlántico",
+        "image": "rutas-ultima-milla", "modalidad": Modalidad.HIBRIDO, "ubicacion": "Barranquilla, Atlántico",
         "budget": 5000000, "deadline": _in(60), "is_featured": True, "featured_score": 9.0,
     },
     {
-        "id": _pub(2), "tipo": "reto", "author_id": MAR_AZUL,
+        "id": _pub(2), "tipo": ChallengeTipo.RETO, "author_id": MAR_AZUL,
         "title": "Asistente virtual para agendamiento de citas médicas",
         "short_description": "Diseñar un chatbot de WhatsApp que agende, confirme y reprograme citas de consulta externa.",
         "long_description": """El 40 % de las llamadas al call center de la Clínica Mar Azul son para agendar o cambiar citas, y en horas pico la espera supera los 15 minutos.
@@ -136,12 +136,12 @@ El reto es prototipar un asistente conversacional que:
 
 Se valorarán propuestas accesibles para adultos mayores.""",
         "difficulty": DifficultyLevel.MEDIUM, "tags": ["Chatbot", "WhatsApp API", "Salud", "UX"],
-        "image": "chatbot-citas", "modalidad": "remoto", "ubicacion": "Puerto Colombia, Atlántico",
+        "image": "chatbot-citas", "modalidad": Modalidad.REMOTO, "ubicacion": "Puerto Colombia, Atlántico",
         "budget": 3500000, "deadline": _in(40), "is_featured": False, "featured_score": 8.0,
     },
     # ── Prácticas empresariales ──
     {
-        "id": _pub(11), "tipo": "practica", "author_id": TECNOCARIBE,
+        "id": _pub(11), "tipo": ChallengeTipo.PRACTICA, "author_id": TECNOCARIBE,
         "title": "Practicante de desarrollo web",
         "short_description": "Únete al equipo que construye plataformas web para comercio y salud. Next.js, FastAPI y buenas prácticas desde el primer día.",
         "long_description": """Responsabilidades:
@@ -155,11 +155,11 @@ Requisitos:
 
 Ofrecemos: apoyo de sostenimiento, mentoría técnica y posibilidad de vinculación al terminar la práctica.""",
         "tags": ["React", "Next.js", "Python", "Git"], "image": "practica-web",
-        "modalidad": "hibrido", "ubicacion": "Barranquilla, Atlántico", "budget": 1423500,
+        "modalidad": Modalidad.HIBRIDO, "ubicacion": "Barranquilla, Atlántico", "budget": 1423500,
         "deadline": _in(25), "is_featured": True, "featured_score": 9.2,
     },
     {
-        "id": _pub(12), "tipo": "practica", "author_id": CONTADORES,
+        "id": _pub(12), "tipo": ChallengeTipo.PRACTICA, "author_id": CONTADORES,
         "title": "Practicante contable y tributario",
         "short_description": "Apoya la preparación de declaraciones, conciliaciones y reportes NIIF para clientes pyme.",
         "long_description": """Responsabilidades:
@@ -173,11 +173,11 @@ Requisitos:
 
 Ofrecemos: apoyo de sostenimiento, horario de lunes a viernes y acompañamiento de un contador senior.""",
         "tags": ["NIIF", "Siigo", "Tributaria", "Excel"], "image": "practica-contable",
-        "modalidad": "presencial", "ubicacion": "Barranquilla, Atlántico", "budget": 1423500,
+        "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Barranquilla, Atlántico", "budget": 1423500,
         "deadline": _in(20), "is_featured": False, "featured_score": 7.8,
     },
     {
-        "id": _pub(13), "tipo": "practica", "author_id": MALAMBO,
+        "id": _pub(13), "tipo": ChallengeTipo.PRACTICA, "author_id": MALAMBO,
         "title": "Practicante de gestión ambiental",
         "short_description": "Acompaña el plan de manejo de agua y suelos de la finca y la certificación de buenas prácticas agrícolas.",
         "long_description": """Responsabilidades:
@@ -191,11 +191,11 @@ Requisitos:
 
 Ofrecemos: apoyo de sostenimiento, transporte desde Barranquilla y alimentación en finca.""",
         "tags": ["Gestión ambiental", "QGIS", "BPA", "Agua"], "image": "practica-ambiental",
-        "modalidad": "presencial", "ubicacion": "Malambo, Atlántico", "budget": 1300000,
+        "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Malambo, Atlántico", "budget": 1300000,
         "deadline": _in(35), "is_featured": False, "featured_score": 7.0,
     },
     {
-        "id": _pub(14), "tipo": "practica", "author_id": PUERTO_CARIBE,
+        "id": _pub(14), "tipo": ChallengeTipo.PRACTICA, "author_id": PUERTO_CARIBE,
         "title": "Practicante jurídico en derecho laboral y comercial",
         "short_description": "Apoya al área legal en contratos con clientes, procesos laborales y respuesta a requerimientos.",
         "long_description": """Responsabilidades:
@@ -209,11 +209,11 @@ Requisitos:
 
 Ofrecemos: apoyo de sostenimiento y la posibilidad de homologar la práctica con el consultorio jurídico.""",
         "tags": ["Derecho laboral", "Contratos", "Redacción jurídica"], "image": "practica-juridica",
-        "modalidad": "presencial", "ubicacion": "Barranquilla, Atlántico", "budget": 1300000,
+        "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Barranquilla, Atlántico", "budget": 1300000,
         "deadline": _in(30), "is_featured": False, "featured_score": 6.8,
     },
     {
-        "id": _pub(15), "tipo": "practica", "author_id": MAR_AZUL,
+        "id": _pub(15), "tipo": ChallengeTipo.PRACTICA, "author_id": MAR_AZUL,
         "title": "Practicante de analítica de datos en salud",
         "short_description": "Construye tableros de indicadores de oportunidad de citas, ocupación y satisfacción de pacientes.",
         "long_description": """Responsabilidades:
@@ -227,12 +227,12 @@ Requisitos:
 
 Ofrecemos: apoyo de sostenimiento y horario flexible para clases.""",
         "tags": ["Power BI", "SQL", "Salud", "Indicadores"], "image": "practica-datos-salud",
-        "modalidad": "hibrido", "ubicacion": "Puerto Colombia, Atlántico", "budget": 1423500,
+        "modalidad": Modalidad.HIBRIDO, "ubicacion": "Puerto Colombia, Atlántico", "budget": 1423500,
         "deadline": _in(28), "is_featured": True, "featured_score": 8.4,
     },
     # ── Ofertas laborales (egresados) ──
     {
-        "id": _pub(21), "tipo": "empleo", "author_id": TECNOCARIBE,
+        "id": _pub(21), "tipo": ChallengeTipo.EMPLEO, "author_id": TECNOCARIBE,
         "title": "Desarrollador(a) backend junior",
         "short_description": "Buscamos egresado(a) con bases sólidas en Python y bases de datos para nuestro equipo de plataformas.",
         "long_description": """Responsabilidades:
@@ -247,11 +247,11 @@ Requisitos:
 
 Ofrecemos: contrato a término indefinido, esquema híbrido y plan de formación.""",
         "tags": ["Python", "FastAPI", "PostgreSQL", "Docker"], "image": "empleo-backend",
-        "modalidad": "hibrido", "ubicacion": "Barranquilla, Atlántico", "budget": 4200000,
+        "modalidad": Modalidad.HIBRIDO, "ubicacion": "Barranquilla, Atlántico", "budget": 4200000,
         "deadline": _in(30), "is_featured": True, "featured_score": 9.1,
     },
     {
-        "id": _pub(22), "tipo": "empleo", "author_id": CONTADORES,
+        "id": _pub(22), "tipo": ChallengeTipo.EMPLEO, "author_id": CONTADORES,
         "title": "Analista contable",
         "short_description": "Lleva la contabilidad de un portafolio de clientes pyme y apoya la revisoría fiscal.",
         "long_description": """Responsabilidades:
@@ -265,11 +265,11 @@ Requisitos:
 
 Ofrecemos: contrato a término indefinido y auxilio de conectividad.""",
         "tags": ["Contabilidad", "Nómina", "Tributaria"], "image": "empleo-analista-contable",
-        "modalidad": "presencial", "ubicacion": "Barranquilla, Atlántico", "budget": 3200000,
+        "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Barranquilla, Atlántico", "budget": 3200000,
         "deadline": _in(22), "is_featured": False, "featured_score": 7.2,
     },
     {
-        "id": _pub(23), "tipo": "empleo", "author_id": PUERTO_CARIBE,
+        "id": _pub(23), "tipo": ChallengeTipo.EMPLEO, "author_id": PUERTO_CARIBE,
         "title": "Abogado(a) laboral junior",
         "short_description": "Asesora a la operación portuaria en relaciones laborales, contratación y seguridad social.",
         "long_description": """Responsabilidades:
@@ -283,11 +283,11 @@ Requisitos:
 
 Ofrecemos: contrato a término fijo renovable y bonificación por desempeño.""",
         "tags": ["Derecho laboral", "Seguridad social", "Conciliación"], "image": "empleo-abogado-laboral",
-        "modalidad": "presencial", "ubicacion": "Barranquilla, Atlántico", "budget": 3800000,
+        "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Barranquilla, Atlántico", "budget": 3800000,
         "deadline": _in(26), "is_featured": False, "featured_score": 7.0,
     },
     {
-        "id": _pub(24), "tipo": "empleo", "author_id": MALAMBO,
+        "id": _pub(24), "tipo": ChallengeTipo.EMPLEO, "author_id": MALAMBO,
         "title": "Ingeniero(a) de procesos y bodega",
         "short_description": "Lidera indicadores de producción, inventarios y la mejora continua en la planta de empaque de fruta.",
         "long_description": """Responsabilidades:
@@ -301,7 +301,7 @@ Requisitos:
 
 Ofrecemos: contrato a término indefinido, transporte y alimentación.""",
         "tags": ["Lean", "Inventarios", "Producción", "Power BI"], "image": "empleo-ingeniero-procesos",
-        "modalidad": "presencial", "ubicacion": "Malambo, Atlántico", "budget": 4000000,
+        "modalidad": Modalidad.PRESENCIAL, "ubicacion": "Malambo, Atlántico", "budget": 4000000,
         "deadline": _in(35), "is_featured": True, "featured_score": 8.6,
     },
 ]

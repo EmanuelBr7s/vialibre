@@ -4,36 +4,36 @@
 // realistas cuando la API no cubre el flujo (problemáticas de la org, KPIs admin,
 // perfiles editables, etc.).
 
-import type { UserRole } from '@/types';
+import { ChallengeStatus, InteractionStatus, UserRole } from '@/types';
 
-export type OrgChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
+export type OrgChallengeStatus = ChallengeStatus;
 
 export const CHALLENGE_STATUS_LABEL: Record<OrgChallengeStatus, string> = {
-  abierto: 'Abierta',
-  en_progreso: 'En Progreso',
-  cerrado: 'Cerrada',
+  [ChallengeStatus.ABIERTO]: 'Abierta',
+  [ChallengeStatus.EN_PROGRESO]: 'En Progreso',
+  [ChallengeStatus.CERRADO]: 'Cerrada',
 };
 
 export const CHALLENGE_STATUS_BADGE: Record<OrgChallengeStatus, string> = {
-  abierto: 'bg-green-100 text-green-700',
-  en_progreso: 'bg-blue-100 text-blue-700',
-  cerrado: 'bg-gray-100 text-gray-600',
+  [ChallengeStatus.ABIERTO]: 'bg-green-100 text-green-700',
+  [ChallengeStatus.EN_PROGRESO]: 'bg-blue-100 text-blue-700',
+  [ChallengeStatus.CERRADO]: 'bg-gray-100 text-gray-600',
 };
 
 // ── Estado de postulaciones ──
 
-export type ApplicantStatus = 'pendiente' | 'aprobado' | 'rechazado';
+export type ApplicantStatus = InteractionStatus;
 
 export const APP_STATUS_LABEL: Record<ApplicantStatus, string> = {
-  pendiente: 'Pendiente',
-  aprobado: 'Aprobado',
-  rechazado: 'Rechazado',
+  [InteractionStatus.PENDIENTE]: 'Pendiente',
+  [InteractionStatus.APROBADO]: 'Aprobado',
+  [InteractionStatus.RECHAZADO]: 'Rechazado',
 };
 
 export const APP_STATUS_BADGE: Record<ApplicantStatus, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
+  [InteractionStatus.PENDIENTE]: 'bg-yellow-100 text-yellow-700',
+  [InteractionStatus.APROBADO]: 'bg-green-100 text-green-700',
+  [InteractionStatus.RECHAZADO]: 'bg-red-100 text-red-700',
 };
 
 // ── Perfiles / datos simulados ──
@@ -96,7 +96,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000001',
     full_name: 'Juan Camilo Llamas Cardenas',
     email: 'admin@vialibre.edu.co',
-    role: 'admin',
+    role: UserRole.ADMIN,
     is_active: true,
     created_at: '2026-01-10',
   },
@@ -104,7 +104,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000002',
     full_name: 'Artesanías Llamas',
     email: 'contacto@artesaniasllamas.com',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     created_at: '2026-02-14',
   },
@@ -112,7 +112,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000003',
     full_name: 'Leonardo Barraza',
     email: 'leonardo@vialibre.edu.co',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     created_at: '2026-03-02',
   },
@@ -120,7 +120,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000004',
     full_name: 'Agropecuaria Malambo',
     email: 'contacto@malambo.com',
-    role: 'publicador',
+    role: UserRole.PUBLICADOR,
     is_active: true,
     created_at: '2026-04-21',
   },
@@ -128,7 +128,7 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000005',
     full_name: 'Rama Estudiantil IEEE',
     email: 'ieee@vialibre.edu.co',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: false,
     created_at: '2026-05-11',
   },
@@ -136,15 +136,15 @@ export const ADMIN_USERS: AdminUserRow[] = [
     id: '00000000-0000-0000-0000-000000000006',
     full_name: 'Valentina Gómez',
     email: 'valentina@vialibre.edu.co',
-    role: 'solucionador',
+    role: UserRole.SOLUCIONADOR,
     is_active: true,
     created_at: '2026-06-30',
   },
 ];
 
 export const ROLE_LABEL: Record<UserRole, string> = {
-  publicador: 'Empresa',
-  solucionador: 'Estudiante',
-  egresado: 'Egresado',
-  admin: 'Administración',
+  [UserRole.PUBLICADOR]: 'Empresa',
+  [UserRole.SOLUCIONADOR]: 'Estudiante',
+  [UserRole.EGRESADO]: 'Egresado',
+  [UserRole.ADMIN]: 'Administración',
 };
