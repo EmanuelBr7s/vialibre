@@ -22,7 +22,8 @@ El repositorio es un **monorepo** con tres microservicios FastAPI, un frontend N
 12. [Frontend](#frontend)
 13. [Datos de prueba y credenciales demo](#datos-de-prueba-y-credenciales-demo)
 14. [Pruebas y calidad](#pruebas-y-calidad)
-15. [Notas y limitaciones](#notas-y-limitaciones)
+15. [Despliegue gratuito](#despliegue-gratuito)
+16. [Notas y limitaciones](#notas-y-limitaciones)
 
 ---
 
@@ -483,6 +484,36 @@ npm run lint
 ```
 
 Verificación manual sugerida tras un cambio de backend: levantar el stack y comprobar `GET /health` en los puertos `8001`, `8002` y `8003`, y ejercitar los endpoints del servicio modificado.
+
+---
+
+## Despliegue gratuito
+
+Tres servicios con plan gratuito, sin tarjeta:
+
+| Pieza | Servicio | Qué corre |
+|---|---|---|
+| Base de datos | [Neon](https://neon.tech) | PostgreSQL 16 (los tres esquemas en una base) |
+| API | [Render](https://render.com) | `start.sh`: gateway público + auth/core/match en un solo servicio web |
+| Frontend | [Vercel](https://vercel.com) | Next.js; su proxy `/api` reenvía al gateway de Render |
+
+**1. Neon.** Crea un proyecto y copia la cadena de conexión (`postgresql://…?sslmode=require`). No hace falta crear esquemas ni tablas: `bootstrap_db.py` los crea en el primer arranque y marca las migraciones; en arranques posteriores solo aplica `alembic upgrade head`.
+
+**2. Render (API).** *New → Blueprint* → conecta el repositorio. `render.yaml` define el servicio `vialibre-api`. Pega la cadena de Neon en `DATABASE_URL`; `JWT_SECRET_KEY` se genera solo. Con `SEED_DEMO_DATA=true` se cargan las [credenciales demo](#datos-de-prueba-y-credenciales-demo); **cámbialo a `false` tras el primer despliegue**, porque los seeds restablecen las contraseñas demo en cada arranque. Comprueba `https://<servicio>.onrender.com/health`.
+
+**3. Vercel (frontend).** *Add New → Project* → importa el repositorio con **Root Directory = `frontend`** y estas variables (se leen en el build):
+
+| Variable | Valor |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | `/api` |
+| `NEXT_PUBLIC_API_MOCK` | `false` |
+| `AUTH_SERVICE_URL` | `https://<servicio>.onrender.com` |
+| `CORE_SERVICE_URL` | `https://<servicio>.onrender.com` |
+| `MATCH_SERVICE_URL` | `https://<servicio>.onrender.com` |
+
+Los tres `*_SERVICE_URL` apuntan al mismo gateway, que enruta por prefijo (`/api/v1/auth`, `/core`, `/match`). Si cambian, vuelve a desplegar el frontend.
+
+> El plan gratuito de Render suspende el servicio tras 15 min sin tráfico: la primera petición después tarda alrededor de un minuto.
 
 ---
 

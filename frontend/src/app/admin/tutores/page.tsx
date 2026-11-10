@@ -11,7 +11,9 @@ import { CheckboxField, TextField } from '@/components/admin/FormField';
 import { api } from '@/lib/api';
 import { errorMessage, isStatus } from '@/lib/adminErrors';
 import { validateTutor, type FieldErrors, type TutorDraft } from '@/lib/adminValidation';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import ResponsiveList from '@/components/admin/ResponsiveList';
+import Select from '@/components/ui/Select';
+import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnSecondary } from '@/components/ui/classes';
 import type { TutorDocente, TutorDocenteCreate } from '@/types';
 
 const LIMIT = 20;
@@ -195,12 +197,12 @@ export default function AdminTutoresPage() {
 
         {formOpen ? (
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+              <h2 className="text-fluid-lg font-semibold text-gray-900">
                 {editing ? 'Editar tutor docente' : 'Nuevo tutor docente'}
               </h2>
             </div>
-            <form onSubmit={onSubmit} className="p-6 space-y-4" noValidate>
+            <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4" noValidate>
               {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -271,18 +273,18 @@ export default function AdminTutoresPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {submitting ? 'Guardando…' : editing ? 'Guardar cambios' : 'Registrar tutor'}
                 </button>
                 <button
                   type="button"
                   onClick={closeForm}
-                  className={`px-5 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  className={`${btnSecondary} w-full sm:w-auto`}
                 >
                   Cancelar
                 </button>
@@ -292,28 +294,28 @@ export default function AdminTutoresPage() {
         ) : null}
 
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Tutores registrados</h2>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Tutores registrados</h2>
+            <div className="flex flex-col xs:flex-row xs:items-center gap-3">
               <div className="flex items-center gap-2">
-                <label htmlFor="filtro-activo" className="text-xs text-gray-500">
+                <label htmlFor="filtro-activo" className="text-fluid-xs text-gray-500 shrink-0">
                   Estado
                 </label>
-                <select
+                <Select
                   id="filtro-activo"
                   value={filter}
                   onChange={(event) => setFilter(event.target.value as ActivoFilter)}
-                  className={`px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 ${FOCUS_RING}`}
+                  compact
                 >
                   <option value="todos">Todos</option>
                   <option value="activos">Activos</option>
                   <option value="inactivos">Inactivos</option>
-                </select>
+                </Select>
               </div>
               <button
                 type="button"
                 onClick={openCreate}
-                className={`px-4 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                className={`${btnPrimary} w-full sm:w-auto`}
               >
                 Nuevo tutor
               </button>
@@ -321,71 +323,75 @@ export default function AdminTutoresPage() {
           </div>
 
           {error ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <StatusAlert tone="error">{error}</StatusAlert>
             </div>
           ) : loading ? (
             <ListSkeleton label="Cargando tutores" />
           ) : rows.length === 0 ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <EmptyState message="No hay tutores docentes registrados." />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                    <th scope="col" className="px-6 py-3">Tutor</th>
-                    <th scope="col" className="px-6 py-3">Identificación</th>
-                    <th scope="col" className="px-6 py-3">Programa</th>
-                    <th scope="col" className="px-6 py-3">Usuario vinculado</th>
-                    <th scope="col" className="px-6 py-3">Estado</th>
-                    <th scope="col" className="px-6 py-3 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((tutor) => (
-                    <tr key={tutor.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-6 py-3">
-                        <p className="font-medium text-gray-900">{displayName(tutor)}</p>
-                        <p className="text-xs text-gray-500">{tutor.email ?? '—'}</p>
-                      </td>
-                      <td className="px-6 py-3 text-gray-600">{tutor.identificacion ?? '—'}</td>
-                      <td className="px-6 py-3 text-gray-600">
-                        {tutor.programa_academico ?? '—'}
-                      </td>
-                      <td className="px-6 py-3 text-xs text-gray-500 break-all">
-                        {tutor.user_id ?? '—'}
-                      </td>
-                      <td className="px-6 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs font-medium ${
-                            tutor.activo ? 'text-green-700' : 'text-red-600'
-                          }`}
-                        >
-                          <span
-                            className={`inline-block w-2 h-2 rounded-full ${
-                              tutor.activo ? 'bg-green-500' : 'bg-red-500'
-                            }`}
-                            aria-hidden="true"
-                          />
-                          {tutor.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(tutor)}
-                          className={`inline-flex items-center justify-center px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
-                        >
-                          Editar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveList
+              label="Tutores registrados"
+              rows={rows}
+              rowKey={(row) => row.id}
+              columns={[
+                {
+                  header: 'Tutor',
+                  kind: 'primary',
+                  cell: (row) => (
+                    <>
+                      <p className="font-medium text-gray-900">{displayName(row)}</p>
+                      <p className="text-xs text-gray-500">{row.email ?? '—'}</p>
+                    </>
+                  ),
+                },
+                { header: 'Identificación', cell: (row) => row.identificacion ?? '—' },
+                { header: 'Programa', cell: (row) => row.programa_academico ?? '—' },
+                {
+                  header: 'Usuario vinculado',
+                  cell: (row) => <span className="text-xs text-gray-500 break-all">{row.user_id ?? '—'}</span>,
+                },
+                {
+                  header: 'Estado',
+                  cell: (row) => (
+                    <span
+                      className={`inline-flex items-center gap-1.5 lg:text-xs font-medium ${
+                        row.activo ? 'text-green-700' : 'text-red-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full ${
+                          row.activo ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      {row.activo ? 'Activo' : 'Inactivo'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Acción',
+                  kind: 'action',
+                  cell: (row) => (
+                    <button
+                      type="button"
+                      onClick={() => openEdit(row)}
+                      className={`inline-flex items-center justify-center px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                    >
+                      Editar
+                    </button>
+                  ),
+                  cardCell: (row) => (
+                    <button type="button" onClick={() => openEdit(row)} className={`${btnSecondary} w-full`}>
+                      Editar
+                    </button>
+                  ),
+                },
+              ]}
+            />
           )}
 
           {!loading && !error && rows.length > 0 ? (

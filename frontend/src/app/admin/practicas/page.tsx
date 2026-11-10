@@ -16,7 +16,18 @@ import {
   type FieldErrors,
   type PracticaDraft,
 } from '@/lib/adminValidation';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import ResponsiveList from '@/components/admin/ResponsiveList';
+import Select from '@/components/ui/Select';
+import {
+  FOCUS_RING,
+  INPUT_SURFACE,
+  TOUCH_TARGET,
+  btnPrimary,
+  btnSecondary,
+  errorClass,
+  hintClass,
+  labelClass,
+} from '@/components/ui/classes';
 import type {
   Challenge,
   Interaction,
@@ -404,21 +415,21 @@ export default function AdminPracticasPage() {
 
         {formOpen ? (
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+              <h2 className="text-fluid-lg font-semibold text-gray-900">
                 {editing ? 'Editar práctica' : 'Formalizar nueva práctica'}
               </h2>
               {editing ? (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className={hintClass}>
                   La interacción de origen no se puede cambiar una vez formalizada.
                 </p>
               ) : null}
             </div>
-            <form onSubmit={onSubmit} className="p-6 space-y-4" noValidate>
+            <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4" noValidate>
               {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
 
               {editing ? (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-1">
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-fluid-xs text-gray-600 space-y-1">
                   <p>
                     <span className="font-medium text-gray-700">Interacción: </span>
                     <span className="break-all">{editing.interaction_id}</span>
@@ -444,25 +455,24 @@ export default function AdminPracticasPage() {
                       loading={challengeLoading}
                       error={challengeError}
                     />
-                    {fieldErrors.interaction ? (
-                      <p role="alert" className="mt-1 text-xs text-red-600">
-                        {fieldErrors.interaction}
-                      </p>
-                    ) : null}
                   </div>
                   <div>
-                    <label
-                      htmlFor="practica-interaction"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
+                    <label htmlFor="practica-interaction" className={labelClass}>
                       Interacción (postulación)
                     </label>
-                    <select
+                    <Select
                       id="practica-interaction"
                       value={interactionId}
                       disabled={interactionLoading || !challengeId || !!interactionError}
                       onChange={(event) => setInteractionId(event.target.value)}
-                      className={`w-full px-4 py-3 rounded-lg border border-gray-300 ${FOCUS_RING} bg-white text-gray-900 disabled:opacity-60 disabled:bg-gray-50`}
+                      aria-invalid={!!fieldErrors.interaction || !!interactionError || undefined}
+                      aria-describedby={[
+                        fieldErrors.interaction ? 'practica-interaction-error' : null,
+                        interactionError ? 'practica-interaction-load-error' : 'practica-interaction-help',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                      className="disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
                     >
                       <option value="">
                         {interactionLoading
@@ -478,13 +488,18 @@ export default function AdminPracticasPage() {
                           {`${interaction.solucionador_id.slice(0, 8)}… · ${interaction.status}`}
                         </option>
                       ))}
-                    </select>
+                    </Select>
+                    {fieldErrors.interaction ? (
+                      <p id="practica-interaction-error" role="alert" className={errorClass}>
+                        {fieldErrors.interaction}
+                      </p>
+                    ) : null}
                     {interactionError ? (
-                      <p role="alert" className="mt-1 text-xs text-red-600">
+                      <p id="practica-interaction-load-error" role="alert" className={errorClass}>
                         {interactionError}
                       </p>
                     ) : (
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p id="practica-interaction-help" className={hintClass}>
                         Solo se muestran postulaciones sin práctica formalizada.
                       </p>
                     )}
@@ -493,7 +508,7 @@ export default function AdminPracticasPage() {
               )}
 
               {!editing && selectedInteraction ? (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-xs text-gray-600 space-y-1">
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-fluid-xs text-gray-600 space-y-1">
                   <p>
                     <span className="font-medium text-gray-700">Publicación (derivada): </span>
                     <span className="break-all">{selectedInteraction.challenge_id}</span>
@@ -612,11 +627,11 @@ export default function AdminPracticasPage() {
                 error={fieldErrors.observaciones_institucionales}
               />
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {submitting
                     ? 'Guardando…'
@@ -627,7 +642,7 @@ export default function AdminPracticasPage() {
                 <button
                   type="button"
                   onClick={closeForm}
-                  className={`px-5 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  className={`${btnSecondary} w-full sm:w-auto`}
                 >
                   Cancelar
                 </button>
@@ -637,11 +652,11 @@ export default function AdminPracticasPage() {
         ) : null}
 
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Prácticas registradas</h2>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Prácticas registradas</h2>
+            <div className="flex flex-col xs:flex-row xs:items-center gap-3">
               <div className="flex items-center gap-2">
-                <label htmlFor="filtro-estado" className="text-xs text-gray-500">
+                <label htmlFor="filtro-estado" className="text-fluid-xs text-gray-500 shrink-0">
                   Estado
                 </label>
                 <input
@@ -651,13 +666,13 @@ export default function AdminPracticasPage() {
                   placeholder="Todos"
                   maxLength={30}
                   onChange={(event) => setEstadoFilter(event.target.value)}
-                  className={`px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 ${FOCUS_RING}`}
+                  className={`${INPUT_SURFACE} px-3 py-2 text-fluid-sm text-gray-900 sm:w-40`}
                 />
               </div>
               <button
                 type="button"
                 onClick={openCreate}
-                className={`px-4 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                className={`${btnPrimary} w-full sm:w-auto`}
               >
                 Nueva práctica
               </button>
@@ -665,67 +680,79 @@ export default function AdminPracticasPage() {
           </div>
 
           {error ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <StatusAlert tone="error">{error}</StatusAlert>
             </div>
           ) : loading ? (
             <ListSkeleton label="Cargando prácticas" />
           ) : rows.length === 0 ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <EmptyState message="No hay prácticas formalizadas." />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                    <th scope="col" className="px-6 py-3">Interacción</th>
-                    <th scope="col" className="px-6 py-3">Estudiante</th>
-                    <th scope="col" className="px-6 py-3">Empresa</th>
-                    <th scope="col" className="px-6 py-3">Tutor</th>
-                    <th scope="col" className="px-6 py-3">Estado</th>
-                    <th scope="col" className="px-6 py-3">Vigencia</th>
-                    <th scope="col" className="px-6 py-3 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((practica) => (
-                    <tr key={practica.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-6 py-3 text-xs text-gray-500 break-all">
-                        {practica.interaction_id}
-                      </td>
-                      <td className="px-6 py-3 text-xs text-gray-500 break-all">
-                        {practica.solucionador_id ?? '—'}
-                      </td>
-                      <td className="px-6 py-3 text-gray-600">
-                        {renderReferenceLabel(practica.empresa_id, empresaLabelById)}
-                      </td>
-                      <td className="px-6 py-3 text-gray-600">
-                        {renderReferenceLabel(practica.tutor_docente_id, tutorLabelById)}
-                      </td>
-                      <td className="px-6 py-3">
-                        <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                          {practica.estado_administrativo ?? 'Sin estado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-xs text-gray-500">
-                        <p>{practica.fecha_inicio ?? '—'}</p>
-                        <p>{practica.fecha_fin ?? '—'}</p>
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(practica)}
-                          className={`inline-flex items-center justify-center px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
-                        >
-                          Editar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveList
+              label="Prácticas registradas"
+              rows={rows}
+              rowKey={(row) => row.id}
+              columns={[
+                {
+                  header: 'Empresa',
+                  kind: 'primary',
+                  cell: (row) => (
+                    <p className="font-medium text-gray-900">
+                      {renderReferenceLabel(row.empresa_id, empresaLabelById)}
+                    </p>
+                  ),
+                },
+                {
+                  header: 'Interacción',
+                  cell: (row) => <span className="text-xs text-gray-500 break-all">{row.interaction_id}</span>,
+                },
+                {
+                  header: 'Estudiante',
+                  cell: (row) => <span className="text-xs text-gray-500 break-all">{row.solucionador_id ?? '—'}</span>,
+                },
+                {
+                  header: 'Tutor',
+                  cell: (row) => renderReferenceLabel(row.tutor_docente_id, tutorLabelById),
+                },
+                {
+                  header: 'Estado',
+                  cell: (row) => (
+                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      {row.estado_administrativo ?? 'Sin estado'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Vigencia',
+                  cell: (row) => (
+                    <span className="text-xs text-gray-500">
+                      <span className="block">{row.fecha_inicio ?? '—'}</span>
+                      <span className="block">{row.fecha_fin ?? '—'}</span>
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Acción',
+                  kind: 'action',
+                  cell: (row) => (
+                    <button
+                      type="button"
+                      onClick={() => openEdit(row)}
+                      className={`inline-flex items-center justify-center px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                    >
+                      Editar
+                    </button>
+                  ),
+                  cardCell: (row) => (
+                    <button type="button" onClick={() => openEdit(row)} className={`${btnSecondary} w-full`}>
+                      Editar
+                    </button>
+                  ),
+                },
+              ]}
+            />
           )}
 
           {!loading && !error && rows.length > 0 ? (

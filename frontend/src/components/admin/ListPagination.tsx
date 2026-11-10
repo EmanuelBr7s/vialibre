@@ -17,17 +17,17 @@ export default function ListPagination({ skip, limit, total, onChange }: ListPag
   return (
     <nav
       aria-label="Paginación"
-      className="flex items-center justify-between border-t border-gray-100 px-6 py-3"
+      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-100 px-4 sm:px-6 py-3"
     >
-      <p className="text-xs text-gray-500">
+      <p className="text-fluid-xs text-gray-500">
         Mostrando {start}–{end} de {total}
       </p>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 sm:flex gap-2">
         <button
           type="button"
           disabled={!canPrev}
           onClick={() => onChange(Math.max(0, skip - limit))}
-          className={`px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+          className={`inline-flex items-center justify-center px-4 rounded-lg text-fluid-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
         >
           Anterior
         </button>
@@ -35,7 +35,7 @@ export default function ListPagination({ skip, limit, total, onChange }: ListPag
           type="button"
           disabled={!canNext}
           onClick={() => onChange(skip + limit)}
-          className={`px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+          className={`inline-flex items-center justify-center px-4 rounded-lg text-fluid-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
         >
           Siguiente
         </button>

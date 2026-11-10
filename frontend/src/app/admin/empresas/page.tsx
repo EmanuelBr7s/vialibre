@@ -11,7 +11,9 @@ import { CheckboxField, TextField } from '@/components/admin/FormField';
 import { api } from '@/lib/api';
 import { errorMessage, isStatus } from '@/lib/adminErrors';
 import { validateEmpresa, type EmpresaDraft, type FieldErrors } from '@/lib/adminValidation';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import ResponsiveList from '@/components/admin/ResponsiveList';
+import Select from '@/components/ui/Select';
+import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnSecondary } from '@/components/ui/classes';
 import type { Empresa, EmpresaCreate } from '@/types';
 
 const LIMIT = 20;
@@ -186,12 +188,12 @@ export default function AdminEmpresasPage() {
 
         {formOpen ? (
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+              <h2 className="text-fluid-lg font-semibold text-gray-900">
                 {editing ? 'Editar empresa' : 'Nueva empresa'}
               </h2>
             </div>
-            <form onSubmit={onSubmit} className="p-6 space-y-4" noValidate>
+            <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4" noValidate>
               {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -262,18 +264,18 @@ export default function AdminEmpresasPage() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`px-5 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {submitting ? 'Guardando…' : editing ? 'Guardar cambios' : 'Registrar empresa'}
                 </button>
                 <button
                   type="button"
                   onClick={closeForm}
-                  className={`px-5 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  className={`${btnSecondary} w-full sm:w-auto`}
                 >
                   Cancelar
                 </button>
@@ -283,28 +285,28 @@ export default function AdminEmpresasPage() {
         ) : null}
 
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Empresas registradas</h2>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 className="text-fluid-lg font-semibold text-gray-900">Empresas registradas</h2>
+            <div className="flex flex-col xs:flex-row xs:items-center gap-3">
               <div className="flex items-center gap-2">
-                <label htmlFor="filtro-activa" className="text-xs text-gray-500">
+                <label htmlFor="filtro-activa" className="text-fluid-xs text-gray-500 shrink-0">
                   Estado
                 </label>
-                <select
+                <Select
                   id="filtro-activa"
                   value={filter}
                   onChange={(event) => setFilter(event.target.value as ActivaFilter)}
-                  className={`px-3 py-2 rounded-lg border border-gray-300 text-sm bg-white text-gray-900 ${FOCUS_RING}`}
+                  compact
                 >
                   <option value="todas">Todas</option>
                   <option value="activas">Activas</option>
                   <option value="inactivas">Inactivas</option>
-                </select>
+                </Select>
               </div>
               <button
                 type="button"
                 onClick={openCreate}
-                className={`px-4 rounded-lg text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                className={`${btnPrimary} w-full sm:w-auto`}
               >
                 Nueva empresa
               </button>
@@ -312,76 +314,82 @@ export default function AdminEmpresasPage() {
           </div>
 
           {error ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <StatusAlert tone="error">{error}</StatusAlert>
             </div>
           ) : loading ? (
             <ListSkeleton label="Cargando empresas" />
           ) : rows.length === 0 ? (
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <EmptyState message="No hay empresas registradas." />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="text-xs uppercase tracking-wider text-gray-500 border-b border-gray-100">
-                    <th scope="col" className="px-6 py-3">Empresa</th>
-                    <th scope="col" className="px-6 py-3">NIT</th>
-                    <th scope="col" className="px-6 py-3">Sector</th>
-                    <th scope="col" className="px-6 py-3">Contacto</th>
-                    <th scope="col" className="px-6 py-3">Estado</th>
-                    <th scope="col" className="px-6 py-3 text-right">Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((empresa) => (
-                    <tr key={empresa.id} className="border-b border-gray-50 last:border-0">
-                      <td className="px-6 py-3">
-                        <p className="font-medium text-gray-900">
-                          {empresa.razon_social ?? 'Empresa sin razón social'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {empresa.representante_legal ?? '—'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-3 text-gray-600">{empresa.nit ?? '—'}</td>
-                      <td className="px-6 py-3 text-gray-600">{empresa.sector ?? '—'}</td>
-                      <td className="px-6 py-3">
-                        <p className="text-gray-600">{empresa.contacto_email ?? '—'}</p>
-                        <p className="text-xs text-gray-500">
-                          {empresa.contacto_telefono ?? '—'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 text-xs font-medium ${
-                            empresa.activa ? 'text-green-700' : 'text-red-600'
-                          }`}
-                        >
-                          <span
-                            className={`inline-block w-2 h-2 rounded-full ${
-                              empresa.activa ? 'bg-green-500' : 'bg-red-500'
-                            }`}
-                            aria-hidden="true"
-                          />
-                          {empresa.activa ? 'Activa' : 'Inactiva'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(empresa)}
-                          className={`inline-flex items-center justify-center px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
-                        >
-                          Editar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveList
+              label="Empresas registradas"
+              rows={rows}
+              rowKey={(row) => row.id}
+              columns={[
+                {
+                  header: 'Empresa',
+                  kind: 'primary',
+                  cell: (row) => (
+                    <>
+                      <p className="font-medium text-gray-900">
+                        {row.razon_social ?? 'Empresa sin razón social'}
+                      </p>
+                      <p className="text-xs text-gray-500">{row.representante_legal ?? '—'}</p>
+                    </>
+                  ),
+                },
+                { header: 'NIT', cell: (row) => row.nit ?? '—' },
+                { header: 'Sector', cell: (row) => row.sector ?? '—' },
+                {
+                  header: 'Contacto',
+                  cell: (row) => (
+                    <>
+                      <p className="text-gray-600 break-words">{row.contacto_email ?? '—'}</p>
+                      <p className="text-xs text-gray-500">{row.contacto_telefono ?? '—'}</p>
+                    </>
+                  ),
+                },
+                {
+                  header: 'Estado',
+                  cell: (row) => (
+                    <span
+                      className={`inline-flex items-center gap-1.5 lg:text-xs font-medium ${
+                        row.activa ? 'text-green-700' : 'text-red-600'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block w-2 h-2 rounded-full ${
+                          row.activa ? 'bg-green-500' : 'bg-red-500'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      {row.activa ? 'Activa' : 'Inactiva'}
+                    </span>
+                  ),
+                },
+                {
+                  header: 'Acción',
+                  kind: 'action',
+                  cell: (row) => (
+                    <button
+                      type="button"
+                      onClick={() => openEdit(row)}
+                      className={`inline-flex items-center justify-center px-4 rounded-lg text-xs font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                    >
+                      Editar
+                    </button>
+                  ),
+                  cardCell: (row) => (
+                    <button type="button" onClick={() => openEdit(row)} className={`${btnSecondary} w-full`}>
+                      Editar
+                    </button>
+                  ),
+                },
+              ]}
+            />
           )}
 
           {!loading && !error && rows.length > 0 ? (

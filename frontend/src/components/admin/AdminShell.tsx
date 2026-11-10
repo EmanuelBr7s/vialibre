@@ -34,11 +34,11 @@ export default function AdminShell({ title, subtitle, children }: AdminShellProp
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 p-4 sm:p-6 lg:p-8 focus:outline-none"
+        className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 focus:outline-none pb-safe-bottom"
       >
         <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{title}</h1>
-          <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+          <h1 className="text-fluid-2xl font-bold text-gray-900">{title}</h1>
+          <p className="text-fluid-sm text-gray-500 mt-1">{subtitle}</p>
         </header>
 
         {children}
