@@ -4,7 +4,7 @@
 // realistas cuando la API no cubre el flujo (problemáticas de la org, KPIs admin,
 // perfiles editables, etc.).
 
-import type { Challenge, ContactInfo, Interaction, User } from '@/types';
+import type { Challenge, ContactInfo, Empresa, Interaction, Practica, TutorDocente, User } from '@/types';
 import { ChallengeStatus, ChallengeTipo, DifficultyLevel, InteractionStatus, Modalidad, UserRole } from '@/types';
 
 export type OrgChallengeStatus = ChallengeStatus;
@@ -610,3 +610,79 @@ export const MOCK_INTERACTIONS: Interaction[] = [
     updated_at: '2026-08-24T09:05:00Z',
   },
 ];
+
+// ── Admin (modo mock): tutores docentes, empresas y prácticas formalizadas ──
+
+export const MOCK_TUTORES: TutorDocente[] = [
+  {
+    id: 'aaaa0001-0000-4000-8000-000000000001',
+    identificacion: '1045123456',
+    nombres: 'Patricia',
+    apellidos: 'Ospino Díaz',
+    email: 'patricia.ospino@unilibre.edu.co',
+    telefono: '+57 300 555 0201',
+    programa_academico: 'Ingeniería de Sistemas',
+    user_id: null,
+    activo: true,
+    created_at: '2026-03-01T09:00:00Z',
+    updated_at: '2026-03-01T09:00:00Z',
+  },
+  {
+    id: 'aaaa0002-0000-4000-8000-000000000002',
+    identificacion: '1045987654',
+    nombres: 'Hernán',
+    apellidos: 'Castro Mejía',
+    email: 'hernan.castro@unilibre.edu.co',
+    telefono: null,
+    programa_academico: 'Ingeniería Industrial',
+    user_id: null,
+    activo: false,
+    created_at: '2026-02-10T09:00:00Z',
+    updated_at: '2026-02-10T09:00:00Z',
+  },
+];
+
+/** Una empresa por cada usuario publicador de la demo. */
+export const MOCK_EMPRESAS: Empresa[] = MOCK_USERS.filter((u) => u.role === UserRole.PUBLICADOR).map(
+  (u, index) => ({
+    id: `bbbb${String(index + 1).padStart(4, '0')}-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+    nit: u.nit_empresa ?? null,
+    razon_social: u.empresa_nombre ?? u.full_name,
+    sector: null,
+    representante_legal: u.full_name,
+    contacto_email: u.email,
+    contacto_telefono: u.phone ?? null,
+    publicador_user_id: u.id,
+    activa: true,
+    created_at: u.created_at,
+    updated_at: u.updated_at,
+  })
+);
+
+/** Práctica ya formalizada sobre la primera postulación aprobada. */
+export const MOCK_PRACTICAS: Practica[] = MOCK_INTERACTIONS.filter(
+  (i) => i.status === InteractionStatus.APROBADO
+)
+  .slice(0, 1)
+  .map((i) => ({
+    id: 'cccc0001-0000-4000-8000-000000000001',
+    challenge_id: i.challenge_id,
+    interaction_id: i.id,
+    solucionador_id: i.solucionador_id,
+    empresa_id: MOCK_EMPRESAS[0]?.id ?? null,
+    tutor_docente_id: MOCK_TUTORES[0].id,
+    created_by: null,
+    estado_administrativo: 'en_curso',
+    modalidad: 'presencial',
+    tipo_practica: 'empresarial',
+    duracion_horas: 480,
+    fecha_inicio: '2026-08-01',
+    fecha_fin: '2026-12-15',
+    anio_academico: '2026',
+    periodo_academico: '2026-2',
+    bilingue: false,
+    observaciones_institucionales: null,
+    fecha_formalizacion: '2026-07-20T10:00:00Z',
+    created_at: '2026-07-20T10:00:00Z',
+    updated_at: '2026-07-20T10:00:00Z',
+  }));

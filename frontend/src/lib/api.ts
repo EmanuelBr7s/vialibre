@@ -396,16 +396,19 @@ class ApiClient {
     skip?: number;
     limit?: number;
   }): Promise<TutorDocenteListResponse> {
+    if (MOCK_MODE) return mockApi.listTutoresDocentes(params);
     return this.request(
       `/v1/auth/tutores-docentes${this.buildQuery(params ?? {})}`
     );
   }
 
   async getTutorDocente(tutorId: string): Promise<TutorDocente> {
+    if (MOCK_MODE) return mockApi.getTutorDocente(tutorId);
     return this.request(`/v1/auth/tutores-docentes/${tutorId}`);
   }
 
   async createTutorDocente(data: TutorDocenteCreate): Promise<TutorDocente> {
+    if (MOCK_MODE) return mockApi.createTutorDocente(data);
     return this.request('/v1/auth/tutores-docentes', {
       method: 'POST',
       body: data,
@@ -416,6 +419,7 @@ class ApiClient {
     tutorId: string,
     data: TutorDocenteUpdate
   ): Promise<TutorDocente> {
+    if (MOCK_MODE) return mockApi.updateTutorDocente(tutorId, data);
     return this.request(`/v1/auth/tutores-docentes/${tutorId}`, {
       method: 'PATCH',
       body: data,
@@ -428,14 +432,17 @@ class ApiClient {
     skip?: number;
     limit?: number;
   }): Promise<EmpresaListResponse> {
+    if (MOCK_MODE) return mockApi.listEmpresas(params);
     return this.request(`/v1/core/empresas${this.buildQuery(params ?? {})}`);
   }
 
   async getEmpresa(empresaId: string): Promise<Empresa> {
+    if (MOCK_MODE) return mockApi.getEmpresa(empresaId);
     return this.request(`/v1/core/empresas/${empresaId}`);
   }
 
   async createEmpresa(data: EmpresaCreate): Promise<Empresa> {
+    if (MOCK_MODE) return mockApi.createEmpresa(data);
     return this.request('/v1/core/empresas', {
       method: 'POST',
       body: data,
@@ -446,6 +453,7 @@ class ApiClient {
     empresaId: string,
     data: EmpresaUpdate
   ): Promise<Empresa> {
+    if (MOCK_MODE) return mockApi.updateEmpresa(empresaId, data);
     return this.request(`/v1/core/empresas/${empresaId}`, {
       method: 'PATCH',
       body: data,
@@ -458,17 +466,20 @@ class ApiClient {
     skip?: number;
     limit?: number;
   }): Promise<PracticaListResponse> {
+    if (MOCK_MODE) return mockApi.listPracticas(params);
     return this.request(
       `/v1/match/practicas${this.buildQuery(params ?? {})}`
     );
   }
 
   async getPractica(practicaId: string): Promise<Practica> {
+    if (MOCK_MODE) return mockApi.getPractica(practicaId);
     return this.request(`/v1/match/practicas/${practicaId}`);
   }
 
   /** Formaliza una práctica (requiere interaction_id; 409 si ya existe). */
   async createPractica(data: PracticaCreate): Promise<Practica> {
+    if (MOCK_MODE) return mockApi.createPractica(data);
     return this.request('/v1/match/practicas', {
       method: 'POST',
       body: data,
@@ -479,6 +490,7 @@ class ApiClient {
     practicaId: string,
     data: PracticaUpdate
   ): Promise<Practica> {
+    if (MOCK_MODE) return mockApi.updatePractica(practicaId, data);
     return this.request(`/v1/match/practicas/${practicaId}`, {
       method: 'PATCH',
       body: data,

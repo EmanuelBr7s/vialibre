@@ -8,12 +8,24 @@ import type {
   ChallengeApplicantsResponse,
   ChallengeListResponse,
   ContactInfo,
+  Empresa,
+  EmpresaCreate,
+  EmpresaListResponse,
+  EmpresaUpdate,
   Interaction,
   InteractionListResponse,
+  Practica,
+  PracticaCreate,
+  PracticaListResponse,
+  PracticaUpdate,
   ProfileUpdatePayload,
   Reaction,
   ReactionListResponse,
   TokenResponse,
+  TutorDocente,
+  TutorDocenteCreate,
+  TutorDocenteListResponse,
+  TutorDocenteUpdate,
   User,
 } from '@/types';
 import {
@@ -26,14 +38,19 @@ import {
   UserRole,
 } from '@/types';
 import { AUTH_COOKIE_NAME, isTalentRole } from '@/lib/constants';
+// Import circular con api.ts: ApiError solo se usa al llamar a un método, nunca al cargar el módulo.
+import { ApiError } from '@/lib/api';
 import {
   MOCK_CHALLENGES,
+  MOCK_EMPRESAS,
   MOCK_INTERACTIONS,
+  MOCK_PRACTICAS,
+  MOCK_TUTORES,
   MOCK_USERS,
 } from '@/data/mock';
 
 const MOCK_DB_KEY = 'vialibre_mock_db_v1';
-const MOCK_DB_VERSION = 2;
+const MOCK_DB_VERSION = 3;
 
 interface MockDb {
   version: number;
@@ -41,6 +58,9 @@ interface MockDb {
   challenges: Challenge[];
   interactions: Interaction[];
   reactions: Reaction[];
+  tutores: TutorDocente[];
+  empresas: Empresa[];
+  practicas: Practica[];
 }
 
 const now = (): string => new Date().toISOString();
@@ -78,7 +98,23 @@ function seedDb(): MockDb {
     challenges: MOCK_CHALLENGES.map((c) => ({ ...c })),
     interactions: MOCK_INTERACTIONS.map((i) => ({ ...i })),
     reactions: [],
+    tutores: MOCK_TUTORES.map((x) => ({ ...x })),
+    empresas: MOCK_EMPRESAS.map((x) => ({ ...x })),
+    practicas: MOCK_PRACTICAS.map((x) => ({ ...x })),
   };
+}
+
+/**
+ * PATCH parcial: ignora claves ausentes y no pisa con `null` los campos
+ * booleanos obligatorios (activo/activa/bilingue).
+ */
+function applyPatch<T extends object>(target: T, patch: object) {
+  const record = target as Record<string, unknown>;
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    if (value === null && typeof record[key] === 'boolean') continue;
+    record[key] = value;
+  }
 }
 
 function persist(db: MockDb) {
@@ -101,7 +137,10 @@ function loadDb(): MockDb {
           parsed.version === MOCK_DB_VERSION &&
           Array.isArray(parsed.users) &&
           Array.isArray(parsed.challenges) &&
-          Array.isArray(parsed.interactions)
+          Array.isArray(parsed.interactions) &&
+          Array.isArray(parsed.tutores) &&
+          Array.isArray(parsed.empresas) &&
+          Array.isArray(parsed.practicas)
         ) {
           return parsed;
         }
@@ -512,6 +551,205 @@ export class MockApiClient {
     persist(db);
     await sleep();
     return null;
+  }
+
+  // ── Admin: helpers ──
+  private requireAdmin(db: MockDb): User {
+    const user = currentUser(db);
+    if (user.role !== UserRole.ADMIN) {
+      throw new ApiError('Operación exclusiva del rol admin', 403);
+    }
+    return user;
+  }
+
+  private page<T>(items: T[], params?: { skip?: number; limit?: number }) {
+    const skip = params?.skip ?? 0;
+    const limit = params?.limit ?? 20;
+    return { items: items.slice(skip, skip + limit).map(clone<T>), total: items.length, skip, limit };
+  }
+
+  // ── Admin: Tutores docentes ──
+  async listTutoresDocentes(params?: {
+    activo?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<TutorDocenteListResponse> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    await sleep();
+    const filtered = db.tutores
+      .filter((t) => params?.activo === undefined || t.activo === params.activo)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const { items, total, skip, limit } = this.page(filtered, params);
+    return { tutores: items, total, skip, limit };
+  }
+
+  async getTutorDocente(tutorId: string): Promise<TutorDocente> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const tutor = db.tutores.find((t) => t.id === tutorId);
+    await sleep();
+    if (!tutor) throw new ApiError('Tutor docente no encontrado', 404);
+    return clone(tutor);
+  }
+
+  async createTutorDocente(data: TutorDocenteCreate): Promise<TutorDocente> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const tutor: TutorDocente = {
+      id: uid(),
+      identificacion: data.identificacion ?? null,
+      nombres: data.nombres ?? null,
+      apellidos: data.apellidos ?? null,
+      email: data.email ?? null,
+      telefono: data.telefono ?? null,
+      programa_academico: data.programa_academico ?? null,
+      user_id: data.user_id ?? null,
+      activo: data.activo ?? true,
+      created_at: now(),
+      updated_at: now(),
+    };
+    db.tutores.unshift(tutor);
+    persist(db);
+    await sleep();
+    return clone(tutor);
+  }
+
+  async updateTutorDocente(tutorId: string, data: TutorDocenteUpdate): Promise<TutorDocente> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const tutor = db.tutores.find((t) => t.id === tutorId);
+    if (!tutor) throw new ApiError('Tutor docente no encontrado', 404);
+    applyPatch(tutor, data);
+    tutor.updated_at = now();
+    persist(db);
+    await sleep();
+    return clone(tutor);
+  }
+
+  // ── Admin: Empresas ──
+  async listEmpresas(params?: { activa?: boolean; skip?: number; limit?: number }): Promise<EmpresaListResponse> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    await sleep();
+    const filtered = db.empresas
+      .filter((e) => params?.activa === undefined || e.activa === params.activa)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const { items, total, skip, limit } = this.page(filtered, params);
+    return { empresas: items, total, skip, limit };
+  }
+
+  async getEmpresa(empresaId: string): Promise<Empresa> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const empresa = db.empresas.find((e) => e.id === empresaId);
+    await sleep();
+    if (!empresa) throw new ApiError('Empresa no encontrada', 404);
+    return clone(empresa);
+  }
+
+  async createEmpresa(data: EmpresaCreate): Promise<Empresa> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const empresa: Empresa = {
+      id: uid(),
+      nit: data.nit ?? null,
+      razon_social: data.razon_social ?? null,
+      sector: data.sector ?? null,
+      representante_legal: data.representante_legal ?? null,
+      contacto_email: data.contacto_email ?? null,
+      contacto_telefono: data.contacto_telefono ?? null,
+      publicador_user_id: data.publicador_user_id ?? null,
+      activa: data.activa ?? true,
+      created_at: now(),
+      updated_at: now(),
+    };
+    db.empresas.unshift(empresa);
+    persist(db);
+    await sleep();
+    return clone(empresa);
+  }
+
+  async updateEmpresa(empresaId: string, data: EmpresaUpdate): Promise<Empresa> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const empresa = db.empresas.find((e) => e.id === empresaId);
+    if (!empresa) throw new ApiError('Empresa no encontrada', 404);
+    applyPatch(empresa, data);
+    empresa.updated_at = now();
+    persist(db);
+    await sleep();
+    return clone(empresa);
+  }
+
+  // ── Admin: Prácticas formalizadas ──
+  async listPracticas(params?: { estado?: string; skip?: number; limit?: number }): Promise<PracticaListResponse> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    await sleep();
+    const estado = params?.estado?.trim().toLowerCase();
+    const filtered = db.practicas
+      .filter((p) => !estado || (p.estado_administrativo ?? '').toLowerCase() === estado)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const { items, total, skip, limit } = this.page(filtered, params);
+    return { practicas: items, total, skip, limit };
+  }
+
+  async getPractica(practicaId: string): Promise<Practica> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const practica = db.practicas.find((p) => p.id === practicaId);
+    await sleep();
+    if (!practica) throw new ApiError('Práctica no encontrada', 404);
+    return clone(practica);
+  }
+
+  async createPractica(data: PracticaCreate): Promise<Practica> {
+    const db = loadDb();
+    const admin = this.requireAdmin(db);
+    const interaction = db.interactions.find((i) => i.id === data.interaction_id);
+    if (!interaction) throw new ApiError('Interacción no encontrada', 404);
+    if (db.practicas.some((p) => p.interaction_id === data.interaction_id)) {
+      throw new ApiError('Ya existe una practica formalizada para esta interaccion', 409);
+    }
+    const practica: Practica = {
+      id: uid(),
+      interaction_id: data.interaction_id,
+      challenge_id: data.challenge_id ?? interaction.challenge_id,
+      solucionador_id: data.solucionador_id ?? interaction.solucionador_id,
+      empresa_id: data.empresa_id ?? null,
+      tutor_docente_id: data.tutor_docente_id ?? null,
+      created_by: admin.id,
+      estado_administrativo: data.estado_administrativo ?? null,
+      modalidad: data.modalidad ?? null,
+      tipo_practica: data.tipo_practica ?? null,
+      duracion_horas: data.duracion_horas ?? null,
+      fecha_inicio: data.fecha_inicio ?? null,
+      fecha_fin: data.fecha_fin ?? null,
+      anio_academico: data.anio_academico ?? null,
+      periodo_academico: data.periodo_academico ?? null,
+      bilingue: data.bilingue ?? false,
+      observaciones_institucionales: data.observaciones_institucionales ?? null,
+      fecha_formalizacion: now(),
+      created_at: now(),
+      updated_at: now(),
+    };
+    db.practicas.unshift(practica);
+    persist(db);
+    await sleep();
+    return clone(practica);
+  }
+
+  async updatePractica(practicaId: string, data: PracticaUpdate): Promise<Practica> {
+    const db = loadDb();
+    this.requireAdmin(db);
+    const practica = db.practicas.find((p) => p.id === practicaId);
+    if (!practica) throw new ApiError('Práctica no encontrada', 404);
+    applyPatch(practica, data);
+    practica.updated_at = now();
+    persist(db);
+    await sleep();
+    return clone(practica);
   }
 }
 
