@@ -1,4 +1,4 @@
-import { inputClass, FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { inputClass, labelClass, errorClass, FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
 interface TextFieldProps {
   id: string;
@@ -27,7 +27,7 @@ export function TextField({
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className={labelClass}>
         {label}
         {required ? <span aria-hidden="true"> *</span> : null}
       </label>
@@ -44,7 +44,7 @@ export function TextField({
         className={inputClass}
       />
       {error ? (
-        <p id={errorId} role="alert" className="mt-1 text-xs text-red-600">
+        <p id={errorId} role="alert" className={errorClass}>
           {error}
         </p>
       ) : null}
@@ -73,7 +73,7 @@ export function TextAreaField({
   const errorId = `${id}-error`;
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className={labelClass}>
         {label}
       </label>
       <textarea
@@ -86,7 +86,7 @@ export function TextAreaField({
         className={inputClass}
       />
       {error ? (
-        <p id={errorId} role="alert" className="mt-1 text-xs text-red-600">
+        <p id={errorId} role="alert" className={errorClass}>
           {error}
         </p>
       ) : null}
@@ -112,7 +112,7 @@ export function CheckboxField({ id, label, checked, onChange }: CheckboxFieldPro
         onChange={(event) => onChange(event.target.checked)}
         className={`h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 ${FOCUS_RING}`}
       />
-      <label htmlFor={id} className="text-sm font-medium text-gray-700">
+      <label htmlFor={id} className="text-fluid-sm font-medium text-gray-700">
         {label}
       </label>
     </div>

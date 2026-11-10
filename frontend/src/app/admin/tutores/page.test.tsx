@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const { replaceMock, pushMock, listTutoresDocentes, createTutorDocente, updateTutorDocente, clearToken } =
@@ -61,8 +61,14 @@ describe('AdminTutoresPage', () => {
 
     render(<AdminTutoresPage />);
 
-    expect(await screen.findByText('Ana Pérez')).toBeInTheDocument();
-    expect(screen.getByText('ana@uni.edu.co')).toBeInTheDocument();
+    // Escritorio (tabla) y móvil (tarjetas) se renderizan a la vez; el CSS decide cuál se ve.
+    const table = await screen.findByRole('table', { name: 'Tutores registrados' });
+    expect(within(table).getByText('Ana Pérez')).toBeInTheDocument();
+    expect(within(table).getByText('ana@uni.edu.co')).toBeInTheDocument();
+
+    const cards = screen.getByRole('list', { name: 'Tutores registrados' });
+    expect(within(cards).getByText('Ana Pérez')).toBeInTheDocument();
+    expect(within(cards).getByRole('button', { name: 'Editar' })).toBeInTheDocument();
   });
 
   it('muestra el estado vacío cuando no hay registros', async () => {

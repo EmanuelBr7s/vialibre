@@ -15,7 +15,7 @@ export default function StatusAlert({ tone, children }: StatusAlertProps) {
   }[tone];
 
   return (
-    <div role={role} className={`text-sm rounded-lg p-3 border ${toneClass}`}>
+    <div role={role} className={`text-fluid-sm rounded-lg p-3 border ${toneClass}`}>
       {children}
     </div>
   );
