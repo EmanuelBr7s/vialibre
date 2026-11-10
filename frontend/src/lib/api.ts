@@ -2,8 +2,6 @@ import type {
   Challenge,
   ChallengeApplicantsResponse,
   ChallengeListResponse,
-  ChallengeTipo,
-  Modalidad,
   ContactInfo,
   DocumentChecklist,
   DocumentInfo,
@@ -16,6 +14,7 @@ import type {
   User,
   UserListResponse,
 } from '@/types';
+import { ChallengeTipo, InteractionStatus, Modalidad, ReactionType, UserRole } from '@/types';
 import { AUTH_COOKIE_NAME } from '@/lib/constants';
 
 export { AUTH_COOKIE_NAME };
@@ -157,7 +156,7 @@ class ApiClient {
 
   /** Banco de hojas de vida (solo empresas y administración). */
   async searchTalent(params: {
-    role?: 'solucionador' | 'egresado';
+    role?: UserRole.SOLUCIONADOR | UserRole.EGRESADO;
     q?: string;
     programa?: string;
     afiliacion?: string;
@@ -306,7 +305,7 @@ class ApiClient {
     return this.request(`/v1/match/interactions/challenge/${challengeId}`);
   }
 
-  async approveInteraction(interactionId: string, status: 'aprobado' | 'rechazado'): Promise<Interaction> {
+  async approveInteraction(interactionId: string, status: InteractionStatus.APROBADO | InteractionStatus.RECHAZADO): Promise<Interaction> {
     return this.request(`/v1/match/interactions/${interactionId}/approve`, {
       method: 'PATCH',
       body: { status },
@@ -322,7 +321,7 @@ class ApiClient {
   }
 
   // ── Reactions endpoints ──
-  async createReaction(data: { challenge_id: string; reaction_type: 'like' | 'bookmark' }): Promise<Reaction> {
+  async createReaction(data: { challenge_id: string; reaction_type: ReactionType }): Promise<Reaction> {
     return this.request('/v1/match/reactions', {
       method: 'POST',
       body: data,

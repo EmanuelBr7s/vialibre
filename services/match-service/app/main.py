@@ -21,7 +21,7 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
     # Igual que core-service: colecciones sin slash final y sin redirecciones.
-    # Un 307 aqui apunta al host interno del gateway y rompe las peticiones
+    # Un 307 aqui apunta al host interno del servicio y rompe las peticiones
     # que llegan a traves del proxy de Next.js.
     redirect_slashes=False,
 )

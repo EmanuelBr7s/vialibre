@@ -12,4 +12,7 @@ export const TOUCH_TARGET = 'min-h-[44px]';
 export const INPUT_FOCUS =
   'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500';
 
-export const inputClass = `w-full px-4 py-3 rounded-lg border border-gray-300 ${INPUT_FOCUS} bg-white text-gray-900`;
+// Field surface shared by text inputs and selects (border, radius, focus, background).
+export const INPUT_SURFACE = `w-full rounded-lg border border-gray-300 ${INPUT_FOCUS} bg-white`;
+
+export const inputClass = `${INPUT_SURFACE} px-4 py-3 text-gray-900`;

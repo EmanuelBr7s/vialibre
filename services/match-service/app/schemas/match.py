@@ -4,8 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.models.interaction import InteractionStatus
-from app.models.reaction import ReactionType
+from vialibre_common.schemas import DocumentoTipo, InteractionStatus, ReactionType
 
 
 # ── Interaction Schemas ──
@@ -75,7 +74,7 @@ class ReactionListResponse(BaseModel):
 # ── Documentos requisito de practica ──
 
 class DocumentInfo(BaseModel):
-    tipo: str
+    tipo: DocumentoTipo
     filename: str
     size: int
     uploaded_at: datetime
@@ -84,7 +83,7 @@ class DocumentInfo(BaseModel):
 
 
 class RequiredDocument(BaseModel):
-    tipo: str
+    tipo: DocumentoTipo
     label: str
     documento: Optional[DocumentInfo] = None
 

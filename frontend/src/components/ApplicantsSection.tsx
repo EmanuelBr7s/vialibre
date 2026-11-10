@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import type { ContactInfo, Interaction, User } from '@/types';
+import { InteractionStatus } from '@/types';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 import CvPreviewModal from '@/components/CvPreviewModal';
@@ -18,15 +19,15 @@ interface ApplicantWithUser extends Interaction {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pendiente: 'Pendiente',
-  aprobado: 'Aprobado',
-  rechazado: 'Rechazado',
+  [InteractionStatus.PENDIENTE]: 'Pendiente',
+  [InteractionStatus.APROBADO]: 'Aprobado',
+  [InteractionStatus.RECHAZADO]: 'Rechazado',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
+  [InteractionStatus.PENDIENTE]: 'bg-yellow-100 text-yellow-700',
+  [InteractionStatus.APROBADO]: 'bg-green-100 text-green-700',
+  [InteractionStatus.RECHAZADO]: 'bg-red-100 text-red-700',
 };
 
 export default function ApplicantsSection({
@@ -79,7 +80,7 @@ export default function ApplicantsSection({
 
   const handleApproveReject = async (
     interactionId: string,
-    status: 'aprobado' | 'rechazado'
+    status: InteractionStatus.APROBADO | InteractionStatus.RECHAZADO
   ) => {
     setBusyId(interactionId);
     setActionError(null);
@@ -87,7 +88,7 @@ export default function ApplicantsSection({
     try {
       await api.approveInteraction(interactionId, status);
       setActionSuccess(
-        status === 'aprobado'
+        status === InteractionStatus.APROBADO
           ? 'Postulación aprobada. El contacto quedó desbloqueado.'
           : 'Postulación rechazada.'
       );
@@ -225,10 +226,10 @@ export default function ApplicantsSection({
                   <p className="text-sm text-gray-600 mt-3 italic">"{applicant.message}"</p>
                 )}
 
-                {applicant.status === 'pendiente' && (
+                {applicant.status === InteractionStatus.PENDIENTE && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-4">
                     <button
-                      onClick={() => handleApproveReject(applicant.id, 'aprobado')}
+                      onClick={() => handleApproveReject(applicant.id, InteractionStatus.APROBADO)}
                       disabled={isBusy}
                       aria-busy={isBusy}
                       className={`flex-1 px-4 rounded-lg bg-secondary-600 text-white font-medium hover:bg-secondary-700 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
@@ -236,7 +237,7 @@ export default function ApplicantsSection({
                       {isBusy ? 'Actualizando…' : 'Aprobar y desbloquear contacto'}
                     </button>
                     <button
-                      onClick={() => handleApproveReject(applicant.id, 'rechazado')}
+                      onClick={() => handleApproveReject(applicant.id, InteractionStatus.RECHAZADO)}
                       disabled={isBusy}
                       className={`flex-1 px-4 rounded-lg border border-red-300 text-red-600 font-medium hover:bg-red-50 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
                     >
@@ -256,7 +257,7 @@ export default function ApplicantsSection({
                   </button>
                 )}
 
-                {applicant.status !== 'rechazado' && (
+                {applicant.status !== InteractionStatus.RECHAZADO && (
                   <button
                     onClick={() => openApplicantCv(applicant)}
                     disabled={cvLoadingId === applicant.solucionador_id}
@@ -277,7 +278,7 @@ export default function ApplicantsSection({
                   </button>
                 )}
 
-                {applicant.status === 'aprobado' && (
+                {applicant.status === InteractionStatus.APROBADO && (
                   <PracticeDocuments interactionId={applicant.id} editable={false} />
                 )}
 

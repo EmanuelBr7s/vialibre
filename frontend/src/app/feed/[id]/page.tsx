@@ -9,19 +9,20 @@ import ApplicantsSection from '@/components/ApplicantsSection';
 import ChallengeDetailLoading from './loading';
 import api from '@/lib/api';
 import type { Challenge } from '@/types';
+import { ChallengeTipo, DifficultyLevel, UserRole } from '@/types';
 import { isTalentRole } from '@/lib/constants';
 import { LAB_CONTACT, MODALIDAD_LABEL, MODULE_BY_ID } from '@/data/modules';
 
 const DIFFICULTY_COLOR: Record<string, string> = {
-  easy: 'bg-green-100 text-green-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  hard: 'bg-red-100 text-red-700',
+  [DifficultyLevel.EASY]: 'bg-green-100 text-green-700',
+  [DifficultyLevel.MEDIUM]: 'bg-yellow-100 text-yellow-700',
+  [DifficultyLevel.HARD]: 'bg-red-100 text-red-700',
 };
 
 const DIFFICULTY_LABEL: Record<string, string> = {
-  easy: 'Fácil',
-  medium: 'Medio',
-  hard: 'Difícil',
+  [DifficultyLevel.EASY]: 'Fácil',
+  [DifficultyLevel.MEDIUM]: 'Medio',
+  [DifficultyLevel.HARD]: 'Difícil',
 };
 
 export default function ChallengeDetailPage({
@@ -94,7 +95,7 @@ export default function ChallengeDetailPage({
     challenge.modalidad && { label: 'Modalidad', value: MODALIDAD_LABEL[challenge.modalidad] },
     challenge.ubicacion && { label: 'Ubicación', value: challenge.ubicacion },
     compensation && {
-      label: challenge.tipo === 'empleo' ? 'Salario' : challenge.tipo === 'practica' ? 'Apoyo de sostenimiento' : 'Presupuesto',
+      label: challenge.tipo === ChallengeTipo.EMPLEO ? 'Salario' : challenge.tipo === ChallengeTipo.PRACTICA ? 'Apoyo de sostenimiento' : 'Presupuesto',
       value: compensation,
     },
     challenge.deadline && {
@@ -182,14 +183,14 @@ export default function ChallengeDetailPage({
           {/* Description */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {challenge.tipo === 'reto' ? 'Descripción del reto' : 'Descripción de la oferta'}
+              {challenge.tipo === ChallengeTipo.RETO ? 'Descripción del reto' : 'Descripción de la oferta'}
             </h2>
             <div className="text-gray-700 leading-relaxed whitespace-pre-line">
               {challenge.long_description}
             </div>
           </div>
 
-          {challenge.tipo === 'reto' && (
+          {challenge.tipo === ChallengeTipo.RETO && (
             <p className="mb-8 text-sm text-gray-600 rounded-lg bg-violet-50 border border-violet-200 p-4">
               Este reto se gestiona con el Laboratorio de Innovación. Dudas:{' '}
               <a href={`mailto:${LAB_CONTACT.email}`} className="font-medium text-violet-700 underline">
@@ -207,7 +208,7 @@ export default function ChallengeDetailPage({
         </article>
 
         {/* Dueño o administración → postulados; estudiante/egresado → postularse */}
-        {isOwner || user?.role === 'admin' ? (
+        {isOwner || user?.role === UserRole.ADMIN ? (
           <ApplicantsSection
             challengeId={challenge.id}
             currentUserId={String(user?.id)}

@@ -1,16 +1,11 @@
 import uuid
-import enum
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, Enum, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
-
-
-class ReactionType(str, enum.Enum):
-    LIKE = "like"
-    BOOKMARK = "bookmark"
+from vialibre_common.schemas import ReactionType
 
 
 class Reaction(Base):

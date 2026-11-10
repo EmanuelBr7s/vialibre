@@ -1,11 +1,12 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String, UniqueConstraint
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, LargeBinary, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import deferred
 
 from app.database import Base
+from vialibre_common.schemas import DocumentoTipo, enum_values
 
 
 class InteractionDocument(Base):
@@ -24,7 +25,10 @@ class InteractionDocument(Base):
         nullable=False,
         index=True,
     )
-    tipo = Column(String(40), nullable=False)
+    tipo = Column(
+        Enum(DocumentoTipo, native_enum=False, length=40, values_callable=enum_values),
+        nullable=False,
+    )
     filename = Column(String(255), nullable=False)
     content_type = Column(String(100), nullable=False)
     size = Column(Integer, nullable=False)

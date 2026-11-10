@@ -12,7 +12,8 @@ import ChallengeCardSkeleton from '@/components/skeletons/ChallengeCardSkeleton'
 import FeaturedCardSkeleton from '@/components/skeletons/FeaturedCardSkeleton';
 import CreateChallengeModal from '@/components/CreateChallengeModal';
 import api from '@/lib/api';
-import type { Challenge, ChallengeTipo } from '@/types';
+import type { Challenge } from '@/types';
+import { ChallengeTipo, UserRole } from '@/types';
 import { LAB_CONTACT, MODULES, MODULE_BY_ID, defaultModuleFor } from '@/data/modules';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
@@ -91,9 +92,9 @@ export default function FeedPage() {
 
   if (!isAuthenticated) return null;
 
-  const canPublish = user?.role === 'publicador' || user?.role === 'admin';
+  const canPublish = user?.role === UserRole.PUBLICADOR || user?.role === UserRole.ADMIN;
   const toggleModal = () => setModalOpen((open) => !open);
-  const current = MODULE_BY_ID[activeTab ?? 'reto'];
+  const current = MODULE_BY_ID[activeTab ?? ChallengeTipo.RETO];
 
   return (
     <div className="flex min-h-screen">
@@ -169,7 +170,7 @@ export default function FeedPage() {
           )}
         </div>
 
-        {activeTab === 'reto' && (
+        {activeTab === ChallengeTipo.RETO && (
           <aside
             aria-label="Contacto del Laboratorio de Innovación"
             className="mb-8 flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-violet-200 bg-violet-50 p-5"
