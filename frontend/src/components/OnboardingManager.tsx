@@ -10,6 +10,7 @@ import { UserRole } from '@/types';
 import { isTalentRole } from '@/lib/constants';
 
 function roleToTourRole(role: UserRole): TourRole {
+  if (role === UserRole.ADMIN) return UserRole.ADMIN;
   return isTalentRole(role) ? UserRole.SOLUCIONADOR : UserRole.PUBLICADOR;
 }
 

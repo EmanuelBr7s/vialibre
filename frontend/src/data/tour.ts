@@ -1,10 +1,10 @@
 import { UserRole } from '@/types';
 /**
  * Datos y constantes del sistema de onboarding (wizard) y recorrido guiado.
- * El rol admin reutiliza contenido y pasos del Publicador.
+ * Cada rol (publicador, solucionador, admin) tiene sus propios pasos.
  */
 
-export type TourRole = UserRole.PUBLICADOR | UserRole.SOLUCIONADOR;
+export type TourRole = UserRole.PUBLICADOR | UserRole.SOLUCIONADOR | UserRole.ADMIN;
 
 export type OnboardingIcon =
   | 'community'
@@ -87,6 +87,26 @@ export const ONBOARDING_STEPS: Record<TourRole, OnboardingSlide[]> = {
         'Explora problemáticas reales publicadas por empresas y fundaciones y envía tus propuestas para conectarte con ellas.',
     },
   ],
+  admin: [
+    {
+      icon: 'community',
+      title: 'Bienvenido a VíaLibre',
+      description:
+        'Panel de administración de la plataforma: gestiona usuarios, problemáticas y anuncios de la comunidad.',
+    },
+    {
+      icon: 'publish',
+      title: 'Administración de la plataforma',
+      description:
+        'Desde tu panel puedes revisar la actividad, gestionar anuncios y pautas publicitarias y mantener la información actualizada.',
+    },
+    {
+      icon: 'evaluate',
+      title: 'Supervisa la comunidad',
+      description:
+        'Monitorea las problemáticas y postulaciones de la plataforma para apoyar la conexión entre empresas y talento.',
+    },
+  ],
 };
 
 export const TOUR_STEPS: Record<TourRole, TourStep[]> = {
@@ -135,6 +155,30 @@ export const TOUR_STEPS: Record<TourRole, TourStep[]> = {
       title: 'Aliados y oportunidades',
       description:
         'Conoce a nuestros aliados estratégicos y oportunidades adicionales de la comunidad.',
+      selector: '[data-tour="ad-slot"]',
+    },
+  ],
+  admin: [
+    {
+      id: 'panel-admin',
+      title: 'Panel de Administración',
+      description:
+        'Accede al panel para gestionar usuarios, anuncios y la actividad de la plataforma.',
+      selector: '[data-tour="menu-panel-admin"]',
+      requiresMenu: true,
+    },
+    {
+      id: 'feed',
+      title: 'Explora el Feed',
+      description:
+        'Revisa las problemáticas activas en la plataforma y sus propuestas.',
+      selector: '[data-tour="feed-section"]',
+    },
+    {
+      id: 'ad-slot',
+      title: 'Gestión de anuncios',
+      description:
+        'El anuncio de aliados y oportunidades se administra desde la sección de anuncios y pautas.',
       selector: '[data-tour="ad-slot"]',
     },
   ],

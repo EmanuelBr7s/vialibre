@@ -108,11 +108,11 @@ export default function MisPostulacionesPage() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl focus:outline-none"
+        className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl focus:outline-none pb-safe-bottom"
       >
         <header className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis Postulaciones</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-fluid-2xl font-bold text-gray-900">Mis Postulaciones</h1>
+          <p className="text-fluid-sm text-gray-500 mt-1">
             Retos, prácticas y ofertas a las que te postulaste. Cuando una empresa te selecciona
             se desbloquea su contacto; en prácticas, además, cargas tus documentos y descargas tu
             carta de aval.
@@ -120,7 +120,7 @@ export default function MisPostulacionesPage() {
         </header>
 
         {error && (
-          <div role="alert" className="mb-6 text-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200">
+          <div role="alert" className="mb-6 text-fluid-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200">
             {error}
           </div>
         )}
@@ -132,11 +132,11 @@ export default function MisPostulacionesPage() {
             ))}
           </div>
         ) : rows.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center">
-            <p className="text-sm text-gray-600">Aún no te has postulado a ninguna publicación.</p>
+          <div className="rounded-xl border-2 border-dashed border-gray-300 p-6 sm:p-8 text-center">
+            <p className="text-fluid-sm text-gray-600">Aún no te has postulado a ninguna publicación.</p>
             <Link
               href="/feed"
-              className={`mt-4 inline-flex items-center justify-center px-5 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`mt-4 inline-flex items-center justify-center px-5 rounded-lg bg-primary-600 text-white text-fluid-sm font-medium hover:bg-primary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
             >
               Explorar ofertas
             </Link>
@@ -149,25 +149,25 @@ export default function MisPostulacionesPage() {
               const mod = row.tipo ? MODULE_BY_ID[row.tipo] : null;
               return (
                 <li key={row.id}>
-                  <article className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <article className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span className="text-fluid-xs font-medium text-gray-500 uppercase tracking-wider truncate">
                         {row.empresa}
                       </span>
                       {mod && (
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${mod.badgeClass}`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium shrink-0 ${mod.badgeClass}`}>
                           {mod.singular}
                         </span>
                       )}
                       <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium shrink-0 ${
                           APP_STATUS_BADGE[row.status]
                         }`}
                       >
                         {APP_STATUS_LABEL[row.status]}
                       </span>
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-900">
+                    <h2 className="text-fluid-base font-semibold text-gray-900">
                       <Link
                         href={`/feed/${row.challengeId}`}
                         className={`hover:text-primary-700 ${FOCUS_RING} rounded`}
@@ -176,7 +176,7 @@ export default function MisPostulacionesPage() {
                       </Link>
                     </h2>
                     {row.message && (
-                      <p className="text-sm text-gray-600 mt-1 italic">&ldquo;{row.message}&rdquo;</p>
+                      <p className="text-fluid-sm text-gray-600 mt-1 italic">&ldquo;{row.message}&rdquo;</p>
                     )}
 
                     {row.status === InteractionStatus.APROBADO && (
@@ -185,7 +185,7 @@ export default function MisPostulacionesPage() {
                           onClick={() => handleToggleContact(row)}
                           aria-expanded={isOpen}
                           aria-controls={`contact-panel-${row.id}`}
-                          className={`inline-flex items-center text-sm font-medium text-secondary-700 px-3 -mx-3 rounded-lg ${TOUCH_TARGET} ${FOCUS_RING}`}
+                          className={`inline-flex items-center text-fluid-sm font-medium text-secondary-700 px-2 -mx-2 rounded-lg ${TOUCH_TARGET} ${FOCUS_RING}`}
                         >
                           {isOpen ? 'Ocultar contacto' : 'Ver contacto de la empresa'} →
                         </button>
@@ -196,10 +196,10 @@ export default function MisPostulacionesPage() {
                             className="mt-3 bg-secondary-50 rounded-lg border border-secondary-200 p-4 space-y-2"
                           >
                             {contactError[row.id] && (
-                              <p className="text-sm text-red-600">{contactError[row.id]}</p>
+                              <p className="text-fluid-sm text-red-600">{contactError[row.id]}</p>
                             )}
                             {contact && (
-                              <dl className="space-y-1 text-sm">
+                              <dl className="space-y-1 text-fluid-sm">
                                 <div>
                                   <dt className="sr-only">Nombre</dt>
                                   <dd className="font-medium text-gray-900">

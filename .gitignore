@@ -36,6 +36,8 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# ── TypeScript incremental build info ──
+*.tsbuildinfo
 # ── Alembic ──
 # Las revisiones se autogeneran por entorno (make migrate) a partir de los modelos.
 # D13 (resuelto): se dejo de excluir services/*/alembic/versions/ para versionar

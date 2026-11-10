@@ -4,7 +4,8 @@ import { useRef } from 'react';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { FONT_SIZES, CONTRAST_MODES } from '@/data/accessibility';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { useBottomSheet } from '@/hooks/useBottomSheet';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG } from '@/components/ui/classes';
 import AccessibilityShortcutsModal from './AccessibilityShortcutsModal';
 
 function Switch({
@@ -21,9 +22,9 @@ function Switch({
   const id = `switch-${label.replace(/\s+/g, '-').toLowerCase()}`;
   return (
     <div className="flex items-start justify-between gap-3 py-2">
-      <label htmlFor={id} className="text-sm text-gray-700 cursor-pointer">
+      <label htmlFor={id} className="text-fluid-sm text-gray-700 cursor-pointer">
         {label}
-        {description && <span className="block text-xs text-gray-500">{description}</span>}
+        {description && <span className="block text-fluid-xs text-gray-500">{description}</span>}
       </label>
       <button
         id={id}
@@ -65,24 +66,40 @@ export default function AccessibilityPanel() {
     setTextSpacing,
     resetAll,
   } = useAccessibility();
-  const panelRef = useRef<HTMLDivElement>(null);
 
-  useFocusTrap(panelRef, panelOpen, () => setPanelOpen(false));
+  const {
+    open,
+    openSheet,
+    closeSheet,
+    sheetRef,
+    dragOffset,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+  } = useBottomSheet(panelOpen);
+
+  // Sync with context
+  const handleOpenChange = (value: boolean) => {
+    if (value) openSheet();
+    else closeSheet();
+  };
+
+  useFocusTrap(sheetRef, open, closeSheet);
 
   return (
     <>
       {/* ── Botón flotante global ── */}
       <button
         type="button"
-        onClick={() => setPanelOpen(!panelOpen)}
+        onClick={() => handleOpenChange(!panelOpen)}
         aria-haspopup="dialog"
-        aria-expanded={panelOpen}
+        aria-expanded={open}
         aria-label="Abrir panel de accesibilidad"
         title="Accesibilidad (A)"
-        className={`fixed bottom-6 right-6 z-50 inline-flex items-center justify-center w-14 h-14 rounded-full bg-secondary-600 text-white shadow-lg hover:bg-secondary-700 ${TOUCH_TARGET} ${FOCUS_RING}`}
+        className={`fixed bottom-6 right-6 z-50 inline-flex items-center justify-center w-14 h-14 rounded-full bg-secondary-600 text-white shadow-lg hover:bg-secondary-700 ${TOUCH_TARGET_LG} ${FOCUS_RING} lg:w-12 lg:h-12`}
       >
         <svg
-          className="w-7 h-7"
+          className="w-7 h-7 lg:w-6 lg:h-6"
           fill="currentColor"
           viewBox="0 0 24 24"
           aria-hidden="true"
@@ -91,23 +108,28 @@ export default function AccessibilityPanel() {
         </svg>
       </button>
 
-      {/* ── Drawer lateral de accesibilidad ── */}
-      {panelOpen && (
+      {/* ── Bottom Sheet de accesibilidad ── */}
+      {open && (
         <div className="fixed inset-0 z-[60]" role="presentation">
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={() => setPanelOpen(false)}
+            onClick={closeSheet}
             aria-hidden="true"
           />
           <div
-            ref={panelRef}
+            ref={sheetRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="a11y-panel-title"
-            className="absolute top-0 right-0 h-full w-[320px] max-w-[85vw] bg-white shadow-xl flex flex-col"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[90vh] animate-slide-up"
+            style={{ transform: `translateY(${dragOffset}px)` }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 id="a11y-panel-title" className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <div className="bottom-sheet-handle" aria-hidden="true" />
+            <header className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+              <h2 id="a11y-panel-title" className="text-fluid-lg font-bold text-gray-900 flex items-center gap-2">
                 <svg className="w-5 h-5 text-secondary-600" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M12 2a3 3 0 100 6 3 3 0 000-6zM12 9c-2.2 0-4.4 1-6.1 2.9l2.3 2.3c1.8-1.9 4.1-2.9 3.8-2.9.3 0 2 .6 3.8 1.9l2.3-2.3A8.1 8.1 0 0012 9z" />
                 </svg>
@@ -115,18 +137,18 @@ export default function AccessibilityPanel() {
               </h2>
               <button
                 type="button"
-                onClick={() => setPanelOpen(false)}
+                onClick={closeSheet}
                 aria-label="Cerrar panel de accesibilidad"
-                className={`inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 text-2xl leading-none rounded-lg hover:bg-gray-100 ${FOCUS_RING}`}
+                className={`inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 text-2xl leading-none rounded-lg hover:bg-gray-100 ${TOUCH_TARGET_LG} ${FOCUS_RING}`}
               >
                 <span aria-hidden="true">×</span>
               </button>
-            </div>
+            </header>
 
-            <div className="flex-1 overflow-y-auto p-4" aria-live="polite">
+            <div className="flex-1 overflow-y-auto p-4 pb-safe-bottom" aria-live="polite">
               {/* Tipografía */}
               <section className="mb-5">
-                <h3 className="text-sm font-semibold text-gray-800 mb-2">Tamaño de tipografía</h3>
+                <h3 className="text-fluid-sm font-semibold text-gray-800 mb-2">Tamaño de tipografía</h3>
                 <div className="grid grid-cols-4 gap-2">
                   {FONT_SIZES.map((size) => (
                     <button
@@ -143,7 +165,7 @@ export default function AccessibilityPanel() {
                       <span aria-hidden="true" className="font-bold leading-none">
                         {size.sample}
                       </span>
-                      <span className="text-[10px]">{size.label}</span>
+                      <span className="text-fluid-xs">{size.label}</span>
                     </button>
                   ))}
                 </div>
@@ -151,7 +173,7 @@ export default function AccessibilityPanel() {
 
               {/* Contraste y daltonismo */}
               <section className="mb-5">
-                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                <h3 className="text-fluid-sm font-semibold text-gray-800 mb-2">
                   Contraste y daltonismo
                 </h3>
                 <div className="space-y-1">
@@ -167,8 +189,8 @@ export default function AccessibilityPanel() {
                           : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                       } ${FOCUS_RING}`}
                     >
-                      <span className="block text-sm font-medium">{mode.label}</span>
-                      <span className="block text-xs text-gray-500">{mode.description}</span>
+                      <span className="block text-fluid-sm font-medium">{mode.label}</span>
+                      <span className="block text-fluid-xs text-gray-500">{mode.description}</span>
                     </button>
                   ))}
                 </div>
@@ -176,7 +198,7 @@ export default function AccessibilityPanel() {
 
               {/* Opciones de lectura */}
               <section className="mb-5 space-y-2">
-                <h3 className="text-sm font-semibold text-gray-800">Lectura y movimiento</h3>
+                <h3 className="text-fluid-sm font-semibold text-gray-800">Lectura y movimiento</h3>
                 <Switch
                   checked={dyslexiaFont}
                   onChange={setDyslexiaFont}

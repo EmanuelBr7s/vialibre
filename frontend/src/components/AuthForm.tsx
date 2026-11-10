@@ -4,7 +4,8 @@ import { useState, type ChangeEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { PROMO_CONFIG } from '@/config/promo';
-import { FOCUS_RING, TOUCH_TARGET, inputClass } from '@/components/ui/classes';
+import { DEMO_ACCOUNTS } from '@/data/mock';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, hintClass, btnPrimary, navLinkClass, roleButtonClass } from '@/components/ui/classes';
 import { AfiliacionAcademica, ProgramaAcademico, UserRole } from '@/types';
 import Select from '@/components/ui/Select';
 
@@ -49,8 +50,25 @@ export default function AuthForm({ mode }: AuthFormProps) {
   const [touched, setTouched] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoBusy, setDemoBusy] = useState<string | null>(null);
 
   const isRegister = mode === 'register';
+
+  // Los botones de acceso rápido solo aplican cuando el mockup está activo.
+  const showDemo = process.env.NEXT_PUBLIC_API_MOCK === 'true';
+
+  const handleDemoLogin = async (email: string) => {
+    if (submitting || authLoading || demoBusy) return;
+    setError(null);
+    setDemoBusy(email);
+    try {
+      await login(email, 'demo');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error inesperado');
+    } finally {
+      setDemoBusy(null);
+    }
+  };
 
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
@@ -147,47 +165,33 @@ export default function AuthForm({ mode }: AuthFormProps) {
     }
   };
 
-  const navLinkClass = (active: boolean) =>
-    `flex-1 py-2 rounded-md text-sm font-medium transition ${TOUCH_TARGET} ${FOCUS_RING} ${
-      active ? 'bg-white text-gray-900 shadow' : 'text-gray-500'
-    } inline-flex items-center justify-center`;
-
-  const roleButtonClass = (active: boolean) =>
-    `flex-1 py-2.5 rounded-lg border text-sm font-medium transition ${TOUCH_TARGET} ${
-      FOCUS_RING
-    } ${
-      active
-        ? 'border-primary-500 bg-primary-50 text-primary-700'
-        : 'border-gray-200 text-gray-500 hover:border-gray-300'
-    }`;
-
   const fieldError = (name: keyof FieldErrors, id: string) =>
     showError(name) ? (
-      <p id={id} className="mt-1 text-xs text-red-600" role="alert">
+      <p id={id} className={errorClass} role="alert">
         {errors[name]}
       </p>
     ) : null;
 
   return (
     <div className="flex min-h-screen">
-      {/* ── Lado A: Formulario (50%) ── */}
-      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-white focus:outline-none">
+      {/* ── Lado A: Formulario ── */}
+      <main id="main-content" tabIndex={-1} className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-white focus:outline-none safe-area-inset">
         <div className="w-full max-w-md">
           {/* Logo */}
           <header className="flex items-center gap-3 mb-8">
-            <div className="w-11 h-11 bg-primary-600 rounded-lg flex items-center justify-center">
+            <div className="w-11 h-11 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
               <span className="text-white font-bold text-2xl">V</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">ViaLibre</h1>
-              <p className="text-xs text-gray-500">Innovación Abierta</p>
+              <h1 className="text-fluid-2xl font-bold text-gray-900">ViaLibre</h1>
+              <p className="text-fluid-xs text-gray-500">Innovación Abierta</p>
             </div>
           </header>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">
+          <h2 className="text-fluid-2xl font-bold text-gray-900 mb-1">
             {mode === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
           </h2>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-fluid-sm text-gray-500 mb-6">
             {mode === 'login'
               ? 'Ingresa para explorar problemáticas y postularte.'
               : 'Únete a la red que conecta empresas con talento universitario.'}
@@ -211,29 +215,32 @@ export default function AuthForm({ mode }: AuthFormProps) {
             </Link>
           </nav>
 
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Role selection (register only) */}
             {isRegister && (
-              <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Tipo de usuario">
-                {REGISTER_ROLES.map((option) => (
-                  <button
-                    key={option.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={role === option.id}
-                    onClick={() => setRole(option.id)}
-                    className={roleButtonClass(role === option.id)}
-                  >
-                    {option.label}
-                    <span className="block text-[10px] font-normal text-gray-400">{option.hint}</span>
-                  </button>
-                ))}
-              </div>
+              <fieldset className="space-y-3">
+                <legend className={labelClass}>Tipo de cuenta</legend>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3" role="radiogroup" aria-label="Tipo de usuario">
+                  {REGISTER_ROLES.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={role === option.id}
+                      onClick={() => setRole(option.id)}
+                      className={roleButtonClass(role === option.id)}
+                    >
+                      <span className="font-medium">{option.label}</span>
+                      <span className="block text-fluid-xs font-normal text-gray-400">{option.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
             )}
 
             {isRegister && (
               <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="fullName" className={labelClass}>
                   {role === UserRole.PUBLICADOR ? 'Nombre de la empresa o fundación' : 'Nombre completo'}
                 </label>
                 <input
@@ -247,52 +254,61 @@ export default function AuthForm({ mode }: AuthFormProps) {
                   aria-describedby={errors.fullName ? 'fullName-error' : undefined}
                   placeholder={role === UserRole.PUBLICADOR ? 'Empresa Ejemplo S.A.S' : 'Juan Pérez'}
                   className={inputClass}
+                  inputMode="text"
+                  autoComplete="name"
                 />
                 {fieldError('fullName', 'fullName-error')}
               </div>
             )}
 
             {isRegister && role === UserRole.PUBLICADOR && (
-              <div>
-                <label htmlFor="empresaNombre" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre comercial
-                </label>
-                <input
-                  id="empresaNombre"
-                  type="text"
-                  value={empresaNombre}
-                  onChange={handleChange('empresaNombre', setEmpresaNombre)}
-                  onBlur={() => handleBlur('empresaNombre')}
-                  required
-                  aria-invalid={!!errors.empresaNombre}
-                  aria-describedby={errors.empresaNombre ? 'empresaNombre-error' : undefined}
-                  placeholder="Nombre comercial de la empresa"
-                  className={inputClass}
-                />
-                {fieldError('empresaNombre', 'empresaNombre-error')}
-                <label htmlFor="nitEmpresa" className="block text-sm font-medium text-gray-700 mb-1 mt-4">
-                  NIT
-                </label>
-                <input
-                  id="nitEmpresa"
-                  type="text"
-                  value={nitEmpresa}
-                  onChange={handleChange('nitEmpresa', setNitEmpresa)}
-                  onBlur={() => handleBlur('nitEmpresa')}
-                  required
-                  aria-invalid={!!errors.nitEmpresa}
-                  aria-describedby={errors.nitEmpresa ? 'nitEmpresa-error' : undefined}
-                  placeholder="900.123.456-7"
-                  className={inputClass}
-                />
-                {fieldError('nitEmpresa', 'nitEmpresa-error')}
+              <div className="space-y-5">
+                <div>
+                  <label htmlFor="empresaNombre" className={labelClass}>
+                    Nombre comercial
+                  </label>
+                  <input
+                    id="empresaNombre"
+                    type="text"
+                    value={empresaNombre}
+                    onChange={handleChange('empresaNombre', setEmpresaNombre)}
+                    onBlur={() => handleBlur('empresaNombre')}
+                    required
+                    aria-invalid={!!errors.empresaNombre}
+                    aria-describedby={errors.empresaNombre ? 'empresaNombre-error' : undefined}
+                    placeholder="Nombre comercial de la empresa"
+                    className={inputClass}
+                    inputMode="text"
+                    autoComplete="organization"
+                  />
+                  {fieldError('empresaNombre', 'empresaNombre-error')}
+                </div>
+                <div>
+                  <label htmlFor="nitEmpresa" className={labelClass}>
+                    NIT
+                  </label>
+                  <input
+                    id="nitEmpresa"
+                    type="text"
+                    value={nitEmpresa}
+                    onChange={handleChange('nitEmpresa', setNitEmpresa)}
+                    onBlur={() => handleBlur('nitEmpresa')}
+                    required
+                    aria-invalid={!!errors.nitEmpresa}
+                    aria-describedby={errors.nitEmpresa ? 'nitEmpresa-error' : undefined}
+                    placeholder="900.123.456-7"
+                    className={inputClass}
+                    inputMode="text"
+                  />
+                  {fieldError('nitEmpresa', 'nitEmpresa-error')}
+                </div>
               </div>
             )}
 
             {isRegister && role !== UserRole.PUBLICADOR && (
-              <>
+              <div className="space-y-5">
                 <div>
-                  <label htmlFor="programaAcademico" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="programaAcademico" className={labelClass}>
                     Programa académico
                   </label>
                   <Select
@@ -317,7 +333,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
                   {fieldError('programaAcademico', 'programaAcademico-error')}
                 </div>
                 <div>
-                  <label htmlFor="afiliacionAcademica" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="afiliacionAcademica" className={labelClass}>
                     Afiliación académica (opcional)
                   </label>
                   <Select
@@ -334,11 +350,11 @@ export default function AuthForm({ mode }: AuthFormProps) {
                     ))}
                   </Select>
                 </div>
-              </>
+              </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label htmlFor="email" className={labelClass}>Email</label>
               <input
                 id="email"
                 type="email"
@@ -351,9 +367,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 aria-describedby={errors.email ? 'email-error' : undefined}
                 placeholder="tu@correo.com"
                 className={inputClass}
+                inputMode="email"
               />
               {isRegister && !showError('email') && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className={hintClass}>
                   Puedes usar tu correo personal; no necesitas el institucional.
                 </p>
               )}
@@ -362,9 +379,9 @@ export default function AuthForm({ mode }: AuthFormProps) {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Contraseña</label>
+                <label htmlFor="password" className={labelClass}>Contraseña</label>
                 {mode === 'login' && (
-                  <span className="text-xs text-gray-400">Mínimo 8 caracteres</span>
+                  <span className={hintClass}>Mínimo 8 caracteres</span>
                 )}
               </div>
               <input
@@ -380,13 +397,14 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 aria-describedby={errors.password ? 'password-error' : undefined}
                 placeholder="••••••••"
                 className={inputClass}
+                inputMode="text"
               />
               {fieldError('password', 'password-error')}
             </div>
 
             <div aria-live="polite">
               {error && (
-                <div role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
+                <div role="alert" className="text-fluid-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
                   {error}
                 </div>
               )}
@@ -395,7 +413,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
             <button
               type="submit"
               disabled={submitting || authLoading}
-              className={`w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`${btnPrimary} w-full`}
             >
               {submitting
                 ? 'Procesando…'
@@ -404,11 +422,54 @@ export default function AuthForm({ mode }: AuthFormProps) {
                 : 'Crear cuenta'}
             </button>
           </form>
+
+          {/* Acceso rápido demo (solo visible en modo mockup) */}
+          {showDemo && mode === 'login' && (
+            <section aria-label="Acceso rápido de demostración" className="mt-8">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="h-px flex-1 bg-gray-200" aria-hidden="true" />
+                <span className="text-fluid-xs text-gray-400 uppercase tracking-wider">
+                  Acceso rápido (demo)
+                </span>
+                <span className="h-px flex-1 bg-gray-200" aria-hidden="true" />
+              </div>
+
+              <div className="space-y-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => handleDemoLogin(account.email)}
+                    disabled={demoBusy !== null || submitting || authLoading}
+                    aria-busy={demoBusy === account.email}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-gray-200 hover:border-primary-500 hover:bg-primary-50 text-left transition disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-fluid-sm font-medium text-gray-900">
+                        {account.label}
+                      </span>
+                      <span className="block text-fluid-xs text-gray-500 truncate">
+                        {account.description}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-fluid-xs font-medium text-gray-400">
+                      {demoBusy === account.email ? 'Entrando…' : 'Entrar →'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <p className="mt-3 text-fluid-xs text-gray-400">
+                Con el modo mock activo no se requiere backend: entra como cada rol y prueba el
+                flujo completo.
+              </p>
+            </section>
+          )}
         </div>
       </main>
 
-      {/* ── Lado B: Panel Promocional (50%) ── */}
-      <aside aria-label="Información institucional" className="flex-1 hidden md:flex items-center justify-center p-12 bg-gradient-to-br from-primary-700 via-primary-600 to-secondary-600 text-white">
+      {/* ── Lado B: Panel Promocional (solo desktop) ── */}
+      <aside aria-label="Información institucional" className="flex-1 hidden lg:flex items-center justify-center p-12 bg-gradient-to-br from-primary-700 via-primary-600 to-secondary-600 text-white">
         {PROMO_CONFIG.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -427,10 +488,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
               </p>
             </div>
 
-            <h2 className="text-4xl font-bold mb-4 leading-tight">
+            <h2 className="text-fluid-3xl font-bold mb-4 leading-tight">
               {PROMO_CONFIG.title}
             </h2>
-            <p className="text-lg text-primary-100 mb-8">{PROMO_CONFIG.subtitle}</p>
+            <p className="text-fluid-lg text-primary-100 mb-8">{PROMO_CONFIG.subtitle}</p>
 
             <ul className="space-y-4">
               {PROMO_CONFIG.features.map((feature) => (
@@ -455,7 +516,7 @@ export default function AuthForm({ mode }: AuthFormProps) {
               ))}
             </ul>
 
-            <p className="mt-10 text-sm text-primary-200 border-t border-white/20 pt-6">
+            <p className="mt-10 text-fluid-sm text-primary-200 border-t border-white/20 pt-6">
               {PROMO_CONFIG.footer}
             </p>
           </div>

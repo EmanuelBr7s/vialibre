@@ -418,11 +418,33 @@ Las pantallas de datos incluyen `loading.tsx` con esqueletos de carga.
 ### Capas
 
 - `contexts/`: `AuthContext` (sesión), `AccessibilityContext`, `TourContext`, `AdvertisementContext`.
-- `hooks/`: `useProfile`, `useRoleGuard`, `useFocusTrap`.
-- `components/`: `Sidebar`, `UserDropdown`, `ChallengeCard`, `FeaturedCard`, `CreateChallengeModal`, `ApplicantsSection`, `ContactSection`, `PracticeDocuments`, `CvPreviewModal`, `ProfileEditor`, `ResumeUploader`, `AccessibilityPanel`, `OnboardingManager`, `FeatureTour`, diálogos y banners.
+- `hooks/`: `useProfile`, `useRoleGuard`, `useFocusTrap`, `useBottomSheet` (hojas inferiores arrastrables en móvil).
+- `components/`: `Sidebar`, `MobileHeader`, `BottomNav` (navegación móvil), `LayoutContent`, `UserDropdown`, `ChallengeCard`, `FeaturedCard`, `CreateChallengeModal`, `ApplicantsSection`, `ContactSection`, `PracticeDocuments`, `CvPreviewModal`, `ProfileEditor`, `ResumeUploader`, `AccessibilityPanel`, `OnboardingManager`, `FeatureTour`, diálogos y banners.
 - `data/`: datos de demostración (`mock.ts`), módulos por rol (`modules.ts`), anuncios (`ads.ts`), onboarding (`tour.ts`) y accesibilidad (`accessibility.ts`).
 - `config/promo.ts`: configuración del panel promocional del login.
 - `public/seed/`: avatares SVG y portadas de las publicaciones sembradas.
+
+### Diseño responsive
+
+La interfaz es mobile-first: en pantallas pequeñas se usa `MobileHeader` + `BottomNav` y los modales se presentan como bottom sheets; desde `lg` se muestra la barra lateral colapsable. La tipografía usa la escala fluida `text-fluid-*` (definida en `tailwind.config.js`) y los controles respetan un área táctil mínima (`min-h-touch`). Las clases compartidas viven en `components/ui/classes.ts`.
+
+### Modo mock (solo frontend, sin backend)
+
+Para trabajar en la interfaz sin levantar la base de datos ni los microservicios:
+
+```bash
+cd frontend
+cp .env.local.example .env.local   # y cambia NEXT_PUBLIC_API_MOCK=true
+npm install
+npm run dev
+```
+
+| `NEXT_PUBLIC_API_MOCK` | Comportamiento |
+|---|---|
+| `true` | Usa `src/lib/mockApi.ts` y datos locales (`localStorage`). Sin red; el login muestra accesos rápidos por rol. |
+| `false` | Llama a la API real a través del proxy de `next.config.js`. |
+
+Los datos del modo mock se guardan en el `localStorage` del navegador; para reiniciarlos borra la clave `vialibre_mock_db_v1` desde las DevTools.
 
 ---
 
