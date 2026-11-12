@@ -198,6 +198,51 @@ def test_list_and_update_practica():
 def test_update_missing_practica_returns_404():
     headers = auth_headers(UserRole.ADMIN)
     response = client.patch(
-        f"{BASE}/{uuid.uuid4()}", json={"estado_administrativo": "x"}, headers=headers
+        f"{BASE}/{uuid.uuid4()}", json={"estado_administrativo": "en_proceso"}, headers=headers
     )
     assert response.status_code == 404
+
+
+# ── Catalogos, anio y periodo ──
+
+
+def test_catalog_and_period_values_are_validated():
+    headers = auth_headers(UserRole.ADMIN)
+    invalidos = [
+        {"estado_administrativo": "inventado"},
+        {"modalidad": "a distancia"},
+        {"tipo_practica": "otra"},
+        {"anio_academico": "26"},
+        {"anio_academico": "2026-2"},
+        {"periodo_academico": "3"},
+        {"duracion_horas": 0},
+        {"duracion_horas": 2001},
+    ]
+    for campos in invalidos:
+        response = client.post(
+            BASE, json={"interaction_id": str(uuid.uuid4()), **campos}, headers=headers
+        )
+        assert response.status_code == 422, (campos, response.text)
+
+
+def test_valid_catalog_values_are_persisted():
+    interaction = _create_interaction()
+    headers = auth_headers(UserRole.ADMIN)
+    payload = {
+        "interaction_id": interaction["id"],
+        "estado_administrativo": "en_proceso",
+        "modalidad": "hibrido",
+        "tipo_practica": "empresarial",
+        "anio_academico": "2026",
+        "periodo_academico": "2",
+        "duracion_horas": 480,
+    }
+    create = client.post(BASE, json=payload, headers=headers)
+    assert create.status_code == 201, create.text
+    practica = create.json()
+    try:
+        for campo in ("estado_administrativo", "modalidad", "tipo_practica", "anio_academico",
+                      "periodo_academico", "duracion_horas"):
+            assert practica[campo] == payload[campo]
+    finally:
+        _cleanup([practica["id"]], [interaction["id"]])

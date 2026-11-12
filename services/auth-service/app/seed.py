@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import hash_password
 from app.database import async_session
 from app.models.role import Role
+from app.models.tutor_docente import TutorDocente
 from app.models.user import User
 from vialibre_common.pdf import A4_HEIGHT, A4_WIDTH, Pdf
 from vialibre_common.schemas import TALENT_ROLES, AfiliacionAcademica, UserRole
@@ -301,6 +302,35 @@ async def upsert_user(db: AsyncSession, data: dict, role: Role) -> None:
     print(f"  User '{data['email']}' {'created' if created else 'updated'}.")
 
 
+TUTORES = [
+    {"id": uuid.UUID("d0000000-0000-0000-0000-000000000001"), "identificacion": "32765410",
+     "nombres": "Patricia", "apellidos": "Ospino Díaz", "email": "patricia.ospino@unilibre.edu.co",
+     "telefono": "+57 300 000 0101", "programa_academico": "Ingeniería de Sistemas"},
+    {"id": uuid.UUID("d0000000-0000-0000-0000-000000000002"), "identificacion": "72154896",
+     "nombres": "Hernán", "apellidos": "Castro Mejía", "email": "hernan.castro@unilibre.edu.co",
+     "telefono": "+57 300 000 0102", "programa_academico": "Ingeniería Industrial"},
+    {"id": uuid.UUID("d0000000-0000-0000-0000-000000000003"), "identificacion": "22498731",
+     "nombres": "Marta", "apellidos": "Barrios Cantillo", "email": "marta.barrios@unilibre.edu.co",
+     "telefono": "+57 300 000 0103", "programa_academico": "Contaduría Pública"},
+]
+
+
+async def seed_tutores(db: AsyncSession) -> None:
+    """Create or update the demo teaching tutors (panel de administración)."""
+    for data in TUTORES:
+        tutor = (
+            await db.execute(select(TutorDocente).where(TutorDocente.id == data["id"]))
+        ).scalar_one_or_none()
+        created = tutor is None
+        if created:
+            tutor = TutorDocente(id=data["id"])
+            db.add(tutor)
+        for field, value in data.items():
+            setattr(tutor, field, value)
+        await db.flush()
+        print(f"  Tutor '{data['nombres']} {data['apellidos']}' {'created' if created else 'updated'}.")
+
+
 async def main():
     print("Seeding Vialibre auth database...")
     async with async_session() as db:
@@ -316,6 +346,7 @@ async def main():
                 await upsert_user(db, data, roles[UserRole.SOLUCIONADOR])
             for data in EGRESADOS:
                 await upsert_user(db, data, roles[UserRole.EGRESADO])
+            await seed_tutores(db)
             await db.commit()
             print("Auth seed complete!")
         except Exception as e:

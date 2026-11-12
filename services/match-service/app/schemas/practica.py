@@ -1,8 +1,18 @@
 import uuid
 from datetime import date, datetime
-from typing import Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, Field
+
+# Catálogos del expediente (los mismos valores que ofrece el panel de administración).
+EstadoAdministrativo = Literal["en_revision", "en_proceso", "culminada", "suspendida", "cancelada"]
+ModalidadPractica = Literal["presencial", "remoto", "hibrido"]
+TipoPractica = Literal["empresarial", "social", "investigacion"]
+# Año de cuatro dígitos y periodo semestral: juntos se muestran como "2026-2".
+AnioAcademico = Annotated[str, Field(pattern=r"^(19|20)\d{2}$")]
+PeriodoAcademico = Literal["1", "2"]
+DuracionHoras = Annotated[int, Field(ge=1, le=2000)]
+Observaciones = Annotated[str, Field(max_length=2000)]
 
 
 class PracticaCreate(BaseModel):
@@ -13,10 +23,9 @@ class PracticaCreate(BaseModel):
     crea una `Practica`. `interaction_id` es obligatorio. Si no se envian
     `challenge_id`/`solucionador_id`, se toman de la interaccion.
 
-    D1/D3/D4/D11 siguen pendientes: `modalidad`, `tipo_practica` y
-    `estado_administrativo` se aceptan como texto libre (sin catalogo), y
-    `empresa_id`/`tutor_docente_id` son referencias logicas opcionales sin
-    clave foranea entre servicios.
+    `modalidad`, `tipo_practica` y `estado_administrativo` se validan contra
+    los catalogos de este modulo; `empresa_id`/`tutor_docente_id` son
+    referencias logicas opcionales sin clave foranea entre servicios (D4/D11).
     """
 
     interaction_id: uuid.UUID
@@ -24,16 +33,16 @@ class PracticaCreate(BaseModel):
     solucionador_id: Optional[uuid.UUID] = None
     empresa_id: Optional[uuid.UUID] = None
     tutor_docente_id: Optional[uuid.UUID] = None
-    estado_administrativo: Optional[str] = Field(None, max_length=30)
-    modalidad: Optional[str] = Field(None, max_length=20)
-    tipo_practica: Optional[str] = Field(None, max_length=30)
-    duracion_horas: Optional[int] = Field(None, ge=0)
+    estado_administrativo: Optional[EstadoAdministrativo] = None
+    modalidad: Optional[ModalidadPractica] = None
+    tipo_practica: Optional[TipoPractica] = None
+    duracion_horas: Optional[DuracionHoras] = None
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None
-    anio_academico: Optional[str] = Field(None, max_length=10)
-    periodo_academico: Optional[str] = Field(None, max_length=10)
+    anio_academico: Optional[AnioAcademico] = None
+    periodo_academico: Optional[PeriodoAcademico] = None
     bilingue: bool = False
-    observaciones_institucionales: Optional[str] = None
+    observaciones_institucionales: Optional[Observaciones] = None
 
 
 class PracticaUpdate(BaseModel):
@@ -45,16 +54,16 @@ class PracticaUpdate(BaseModel):
 
     empresa_id: Optional[uuid.UUID] = None
     tutor_docente_id: Optional[uuid.UUID] = None
-    estado_administrativo: Optional[str] = Field(None, max_length=30)
-    modalidad: Optional[str] = Field(None, max_length=20)
-    tipo_practica: Optional[str] = Field(None, max_length=30)
-    duracion_horas: Optional[int] = Field(None, ge=0)
+    estado_administrativo: Optional[EstadoAdministrativo] = None
+    modalidad: Optional[ModalidadPractica] = None
+    tipo_practica: Optional[TipoPractica] = None
+    duracion_horas: Optional[DuracionHoras] = None
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None
-    anio_academico: Optional[str] = Field(None, max_length=10)
-    periodo_academico: Optional[str] = Field(None, max_length=10)
+    anio_academico: Optional[AnioAcademico] = None
+    periodo_academico: Optional[PeriodoAcademico] = None
     bilingue: Optional[bool] = None
-    observaciones_institucionales: Optional[str] = None
+    observaciones_institucionales: Optional[Observaciones] = None
 
 
 class PracticaResponse(BaseModel):
