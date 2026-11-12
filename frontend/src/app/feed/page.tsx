@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,11 @@ import { ChallengeTipo, UserRole } from '@/types';
 import { LAB_CONTACT, MODULES, MODULE_BY_ID, defaultModuleFor } from '@/data/modules';
 import { FOCUS_RING, TOUCH_TARGET, btnSecondary } from '@/components/ui/classes';
 
+/** Publicaciones que se piden por módulo, las que se listan y las destacadas. */
+const FETCH_LIMIT = 100;
+const FEED_LIMIT = 30;
+const FEATURED_LIMIT = 20;
+
 export default function FeedPage() {
   const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
@@ -29,22 +34,39 @@ export default function FeedPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ChallengeTipo | null>(null);
 
-  const loadChallenges = useCallback(async (tipo: ChallengeTipo) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [all, feat] = await Promise.all([
-        api.getChallenges({ limit: 30, tipo }),
-        api.getChallenges({ featured_only: true, tipo }),
-      ]);
-      setChallenges(all.challenges);
-      setFeatured(feat.challenges);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar las publicaciones');
-    } finally {
-      setIsLoading(false);
-    }
+  // Publicaciones ya cargadas por módulo: al volver a una pestaña se muestran
+  // al instante y se refrescan en segundo plano.
+  const cache = useRef(new Map<ChallengeTipo, Challenge[]>());
+  const currentTab = useRef<ChallengeTipo | null>(null);
+
+  const showList = useCallback((list: Challenge[]) => {
+    setChallenges(list.slice(0, FEED_LIMIT));
+    setFeatured(list.filter((challenge) => challenge.is_featured).slice(0, FEATURED_LIMIT));
   }, []);
+
+  const loadChallenges = useCallback(
+    async (tipo: ChallengeTipo) => {
+      currentTab.current = tipo;
+      const cached = cache.current.get(tipo);
+      if (cached) showList(cached);
+      setIsLoading(!cached);
+      setError(null);
+      try {
+        // Una sola petición por módulo: las destacadas salen de la misma lista.
+        const { challenges: list } = await api.getChallenges({ limit: FETCH_LIMIT, tipo });
+        cache.current.set(tipo, list);
+        // Si mientras tanto se cambió de pestaña, no se pisa lo que se ve.
+        if (currentTab.current === tipo) showList(list);
+      } catch (err) {
+        if (currentTab.current === tipo && !cached) {
+          setError(err instanceof Error ? err.message : 'Error al cargar las publicaciones');
+        }
+      } finally {
+        if (currentTab.current === tipo) setIsLoading(false);
+      }
+    },
+    [showList]
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -76,10 +98,9 @@ export default function FeedPage() {
       return;
     }
     // Actualiza el feed localmente sin recargar la página (estado/caché).
-    setChallenges((prev) => [challenge, ...prev]);
-    if (challenge.is_featured) {
-      setFeatured((prev) => [challenge, ...prev]);
-    }
+    const list = [challenge, ...(cache.current.get(challenge.tipo) ?? challenges)];
+    cache.current.set(challenge.tipo, list);
+    showList(list);
   };
 
   // Flechas izquierda/derecha entre pestañas (patrón ARIA tabs).
