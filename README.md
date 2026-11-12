@@ -499,7 +499,7 @@ Tres servicios con plan gratuito, sin tarjeta:
 
 **1. Neon.** Crea un proyecto y copia la cadena de conexión (`postgresql://…?sslmode=require`). No hace falta crear esquemas ni tablas: `bootstrap_db.py` los crea en el primer arranque y marca las migraciones; en arranques posteriores solo aplica `alembic upgrade head`.
 
-**2. Render (API).** *New → Blueprint* → conecta el repositorio. `render.yaml` define el servicio `vialibre-api`. Pega la cadena de Neon en `DATABASE_URL`; `JWT_SECRET_KEY` se genera solo. Con `SEED_DEMO_DATA=true` se cargan las [credenciales demo](#datos-de-prueba-y-credenciales-demo); **cámbialo a `false` tras el primer despliegue**, porque los seeds restablecen las contraseñas demo en cada arranque. Comprueba `https://<servicio>.onrender.com/health`.
+**2. Render (API).** *New → Blueprint* → conecta el repositorio. `render.yaml` define el servicio `vialibre-api`. Pega la cadena de Neon en `DATABASE_URL`; `JWT_SECRET_KEY` se genera solo. Para cargar las [credenciales demo](#datos-de-prueba-y-credenciales-demo) en una base nueva, pon `SEED_DEMO_DATA=true` en ese primer despliegue y **vuelve a `false` después** (en `render.yaml` está en `false`), porque los seeds restablecen las contraseñas demo en cada arranque. Comprueba `https://<servicio>.onrender.com/health`.
 
 **3. Vercel (frontend).** *Add New → Project* → importa el repositorio con **Root Directory = `frontend`** y estas variables (se leen en el build):
 

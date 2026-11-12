@@ -20,7 +20,9 @@ services:
       # Firma de los JWT, compartida por los tres servicios.
       - key: JWT_SECRET_KEY
         generateValue: true
-      # Siembra los datos demo en el arranque. Ponlo en "false" tras la primera
-      # carga: los seeds restablecen las contraseñas de las cuentas demo.
+      # Siembra los datos demo (cuentas, publicaciones, empresas y tutores) en el
+      # arranque. Ya se cargaron: se deja en "false" porque los seeds restablecen
+      # las contraseñas de las cuentas demo en cada arranque. Ponlo en "true" solo
+      # para sembrar una base nueva y vuelve a "false" después.
       - key: SEED_DEMO_DATA
-        value: "true"
+        value: "false"
