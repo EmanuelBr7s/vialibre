@@ -98,20 +98,18 @@ export default function BottomNav() {
 
   return (
     <nav
-      role="navigation"
       aria-label="Navegación principal"
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-inset"
     >
-      <ul className="flex items-center justify-around h-16" role="tablist">
-        {items.map((item, i) => {
+      {/* Son enlaces de navegación, no pestañas: la página activa se marca con aria-current. */}
+      <ul className="flex items-center justify-around h-16">
+        {items.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
-            <li key={item.href} role="presentation">
+            <li key={item.href}>
               <Link
                 href={item.href}
-                role="tab"
-                aria-selected={isActive}
-                aria-controls={`panel-${i}`}
+                aria-current={isActive ? 'page' : undefined}
                 data-tour={item.tour}
                 className={`flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors ${TOUCH_TARGET} ${FOCUS_RING} ${
                   isActive ? 'text-primary-600' : 'text-gray-500 hover:text-gray-700'

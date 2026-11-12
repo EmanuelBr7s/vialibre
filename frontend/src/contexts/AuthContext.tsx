@@ -52,15 +52,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // El middleware decide por la cookie de sesión. Si el router había precargado
+  // /feed sin sesión (respuesta: «ir a /login»), esa respuesta guardada dejaba al
+  // usuario en el login tras entrar; refresh() la descarta.
+  const enterApp = useCallback(() => {
+    router.push('/feed');
+    router.refresh();
+  }, [router]);
+
   const login = useCallback(
     async (email: string, password: string) => {
       const res = await api.login(email, password);
       setToken(res.access_token);
       const me = await api.getMe(res.access_token);
       setUser(me);
-      router.push('/feed');
+      enterApp();
     },
-    [router]
+    [enterApp]
   );
 
   const register = useCallback(
@@ -69,9 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(res.access_token);
       const me = await api.getMe(res.access_token);
       setUser(me);
-      router.push('/feed');
+      enterApp();
     },
-    [router]
+    [enterApp]
   );
 
   const logout = useCallback(() => {
@@ -79,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setToken(null);
     router.push('/login');
+    router.refresh();
   }, [router]);
 
   /**
