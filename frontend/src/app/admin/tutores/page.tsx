@@ -13,6 +13,7 @@ import { errorMessage, isStatus } from '@/lib/adminErrors';
 import { validateTutor, type FieldErrors, type TutorDraft } from '@/lib/adminValidation';
 import ResponsiveList from '@/components/admin/ResponsiveList';
 import Select from '@/components/ui/Select';
+import { useToast } from '@/components/ui/Toast';
 import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnSecondary } from '@/components/ui/classes';
 import type { TutorDocente, TutorDocenteCreate } from '@/types';
 
@@ -69,6 +70,7 @@ function displayName(tutor: TutorDocente): string {
 
 export default function AdminTutoresPage() {
   const router = useRouter();
+  const toast = useToast();
   const [rows, setRows] = useState<TutorDocente[]>([]);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
@@ -83,13 +85,7 @@ export default function AdminTutoresPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!feedback) return;
-    const timer = window.setTimeout(() => setFeedback(null), 3000);
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
 
   const handleUnauthorized = useCallback(() => {
     api.clearToken();
@@ -166,10 +162,10 @@ export default function AdminTutoresPage() {
       const payload = toPayload(draft);
       if (editing) {
         await api.updateTutorDocente(editing.id, payload);
-        setFeedback('Tutor actualizado correctamente.');
+        toast.success('Tutor actualizado correctamente.');
       } else {
         await api.createTutorDocente(payload);
-        setFeedback('Tutor registrado correctamente.');
+        toast.success('Tutor registrado correctamente.');
       }
       const target = editing ? skip : 0;
       closeForm();
@@ -191,10 +187,6 @@ export default function AdminTutoresPage() {
       subtitle="Registro y mantenimiento de los tutores docentes vinculados al programa."
     >
       <div className="space-y-6">
-        <div aria-live="polite">
-          {feedback ? <StatusAlert tone="success">{feedback}</StatusAlert> : null}
-        </div>
-
         {formOpen ? (
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
@@ -203,8 +195,6 @@ export default function AdminTutoresPage() {
               </h2>
             </div>
             <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4" noValidate>
-              {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <TextField
                   id="tutor-identificacion"
@@ -273,10 +263,16 @@ export default function AdminTutoresPage() {
                 </div>
               </div>
 
+              {/* Los avisos van junto a los botones: es donde está mirando quien envía. */}
+              <div aria-live="polite">
+                {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
+                  aria-busy={submitting}
                   className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {submitting ? 'Guardando…' : editing ? 'Guardar cambios' : 'Registrar tutor'}

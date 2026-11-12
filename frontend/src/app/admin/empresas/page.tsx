@@ -13,6 +13,7 @@ import { errorMessage, isStatus } from '@/lib/adminErrors';
 import { validateEmpresa, type EmpresaDraft, type FieldErrors } from '@/lib/adminValidation';
 import ResponsiveList from '@/components/admin/ResponsiveList';
 import Select from '@/components/ui/Select';
+import { useToast } from '@/components/ui/Toast';
 import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnSecondary } from '@/components/ui/classes';
 import type { Empresa, EmpresaCreate } from '@/types';
 
@@ -64,6 +65,7 @@ function toPayload(draft: EmpresaDraft): EmpresaCreate {
 
 export default function AdminEmpresasPage() {
   const router = useRouter();
+  const toast = useToast();
   const [rows, setRows] = useState<Empresa[]>([]);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
@@ -78,13 +80,7 @@ export default function AdminEmpresasPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!feedback) return;
-    const timer = window.setTimeout(() => setFeedback(null), 3000);
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
 
   const handleUnauthorized = useCallback(() => {
     api.clearToken();
@@ -157,10 +153,10 @@ export default function AdminEmpresasPage() {
       const payload = toPayload(draft);
       if (editing) {
         await api.updateEmpresa(editing.id, payload);
-        setFeedback('Empresa actualizada correctamente.');
+        toast.success('Empresa actualizada correctamente.');
       } else {
         await api.createEmpresa(payload);
-        setFeedback('Empresa registrada correctamente.');
+        toast.success('Empresa registrada correctamente.');
       }
       const target = editing ? skip : 0;
       closeForm();
@@ -182,10 +178,6 @@ export default function AdminEmpresasPage() {
       subtitle="Registro institucional de las empresas colaboradoras de la plataforma."
     >
       <div className="space-y-6">
-        <div aria-live="polite">
-          {feedback ? <StatusAlert tone="success">{feedback}</StatusAlert> : null}
-        </div>
-
         {formOpen ? (
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
@@ -194,8 +186,6 @@ export default function AdminEmpresasPage() {
               </h2>
             </div>
             <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4" noValidate>
-              {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <TextField
                   id="empresa-nit"
@@ -264,10 +254,16 @@ export default function AdminEmpresasPage() {
                 </div>
               </div>
 
+              {/* Los avisos van junto a los botones: es donde está mirando quien envía. */}
+              <div aria-live="polite">
+                {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
+                  aria-busy={submitting}
                   className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {submitting ? 'Guardando…' : editing ? 'Guardar cambios' : 'Registrar empresa'}

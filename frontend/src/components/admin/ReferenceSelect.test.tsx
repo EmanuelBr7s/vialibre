@@ -9,15 +9,46 @@ const OPTIONS = [
 ];
 
 describe('ReferenceSelect', () => {
-  it('lista las opciones y la opción vacía «Sin asignar»', () => {
+  it('lista las opciones y la opción vacía «Sin asignar»', async () => {
+    const user = userEvent.setup();
     render(
       <ReferenceSelect id="emp" label="Empresa" options={OPTIONS} value={null} onChange={() => {}} />
     );
 
-    const select = screen.getByLabelText('Empresa') as HTMLSelectElement;
-    expect(select.value).toBe('');
+    const combo = screen.getByRole('combobox', { name: 'Empresa' }) as HTMLInputElement;
+    expect(combo.value).toBe('');
+    await user.click(combo);
     expect(screen.getByRole('option', { name: 'Sin asignar' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Empresa A' })).toBeInTheDocument();
+  });
+
+  it('filtra las opciones al escribir y avisa cuando no hay coincidencias', async () => {
+    const user = userEvent.setup();
+    render(
+      <ReferenceSelect id="emp" label="Empresa" options={OPTIONS} value={null} onChange={() => {}} />
+    );
+
+    const combo = screen.getByRole('combobox', { name: 'Empresa' });
+    await user.type(combo, 'empresa b');
+    expect(screen.getByRole('option', { name: 'Empresa B' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Empresa A' })).not.toBeInTheDocument();
+
+    await user.clear(combo);
+    await user.type(combo, 'zzz');
+    expect(screen.getByText('Sin resultados')).toBeInTheDocument();
+  });
+
+  it('se puede elegir solo con el teclado', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <ReferenceSelect id="emp" label="Empresa" options={OPTIONS} value={null} onChange={onChange} />
+    );
+
+    await user.tab();
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    expect(onChange).toHaveBeenCalledWith(OPTIONS[1].value);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('emite el UUID al elegir una referencia y null al vaciar', async () => {
@@ -27,10 +58,12 @@ describe('ReferenceSelect', () => {
       <ReferenceSelect id="emp" label="Empresa" options={OPTIONS} value={null} onChange={onChange} />
     );
 
-    await user.selectOptions(screen.getByLabelText('Empresa'), OPTIONS[1].value);
+    await user.click(screen.getByRole('combobox', { name: 'Empresa' }));
+    await user.click(screen.getByRole('option', { name: 'Empresa B' }));
     expect(onChange).toHaveBeenCalledWith(OPTIONS[1].value);
 
-    await user.selectOptions(screen.getByLabelText('Empresa'), '');
+    await user.click(screen.getByRole('combobox', { name: 'Empresa' }));
+    await user.click(screen.getByRole('option', { name: 'Sin asignar' }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
@@ -67,7 +100,7 @@ describe('ReferenceSelect', () => {
       />
     );
     expect(screen.getByLabelText('Empresa')).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'Cargando…' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Cargando…')).toBeInTheDocument();
   });
 
   it('se deshabilita y muestra el error sin permitir UUID arbitrarios', () => {
@@ -92,6 +125,24 @@ describe('ReferenceSelect', () => {
     expect(screen.getByText('No hay registros disponibles para seleccionar.')).toBeInTheDocument();
   });
 
+  it('ofrece registrar el primer elemento cuando la lista está vacía', () => {
+    render(
+      <ReferenceSelect
+        id="emp"
+        label="Empresa"
+        options={[]}
+        value={null}
+        onChange={() => {}}
+        emptyText="Aún no hay empresas registradas."
+        emptyAction={{ href: '/admin/empresas', label: 'Registrar empresa' }}
+      />
+    );
+    expect(screen.getByRole('link', { name: 'Registrar empresa' })).toHaveAttribute(
+      'href',
+      '/admin/empresas'
+    );
+  });
+
   it('preserva un valor desconocido como referencia no verificada', () => {
     render(
       <ReferenceSelect
@@ -103,8 +154,8 @@ describe('ReferenceSelect', () => {
       />
     );
     expect(
-      screen.getByRole('option', { name: /99999999-9999-9999-9999-999999999999/ })
-    ).toBeInTheDocument();
+      (screen.getByRole('combobox', { name: 'Empresa' }) as HTMLInputElement).value
+    ).toMatch(/99999999-9999-9999-9999-999999999999/);
     expect(
       screen.getByText(/El valor guardado no está en la lista de opciones/i)
     ).toBeInTheDocument();

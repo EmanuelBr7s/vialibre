@@ -9,6 +9,7 @@ import AccessibilityPanel from '@/components/AccessibilityPanel';
 import OnboardingManager from '@/components/OnboardingManager';
 import BottomNav from '@/components/BottomNav';
 import LayoutContent from '@/components/LayoutContent';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -43,9 +44,11 @@ export default function RootLayout({
           <AdvertisementProvider>
             <AccessibilityProvider>
               <TourProvider>
-                <LayoutContent>
-                  {children}
-                </LayoutContent>
+                <ToastProvider>
+                  <LayoutContent>
+                    {children}
+                  </LayoutContent>
+                </ToastProvider>
                 <BottomNav />
                 <AccessibilityPanel />
                 <OnboardingManager />
