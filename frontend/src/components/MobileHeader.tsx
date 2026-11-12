@@ -19,8 +19,8 @@ export default function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
   const { setPanelOpen } = useAccessibility();
 
   return (
-    <header className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between safe-area-inset">
-      <Link href="/feed" className="flex items-center gap-2" aria-label="VíaLibre - Inicio">
+    <header className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <Link href="/feed" prefetch={false} className="flex items-center gap-2" aria-label="VíaLibre - Inicio">
         <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
           <span className="text-white font-bold text-lg">V</span>
         </div>

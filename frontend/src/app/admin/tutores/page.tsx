@@ -10,7 +10,7 @@ import ListSkeleton from '@/components/admin/ListSkeleton';
 import ListPagination from '@/components/admin/ListPagination';
 import { CheckboxField, TextField } from '@/components/admin/FormField';
 import { api } from '@/lib/api';
-import { errorMessage, focusFirstError, isStatus } from '@/lib/adminErrors';
+import { errorMessage, focusFirstError, isStatus, withoutErrors } from '@/lib/adminErrors';
 import { validateTutor, type FieldErrors, type TutorDraft } from '@/lib/adminValidation';
 import ResponsiveList from '@/components/admin/ResponsiveList';
 import Select from '@/components/ui/Select';
@@ -159,8 +159,11 @@ export default function AdminTutoresPage() {
     setFieldErrors({});
   };
 
-  const updateDraft = (patch: Partial<TutorDraft>) =>
+  const updateDraft = (patch: Partial<TutorDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
+    // Al editar un campo, su error deja de mostrarse.
+    setFieldErrors((prev) => withoutErrors(prev, Object.keys(patch)));
+  };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -315,6 +318,7 @@ export default function AdminTutoresPage() {
                   value={filter}
                   onChange={(event) => setFilter(event.target.value as ActivoFilter)}
                   compact
+                  className="min-w-[8.5rem]"
                 >
                   <option value="todos">Todos</option>
                   <option value="activos">Activos</option>

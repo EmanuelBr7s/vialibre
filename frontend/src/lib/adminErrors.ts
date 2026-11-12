@@ -22,3 +22,14 @@ export function focusFirstError(
   const first = order.find(([field]) => errors[field]);
   if (first) document.getElementById(first[1])?.focus();
 }
+
+/** Quita los errores de los campos indicados (al editarlos dejan de estar pendientes). */
+export function withoutErrors(
+  errors: Record<string, string>,
+  fields: readonly string[]
+): Record<string, string> {
+  if (!fields.some((field) => field in errors)) return errors;
+  const next = { ...errors };
+  fields.forEach((field) => delete next[field]);
+  return next;
+}

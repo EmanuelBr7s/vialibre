@@ -10,7 +10,7 @@ import ListSkeleton from '@/components/admin/ListSkeleton';
 import ListPagination from '@/components/admin/ListPagination';
 import { CheckboxField, TextField } from '@/components/admin/FormField';
 import { api } from '@/lib/api';
-import { errorMessage, focusFirstError, isStatus } from '@/lib/adminErrors';
+import { errorMessage, focusFirstError, isStatus, withoutErrors } from '@/lib/adminErrors';
 import { validateEmpresa, type EmpresaDraft, type FieldErrors } from '@/lib/adminValidation';
 import ResponsiveList from '@/components/admin/ResponsiveList';
 import Select from '@/components/ui/Select';
@@ -150,8 +150,11 @@ export default function AdminEmpresasPage() {
     setFieldErrors({});
   };
 
-  const updateDraft = (patch: Partial<EmpresaDraft>) =>
+  const updateDraft = (patch: Partial<EmpresaDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
+    // Al editar un campo, su error deja de mostrarse.
+    setFieldErrors((prev) => withoutErrors(prev, Object.keys(patch)));
+  };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -306,6 +309,7 @@ export default function AdminEmpresasPage() {
                   value={filter}
                   onChange={(event) => setFilter(event.target.value as ActivaFilter)}
                   compact
+                  className="min-w-[8.5rem]"
                 >
                   <option value="todas">Todas</option>
                   <option value="activas">Activas</option>

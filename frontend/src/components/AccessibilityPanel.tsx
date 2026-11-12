@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { FONT_SIZES, CONTRAST_MODES } from '@/data/accessibility';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBottomSheet } from '@/hooks/useBottomSheet';
@@ -48,6 +49,7 @@ function Switch({
 }
 
 export default function AccessibilityPanel() {
+  const { isAuthenticated } = useAuth();
   const {
     panelOpen,
     setPanelOpen,
@@ -96,7 +98,11 @@ export default function AccessibilityPanel() {
         aria-expanded={open}
         aria-label="Abrir panel de accesibilidad"
         title="Accesibilidad (A)"
-        className={`fixed bottom-6 right-6 z-50 inline-flex items-center justify-center w-14 h-14 rounded-full bg-secondary-600 text-white shadow-lg hover:bg-secondary-700 ${TOUCH_TARGET_LG} ${FOCUS_RING} lg:w-12 lg:h-12`}
+        // Con sesión, en móvil ya está el botón de accesibilidad de la cabecera y
+        // este taparía la barra inferior: solo se muestra desde escritorio.
+        className={`fixed bottom-6 right-6 z-50 items-center justify-center w-14 h-14 rounded-full bg-secondary-600 text-white shadow-lg hover:bg-secondary-700 ${TOUCH_TARGET_LG} ${FOCUS_RING} lg:w-12 lg:h-12 ${
+          isAuthenticated ? 'hidden lg:inline-flex' : 'inline-flex'
+        }`}
       >
         <svg
           className="w-7 h-7 lg:w-6 lg:h-6"
