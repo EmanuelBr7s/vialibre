@@ -118,12 +118,12 @@ async def create_challenge(
 ):
     """
     Create a new challenge.
-    Only users with PUBLICADOR role can create challenges.
+    Solo las empresas (PUBLICADOR) y el administrador pueden publicar.
     """
-    if current_user.role != UserRole.PUBLICADOR:
+    if current_user.role not in (UserRole.PUBLICADOR, UserRole.ADMIN):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only publicadores can create challenges",
+            detail="Solo las empresas y el administrador pueden publicar",
         )
 
     challenge = Challenge(
