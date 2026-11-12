@@ -6,14 +6,10 @@ PORT=${PORT:-10000}
 echo "==> Preparando la base de datos (esquemas, tablas y migraciones)..."
 # bootstrap_db.py crea el esquema y las tablas en una base vacía (p. ej. Neon
 # recién creada) y después aplica `alembic upgrade head` como siempre.
-# Cada servicio tiene su propio esquema y tabla de versión: van en paralelo.
-pids=()
+# De uno en uno: en paralelo son hasta seis procesos Python a la vez y el plan
+# gratuito (512 MB) puede quedarse sin memoria durante el arranque.
 for svc in auth core match; do
-  (cd "services/${svc}-service" && python ../../bootstrap_db.py "$svc") &
-  pids+=($!)
-done
-for pid in "${pids[@]}"; do
-  wait "$pid"
+  (cd "services/${svc}-service" && python ../../bootstrap_db.py "$svc")
 done
 
 # Datos de demostración (usuarios, publicaciones y postulaciones). Los scripts
