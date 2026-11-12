@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useProfile } from '@/hooks/useProfile';
 import { TOUR_MENU_BODY_CLASS, TOUR_MENU_EVENT } from '@/data/tour';
-import type { UserRole } from '@/types';
+import { UserRole } from '@/types';
 import { FOCUS_RING } from '@/components/ui/classes';
 
 interface UserDropdownProps {
@@ -26,22 +26,22 @@ interface RoleMeta {
 }
 
 const ROLE_META: Record<UserRole, RoleMeta> = {
-  publicador: {
+  [UserRole.PUBLICADOR]: {
     label: 'Empresa',
     badgeClass: 'bg-primary-100 text-primary-700',
     dotClass: 'bg-primary-500',
   },
-  solucionador: {
+  [UserRole.SOLUCIONADOR]: {
     label: 'Estudiante',
     badgeClass: 'bg-gray-100 text-gray-700',
     dotClass: 'bg-gray-400',
   },
-  egresado: {
+  [UserRole.EGRESADO]: {
     label: 'Egresado',
     badgeClass: 'bg-amber-100 text-amber-700',
     dotClass: 'bg-amber-500',
   },
-  admin: {
+  [UserRole.ADMIN]: {
     label: 'Administración',
     badgeClass: 'bg-secondary-100 text-secondary-700',
     dotClass: 'bg-secondary-500',
@@ -121,7 +121,7 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
   const items: MenuItem[] = (() => {
     const roleItems: MenuItem[] = (() => {
       switch (user.role) {
-        case 'publicador':
+        case UserRole.PUBLICADOR:
           return [
             { id: 'mis-problematicas', label: 'Mis Publicaciones', href: '/mis-problematicas' },
             { id: 'talento', label: 'Banco de Hojas de Vida', href: '/talento' },
@@ -133,13 +133,13 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
             },
             { id: 'perfil-org', label: 'Perfil de Organización', href: '/perfil/organizacion' },
           ];
-        case 'solucionador':
-        case 'egresado':
+        case UserRole.SOLUCIONADOR:
+        case UserRole.EGRESADO:
           return [
             { id: 'mis-postulaciones', label: 'Mis Postulaciones', href: '/mis-postulaciones' },
             {
               id: 'mi-perfil',
-              label: user.role === 'egresado' ? 'Mi Perfil Profesional' : 'Mi Perfil Académico',
+              label: user.role === UserRole.EGRESADO ? 'Mi Perfil Profesional' : 'Mi Perfil Académico',
               href: '/perfil/academico',
             },
             {
@@ -148,9 +148,12 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
               href: '/perfil/academico#hoja-de-vida',
             },
           ];
-        case 'admin':
+        case UserRole.ADMIN:
           return [
             { id: 'panel-admin', label: 'Panel de Administración', href: '/admin/dashboard' },
+            { id: 'gestion-tutores', label: 'Tutores Docentes', href: '/admin/tutores' },
+            { id: 'gestion-empresas', label: 'Empresas', href: '/admin/empresas' },
+            { id: 'gestion-practicas', label: 'Prácticas Formalizadas', href: '/admin/practicas' },
             { id: 'talento', label: 'Banco de Hojas de Vida', href: '/talento' },
             { id: 'gestion-anuncios', label: 'Gestión de Anuncios / Pautas', href: '/admin/anuncios' },
           ];
@@ -236,7 +239,9 @@ export default function UserDropdown({ onOpenCreate }: UserDropdownProps) {
                         ? 'menu-perfil-org'
                         : item.id === 'mi-perfil'
                           ? 'menu-mi-perfil'
-                          : undefined
+                          : item.id === 'panel-admin'
+                            ? 'menu-panel-admin'
+                            : undefined
                     }
                     onClick={() => navigate(item.href)}
                     className={itemClass}

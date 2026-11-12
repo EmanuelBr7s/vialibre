@@ -1,0 +1,26 @@
+# Blueprint de Render: API de VíaLibre (gateway + auth/core/match en un solo
+# servicio web gratuito). La base de datos es Neon (PostgreSQL gratuito): pega
+# su cadena de conexión en DATABASE_URL al crear el Blueprint.
+# El frontend (Next.js) se despliega aparte en Vercel; ver README, "Despliegue".
+services:
+  - type: web
+    name: vialibre-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      # Cadena de conexión de Neon (postgresql://...?sslmode=require). config.py
+      # la adapta a asyncpg.
+      - key: DATABASE_URL
+        sync: false
+      # Firma de los JWT, compartida por los tres servicios.
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      # Siembra los datos demo en el arranque. Ponlo en "false" tras la primera
+      # carga: los seeds restablecen las contraseñas de las cuentas demo.
+      - key: SEED_DEMO_DATA
+        value: "true"

@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# .env compartido en la raiz del repo; en produccion las variables llegan del entorno.
+ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
@@ -18,17 +23,26 @@ class Settings(BaseSettings):
     schema_name: str = "vialibre_match"
 
     # Internal service URLs
-    auth_service_url: str = "http://auth-service:8000"
-    core_service_url: str = "http://core-service:8000"
+    auth_service_url: str = "http://localhost:8001"
+    core_service_url: str = "http://localhost:8002"
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": (ROOT_ENV, ".env"), "extra": "ignore"}
 
     def model_post_init(self, __context) -> None:
         if not self.database_url:
             self.database_url = (
                 f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
-                f"@postgres:5432/{self.postgres_db}"
+                f"@localhost:5432/{self.postgres_db}"
             )
+        else:
+            if self.database_url.startswith("postgresql://"):
+                self.database_url = self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            elif self.database_url.startswith("postgres://"):
+                self.database_url = self.database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+            if "sslmode=" in self.database_url:
+                self.database_url = self.database_url.replace("sslmode=require", "ssl=require")
+            if "channel_binding=" in self.database_url:
+                self.database_url = self.database_url.replace("&channel_binding=require", "").replace("channel_binding=require", "")
 
 
 settings = Settings()

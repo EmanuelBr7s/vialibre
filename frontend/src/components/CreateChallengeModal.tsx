@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import api from '@/lib/api';
-import type { Challenge, ChallengeTipo, Modalidad } from '@/types';
+import type { Challenge } from '@/types';
+import { ChallengeTipo, DifficultyLevel, Modalidad, Ubicacion } from '@/types';
 import { MODALIDAD_LABEL, MODULES, MODULE_BY_ID } from '@/data/modules';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, TOUCH_TARGET_LG, inputClass, labelClass, errorClass, btnPrimary, btnSecondary } from '@/components/ui/classes';
+import Select from '@/components/ui/Select';
 
 interface CreateChallengeModalProps {
   open: boolean;
@@ -22,12 +24,9 @@ interface FieldErrors {
   imageUrl?: string;
 }
 
-const inputClass =
-  'w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-gray-900';
-
 export default function CreateChallengeModal({
   open,
-  defaultTipo = 'reto',
+  defaultTipo = ChallengeTipo.RETO,
   onClose,
   onCreated,
 }: CreateChallengeModalProps) {
@@ -36,11 +35,11 @@ export default function CreateChallengeModal({
   const [title, setTitle] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [longDescription, setLongDescription] = useState('');
-  const [difficulty, setDifficulty] = useState('medium');
+  const [difficulty, setDifficulty] = useState(DifficultyLevel.MEDIUM);
   const [tags, setTags] = useState('');
   const [tipo, setTipo] = useState<ChallengeTipo>(defaultTipo);
   const [modalidad, setModalidad] = useState<Modalidad | ''>('');
-  const [ubicacion, setUbicacion] = useState('');
+  const [ubicacion, setUbicacion] = useState<Ubicacion | ''>('');
   const [imageUrl, setImageUrl] = useState('');
 
   // Cada apertura parte del módulo de la pestaña activa.
@@ -117,10 +116,10 @@ export default function CreateChallengeModal({
         short_description: shortDescription.trim(),
         long_description: longDescription.trim(),
         tipo,
-        ...(tipo === 'reto' ? { difficulty } : {}),
+        ...(tipo === ChallengeTipo.RETO ? { difficulty } : {}),
         ...(parsedTags.length ? { tags: parsedTags } : {}),
         ...(modalidad ? { modalidad } : {}),
-        ...(ubicacion.trim() ? { ubicacion: ubicacion.trim() } : {}),
+        ...(ubicacion ? { ubicacion } : {}),
         ...(imageUrl.trim() ? { image_url: imageUrl.trim() } : {}),
       });
       onCreated(challenge);
@@ -128,7 +127,7 @@ export default function CreateChallengeModal({
       setTitle('');
       setShortDescription('');
       setLongDescription('');
-      setDifficulty('medium');
+      setDifficulty(DifficultyLevel.MEDIUM);
       setTags('');
       setModalidad('');
       setUbicacion('');
@@ -150,7 +149,7 @@ export default function CreateChallengeModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="presentation">
+    <div className="fixed inset-0 z-50 flex lg:items-center lg:justify-center bg-black/50 p-4" role="presentation">
       <div
         id="create-challenge-dialog"
         ref={dialogRef}
@@ -158,29 +157,33 @@ export default function CreateChallengeModal({
         aria-modal="true"
         aria-labelledby="create-challenge-title"
         aria-describedby="create-challenge-desc"
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg max-h-[95vh] lg:max-h-[90vh] bg-white rounded-t-2xl lg:rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-up"
       >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 id="create-challenge-title" className="text-lg font-bold text-gray-900">
+        {/* Handle para bottom sheet */}
+        <div className="bottom-sheet-handle lg:hidden" aria-hidden="true" />
+
+        {/* Header sticky */}
+        <header className="sticky top-0 bg-white border-b border-gray-200 p-4 lg:p-6 flex items-center justify-between">
+          <h2 id="create-challenge-title" className="text-fluid-lg font-bold text-gray-900">
             Nueva publicación
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className={`inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 text-2xl leading-none rounded-lg hover:bg-gray-100 ${FOCUS_RING}`}
+            className={`inline-flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 text-2xl leading-none rounded-lg hover:bg-gray-100 ${TOUCH_TARGET_LG} ${FOCUS_RING} lg:w-8 lg:h-8 lg:text-xl`}
           >
             <span aria-hidden="true">×</span>
           </button>
-        </div>
+        </header>
 
         <div id="create-challenge-desc" className="sr-only">
           Formulario para publicar un reto empresarial, una práctica o una oferta laboral.
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-5 pb-safe-bottom" noValidate>
           <fieldset>
-            <legend className="block text-sm font-medium text-gray-700 mb-2">
+            <legend className="block text-fluid-sm font-medium text-gray-700 mb-2">
               ¿Qué quieres publicar?
             </legend>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -208,7 +211,7 @@ export default function CreateChallengeModal({
           </fieldset>
 
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="title" className={labelClass}>
               Título <span aria-hidden="true">*</span>
             </label>
             <input
@@ -221,23 +224,24 @@ export default function CreateChallengeModal({
               aria-invalid={!!errors.title}
               aria-describedby={showError('title') ? 'title-error' : undefined}
               placeholder={
-                tipo === 'empleo'
+                tipo === ChallengeTipo.EMPLEO
                   ? 'Ej: Analista contable junior'
-                  : tipo === 'practica'
+                  : tipo === ChallengeTipo.PRACTICA
                     ? 'Ej: Practicante de desarrollo web'
                     : 'Ej: Modelo predictivo para rendimiento de cosechas'
               }
               className={inputClass}
+              inputMode="text"
             />
             {showError('title') && (
-              <p id="title-error" className="mt-1 text-xs text-red-600" role="alert">
+              <p id="title-error" className={errorClass} role="alert">
                 {errors.title}
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="shortDescription" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="shortDescription" className={labelClass}>
               Descripción corta <span aria-hidden="true">*</span>
             </label>
             <input
@@ -251,16 +255,17 @@ export default function CreateChallengeModal({
               aria-describedby={showError('shortDescription') ? 'shortDescription-error' : undefined}
               placeholder="Resumen breve en una línea"
               className={inputClass}
+              inputMode="text"
             />
             {showError('shortDescription') && (
-              <p id="shortDescription-error" className="mt-1 text-xs text-red-600" role="alert">
+              <p id="shortDescription-error" className={errorClass} role="alert">
                 {errors.shortDescription}
               </p>
             )}
           </div>
 
           <div>
-            <label htmlFor="longDescription" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="longDescription" className={labelClass}>
               Descripción larga <span aria-hidden="true">*</span>
             </label>
             <textarea
@@ -273,10 +278,11 @@ export default function CreateChallengeModal({
               aria-invalid={!!errors.longDescription}
               aria-describedby={showError('longDescription') ? 'longDescription-error' : undefined}
               placeholder="Responsabilidades, requisitos, beneficios o alcance del reto…"
-              className={inputClass}
+              className={`${inputClass} min-h-[140px]`}
+              inputMode="text"
             />
             {showError('longDescription') && (
-              <p id="longDescription-error" className="mt-1 text-xs text-red-600" role="alert">
+              <p id="longDescription-error" className={errorClass} role="alert">
                 {errors.longDescription}
               </p>
             )}
@@ -284,14 +290,15 @@ export default function CreateChallengeModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="modalidad" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="modalidad" className={labelClass}>
                 Modalidad
               </label>
-              <select
+              <Select
+                icon="maletin"
+                compact
                 id="modalidad"
                 value={modalidad}
                 onChange={(e) => setModalidad(e.target.value as Modalidad | '')}
-                className={inputClass}
               >
                 <option value="">Sin especificar</option>
                 {(Object.keys(MODALIDAD_LABEL) as Modalidad[]).map((m) => (
@@ -299,26 +306,31 @@ export default function CreateChallengeModal({
                     {MODALIDAD_LABEL[m]}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
-              <label htmlFor="ubicacion" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="ubicacion" className={labelClass}>
                 Ubicación
               </label>
-              <input
+              <Select
+                icon="ubicacion"
+                compact
                 id="ubicacion"
-                type="text"
                 value={ubicacion}
-                onChange={(e) => setUbicacion(e.target.value)}
-                maxLength={120}
-                placeholder="Barranquilla, Atlántico"
-                className={inputClass}
-              />
+                onChange={(e) => setUbicacion(e.target.value as Ubicacion | '')}
+              >
+                <option value="">Sin especificar</option>
+                {Object.values(Ubicacion).map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
 
           <div>
-            <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="imageUrl" className={labelClass}>
               Imagen de portada (URL, opcional)
             </label>
             <input
@@ -339,26 +351,27 @@ export default function CreateChallengeModal({
             )}
           </div>
 
-          {tipo === 'reto' && (
+          {tipo === ChallengeTipo.RETO && (
           <div>
-            <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="difficulty" className={labelClass}>
               Dificultad
             </label>
-            <select
+            <Select
+              icon="nivel"
+              compact
               id="difficulty"
               value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-              className={inputClass}
+              onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
             >
-              <option value="easy">Fácil</option>
-              <option value="medium">Medio</option>
-              <option value="hard">Difícil</option>
-            </select>
+              <option value={DifficultyLevel.EASY}>Fácil</option>
+              <option value={DifficultyLevel.MEDIUM}>Medio</option>
+              <option value={DifficultyLevel.HARD}>Difícil</option>
+            </Select>
           </div>
           )}
 
           <div>
-            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="tags" className={labelClass}>
               Etiquetas (separadas por coma)
             </label>
             <input
@@ -368,17 +381,18 @@ export default function CreateChallengeModal({
               onChange={(e) => setTags(e.target.value)}
               placeholder="Python, ML, Agro"
               className={inputClass}
+              inputMode="text"
             />
           </div>
 
-          <div aria-live="polite">
+          <div aria-live="polite" className="space-y-2">
             {error && (
-              <div role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
+              <div role="alert" className="text-fluid-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
                 {error}
               </div>
             )}
             {success && (
-              <div role="status" className="text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+              <div role="status" className="text-fluid-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
                 {success}
               </div>
             )}
@@ -388,14 +402,14 @@ export default function CreateChallengeModal({
             <button
               type="button"
               onClick={onClose}
-              className={`flex-1 px-4 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`${btnSecondary} w-full sm:w-auto`}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className={`flex-1 px-4 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+              className={`${btnPrimary} w-full sm:w-auto`}
             >
               {submitting ? 'Publicando…' : 'Publicar'}
             </button>

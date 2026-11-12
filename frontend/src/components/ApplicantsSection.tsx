@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import api from '@/lib/api';
 import type { ContactInfo, Interaction, User } from '@/types';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { InteractionStatus } from '@/types';
+import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnDanger } from '@/components/ui/classes';
 import SkeletonBlock from '@/components/ui/SkeletonBlock';
 import CvPreviewModal from '@/components/CvPreviewModal';
 import PracticeDocuments from '@/components/PracticeDocuments';
@@ -18,16 +19,20 @@ interface ApplicantWithUser extends Interaction {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pendiente: 'Pendiente',
-  aprobado: 'Aprobado',
-  rechazado: 'Rechazado',
+  [InteractionStatus.PENDIENTE]: 'Pendiente',
+  [InteractionStatus.APROBADO]: 'Aprobado',
+  [InteractionStatus.RECHAZADO]: 'Rechazado',
 };
 
 const STATUS_BADGE: Record<string, string> = {
-  pendiente: 'bg-yellow-100 text-yellow-700',
-  aprobado: 'bg-green-100 text-green-700',
-  rechazado: 'bg-red-100 text-red-700',
+  [InteractionStatus.PENDIENTE]: 'bg-yellow-100 text-yellow-700',
+  [InteractionStatus.APROBADO]: 'bg-green-100 text-green-700',
+  [InteractionStatus.RECHAZADO]: 'bg-red-100 text-red-700',
 };
+
+const StatusDot = ({ active }: { active: boolean }) => (
+  <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-green-500' : 'bg-red-500'}`} aria-hidden="true" />
+);
 
 export default function ApplicantsSection({
   challengeId,
@@ -79,7 +84,7 @@ export default function ApplicantsSection({
 
   const handleApproveReject = async (
     interactionId: string,
-    status: 'aprobado' | 'rechazado'
+    status: InteractionStatus.APROBADO | InteractionStatus.RECHAZADO
   ) => {
     setBusyId(interactionId);
     setActionError(null);
@@ -87,7 +92,7 @@ export default function ApplicantsSection({
     try {
       await api.approveInteraction(interactionId, status);
       setActionSuccess(
-        status === 'aprobado'
+        status === InteractionStatus.APROBADO
           ? 'Postulación aprobada. El contacto quedó desbloqueado.'
           : 'Postulación rechazada.'
       );
@@ -142,7 +147,7 @@ export default function ApplicantsSection({
   if (loading) {
     return (
       <div
-        className="bg-gray-50 rounded-xl border border-gray-200 p-6 mt-8"
+        className="bg-gray-50 rounded-xl border border-gray-200 p-4 sm:p-6 mt-8"
         role="status"
         aria-label="Cargando postulados"
       >
@@ -157,9 +162,9 @@ export default function ApplicantsSection({
 
   if (!loading && applicants.length === 0) {
     return (
-      <section aria-label="Postulados" className="bg-gray-50 rounded-xl border border-gray-200 p-6 mt-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Postulados</h3>
-        <p className="text-sm text-gray-600">
+      <section aria-label="Postulados" className="bg-gray-50 rounded-xl border border-gray-200 p-4 sm:p-6 mt-8">
+        <h3 className="text-fluid-lg font-semibold text-gray-900 mb-2">Postulados</h3>
+        <p className="text-fluid-sm text-gray-600">
           Aún no hay postulaciones para esta publicación.
         </p>
       </section>
@@ -167,28 +172,28 @@ export default function ApplicantsSection({
   }
 
   return (
-    <section aria-label="Postulados" className="bg-gray-50 rounded-xl border border-gray-200 p-6 mt-8">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <section aria-label="Postulados" className="bg-gray-50 rounded-xl border border-gray-200 p-4 sm:p-6 mt-8">
+      <h3 className="text-fluid-lg font-semibold text-gray-900 mb-4">
         Postulados ({applicants.length})
       </h3>
-      <p className="text-sm text-gray-600 mb-4">
+      <p className="text-fluid-sm text-gray-600 mb-4">
         Evalúa las postulaciones y selecciona al candidato definitivo. Al aprobar, se
         desbloquea el contacto entre ambas partes.
       </p>
 
       <div aria-live="polite" className="space-y-3 mb-4">
         {actionError && (
-          <div role="alert" className="text-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
+          <div role="alert" className="text-fluid-sm text-red-600 bg-red-50 rounded-lg p-3 border border-red-200">
             {actionError}
           </div>
         )}
         {actionSuccess && (
-          <div role="status" className="text-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
+          <div role="status" className="text-fluid-sm text-green-700 bg-green-50 rounded-lg p-3 border border-green-200">
             {actionSuccess}
           </div>
         )}
         {cvNotice && (
-          <div role="status" className="text-sm text-primary-700 bg-primary-50 rounded-lg p-3 border border-primary-200">
+          <div role="status" className="text-fluid-sm text-primary-700 bg-primary-50 rounded-lg p-3 border border-primary-200">
             {cvNotice}
           </div>
         )}
@@ -201,44 +206,42 @@ export default function ApplicantsSection({
           const isBusy = busyId === applicant.id;
           return (
             <li key={applicant.id}>
-              <article className="bg-white rounded-lg border border-gray-200 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h4 className="font-medium text-gray-900">
+              <article className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                  <div className="min-w-0">
+                    <h4 className="font-medium text-gray-900 truncate">
                       {applicant.user?.full_name || 'Postulado'}
                     </h4>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-fluid-xs text-gray-500">
                       {applicant.user?.programa_academico || 'Programa académico no disponible'}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">{applicant.user?.email}</p>
+                    <p className="text-fluid-xs text-gray-400 mt-1 truncate">{applicant.user?.email}</p>
                   </div>
                   <span
-                    className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                      STATUS_BADGE[applicant.status] || 'bg-gray-100 text-gray-700'
-                    }`}
+                    className={`inline-flex items-center px-2.5 py-1 rounded-full text-fluid-xs font-medium shrink-0 ${STATUS_BADGE[applicant.status] || 'bg-gray-100 text-gray-700'}`}
                   >
                     {STATUS_LABEL[applicant.status] || applicant.status}
                   </span>
                 </div>
 
                 {applicant.message && (
-                  <p className="text-sm text-gray-600 mt-3 italic">"{applicant.message}"</p>
+                  <p className="text-fluid-sm text-gray-600 mt-3 italic">&quot;{applicant.message}&quot;</p>
                 )}
 
-                {applicant.status === 'pendiente' && (
+                {applicant.status === InteractionStatus.PENDIENTE && (
                   <div className="flex flex-col sm:flex-row gap-3 mt-4">
                     <button
-                      onClick={() => handleApproveReject(applicant.id, 'aprobado')}
+                      onClick={() => handleApproveReject(applicant.id, InteractionStatus.APROBADO)}
                       disabled={isBusy}
                       aria-busy={isBusy}
-                      className={`flex-1 px-4 rounded-lg bg-secondary-600 text-white font-medium hover:bg-secondary-700 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                      className={`${btnPrimary} w-full sm:w-auto`}
                     >
                       {isBusy ? 'Actualizando…' : 'Aprobar y desbloquear contacto'}
                     </button>
                     <button
-                      onClick={() => handleApproveReject(applicant.id, 'rechazado')}
+                      onClick={() => handleApproveReject(applicant.id, InteractionStatus.RECHAZADO)}
                       disabled={isBusy}
-                      className={`flex-1 px-4 rounded-lg border border-red-300 text-red-600 font-medium hover:bg-red-50 disabled:opacity-60 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                      className={`${btnDanger} w-full sm:w-auto`}
                     >
                       {isBusy ? 'Actualizando…' : 'Rechazar'}
                     </button>
@@ -250,18 +253,18 @@ export default function ApplicantsSection({
                     onClick={() => handleViewContact(applicant.id)}
                     aria-expanded={isOpen}
                     aria-controls={panelId}
-                    className={`mt-3 inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-2 -mx-2 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                    className={`mt-3 inline-flex items-center text-fluid-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-2 -mx-2 ${TOUCH_TARGET} ${FOCUS_RING}`}
                   >
                     {isOpen ? 'Ocultar contacto' : 'Ver contacto'} →
                   </button>
                 )}
 
-                {applicant.status !== 'rechazado' && (
+                {applicant.status !== InteractionStatus.RECHAZADO && (
                   <button
                     onClick={() => openApplicantCv(applicant)}
                     disabled={cvLoadingId === applicant.solucionador_id}
                     aria-busy={cvLoadingId === applicant.solucionador_id}
-                    className={`mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-2 -mx-2 ${TOUCH_TARGET} ${FOCUS_RING}`}
+                    className={`mt-3 inline-flex items-center gap-2 text-fluid-sm font-medium text-primary-600 hover:text-primary-700 rounded-lg px-2 -mx-2 ${TOUCH_TARGET} ${FOCUS_RING}`}
                   >
                     {cvLoadingId === applicant.solucionador_id ? (
                       <>
@@ -277,7 +280,7 @@ export default function ApplicantsSection({
                   </button>
                 )}
 
-                {applicant.status === 'aprobado' && (
+                {applicant.status === InteractionStatus.APROBADO && (
                   <PracticeDocuments interactionId={applicant.id} editable={false} />
                 )}
 
@@ -286,23 +289,23 @@ export default function ApplicantsSection({
                     id={panelId}
                     className="mt-3 bg-primary-50 rounded-lg border border-primary-200 p-3 space-y-2"
                   >
-                    {contactError && <p className="text-sm text-red-600">{contactError}</p>}
+                    {contactError && <p className="text-fluid-sm text-red-600">{contactError}</p>}
                     {contactInfo && (
                       <dl className="space-y-1">
                         <div>
                           <dt className="sr-only">Nombre</dt>
-                          <dd className="text-sm font-medium text-primary-700">
+                          <dd className="text-fluid-sm font-medium text-primary-700">
                             {contactInfo.full_name}
                           </dd>
                         </div>
                         <div>
                           <dt className="sr-only">Email</dt>
-                          <dd className="text-sm text-gray-700">{contactInfo.email}</dd>
+                          <dd className="text-fluid-sm text-gray-700">{contactInfo.email}</dd>
                         </div>
                         {contactInfo.phone && (
                           <div>
                             <dt className="sr-only">Teléfono</dt>
-                            <dd className="text-sm text-gray-700">{contactInfo.phone}</dd>
+                            <dd className="text-fluid-sm text-gray-700">{contactInfo.phone}</dd>
                           </div>
                         )}
                       </dl>

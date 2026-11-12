@@ -1,17 +1,11 @@
 import uuid
-import enum
 from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.database import Base
-
-
-class InteractionStatus(str, enum.Enum):
-    PENDIENTE = "pendiente"
-    APROBADO = "aprobado"
-    RECHAZADO = "rechazado"
+from vialibre_common.schemas import InteractionStatus
 
 
 class Interaction(Base):

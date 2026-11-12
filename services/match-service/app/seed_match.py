@@ -4,7 +4,7 @@ Simulates applications between students/graduates and the demo publications,
 including practice documents for the endorsement letter. Idempotent.
 
 Usage:
-  docker-compose exec match-service python -m app.seed_match
+  python -m app.seed_match   (desde la carpeta del servicio)
 """
 
 import asyncio
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import async_session
 from app.models.document import InteractionDocument
 from app.models.interaction import Interaction, InteractionStatus
+from vialibre_common.schemas import DocumentoTipo
 from vialibre_common.pdf import Pdf
 
 
@@ -44,6 +45,11 @@ PRACTICA_WEB, PRACTICA_CONTABLE, PRACTICA_AMBIENTAL, PRACTICA_JURIDICA = _pub(11
 EMPLEO_BACKEND, EMPLEO_CONTABLE, EMPLEO_ABOGADO, EMPLEO_PROCESOS = _pub(21), _pub(22), _pub(23), _pub(24)
 
 P, A, R = InteractionStatus.PENDIENTE, InteractionStatus.APROBADO, InteractionStatus.RECHAZADO
+ID, MATRICULA, EPS = (
+    DocumentoTipo.DOCUMENTO_IDENTIDAD,
+    DocumentoTipo.CERTIFICADO_MATRICULA,
+    DocumentoTipo.AFILIACION_EPS,
+)
 
 INTERACTIONS = [
     # (id, estudiante, publicación, estado, mensaje, documentos de práctica cargados)
@@ -51,10 +57,10 @@ INTERACTIONS = [
      "Soy estudiante de Ingeniería de Sistemas con experiencia en redes y seguridad informática. Me interesa participar en esta auditoría.", []),
     (_int(1), LEONARDO, PRACTICA_WEB, A,
      "Trabajo con Next.js y FastAPI en un proyecto real; me encantaría hacer mi práctica con ustedes.",
-     ["documento_identidad", "certificado_matricula"]),
+     [ID, MATRICULA]),
     (_int(2), MARIANA, PRACTICA_CONTABLE, A,
      "He presentado más de 40 declaraciones de renta en el consultorio contable de la universidad.",
-     ["documento_identidad", "certificado_matricula", "afiliacion_eps"]),
+     [ID, MATRICULA, EPS]),
     (_int(3), VALENTINA, RETO_MANGO, P, "Puedo aportar en la parte de datos y simulación con mi equipo del Laboratorio de Innovación.", []),
     (_int(4), DANIELA, RETO_MANGO, A, "Tenemos un mapa de riesgo hídrico de Malambo que sirve como variable para el modelo.", []),
     (_int(5), VALENTINA, RETO_ECOMMERCE, P, "Propongo un flujo de compra simple pensado en celulares y un tablero de inventario.", []),
@@ -67,13 +73,6 @@ INTERACTIONS = [
     (_int(12), NATALIA, EMPLEO_ABOGADO, R, "Abogada laboral con experiencia en conciliaciones.", []),
     (_int(13), RICARDO, EMPLEO_PROCESOS, P, "Green Belt con experiencia en plantas de alimentos.", []),
 ]
-
-DOC_LABELS = {
-    "documento_identidad": "Documento de identidad",
-    "certificado_matricula": "Certificado de matrícula vigente",
-    "afiliacion_eps": "Certificado de afiliación a EPS",
-}
-
 
 def demo_document(label: str) -> bytes:
     pdf = Pdf()
@@ -113,7 +112,7 @@ async def seed_interactions(db: AsyncSession) -> None:
             ).scalar_one_or_none()
             if exists:
                 continue
-            data = demo_document(DOC_LABELS[tipo])
+            data = demo_document(tipo.label)
             db.add(InteractionDocument(
                 interaction_id=interaction.id, tipo=tipo, filename=f"{tipo}.pdf",
                 content_type="application/pdf", size=len(data), data=data,

@@ -3,7 +3,7 @@
 // Innovación), prácticas empresariales para estudiantes y ofertas laborales
 // para egresados.
 
-import type { ChallengeTipo, Modalidad, UserRole } from '@/types';
+import { AfiliacionAcademica, ChallengeTipo, Modalidad, UserRole } from '@/types';
 
 export interface ModuleMeta {
   id: ChallengeTipo;
@@ -16,7 +16,7 @@ export interface ModuleMeta {
 
 export const MODULES: ModuleMeta[] = [
   {
-    id: 'reto',
+    id: ChallengeTipo.RETO,
     label: 'Retos empresariales',
     singular: 'Reto',
     description:
@@ -24,14 +24,14 @@ export const MODULES: ModuleMeta[] = [
     badgeClass: 'bg-violet-100 text-violet-700',
   },
   {
-    id: 'practica',
+    id: ChallengeTipo.PRACTICA,
     label: 'Prácticas empresariales',
     singular: 'Práctica',
     description: 'Plazas de práctica profesional para estudiantes de últimos semestres.',
     badgeClass: 'bg-primary-100 text-primary-700',
   },
   {
-    id: 'empleo',
+    id: ChallengeTipo.EMPLEO,
     label: 'Ofertas laborales',
     singular: 'Empleo',
     description: 'Vacantes para egresados de la Universidad Libre.',
@@ -46,9 +46,9 @@ export const MODULE_BY_ID = Object.fromEntries(MODULES.map((m) => [m.id, m])) as
 
 /** Pestaña inicial del feed según quién entra. */
 export function defaultModuleFor(role?: UserRole): ChallengeTipo {
-  if (role === 'egresado') return 'empleo';
-  if (role === 'solucionador') return 'practica';
-  return 'reto';
+  if (role === UserRole.EGRESADO) return ChallengeTipo.EMPLEO;
+  if (role === UserRole.SOLUCIONADOR) return ChallengeTipo.PRACTICA;
+  return ChallengeTipo.RETO;
 }
 
 /** Pestañas del banco de hojas de vida, alineadas con los tres módulos. */
@@ -56,32 +56,32 @@ export const TALENT_TABS: {
   id: ChallengeTipo;
   label: string;
   description: string;
-  params: { role?: 'solucionador' | 'egresado'; afiliacion?: string };
+  params: { role?: UserRole.SOLUCIONADOR | UserRole.EGRESADO; afiliacion?: string };
 }[] = [
   {
-    id: 'reto',
+    id: ChallengeTipo.RETO,
     label: 'Pupilos de innovación',
     description: 'Estudiantes vinculados al Laboratorio de Innovación, listos para resolver retos.',
-    params: { afiliacion: 'Innovaci' },
+    params: { afiliacion: AfiliacionAcademica.LABORATORIO_INNOVACION },
   },
   {
-    id: 'practica',
+    id: ChallengeTipo.PRACTICA,
     label: 'Estudiantes para práctica',
     description: 'Estudiantes de la Universidad Libre disponibles para práctica empresarial.',
-    params: { role: 'solucionador' },
+    params: { role: UserRole.SOLUCIONADOR },
   },
   {
-    id: 'empleo',
+    id: ChallengeTipo.EMPLEO,
     label: 'Egresados',
     description: 'Egresados en búsqueda de empleo.',
-    params: { role: 'egresado' },
+    params: { role: UserRole.EGRESADO },
   },
 ];
 
 export const MODALIDAD_LABEL: Record<Modalidad, string> = {
-  presencial: 'Presencial',
-  remoto: 'Remoto',
-  hibrido: 'Híbrido',
+  [Modalidad.PRESENCIAL]: 'Presencial',
+  [Modalidad.REMOTO]: 'Remoto',
+  [Modalidad.HIBRIDO]: 'Híbrido',
 };
 
 // Contacto del Laboratorio de Innovación para los retos empresariales.

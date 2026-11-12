@@ -2,6 +2,85 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html {
+    @apply overflow-x-hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply pb-safe-bottom pt-safe-top;
+    overscroll-behavior: none;
+  }
+
+  input, textarea, select {
+    @apply text-fluid-sm min-h-touch;
+  }
+
+  *:focus-visible {
+    @apply ring-2 ring-primary-600 ring-offset-2 outline-none;
+  }
+}
+
+@layer utilities {
+  .safe-area-inset {
+    @apply pt-safe-top pb-safe-bottom pl-safe-left pr-safe-right;
+  }
+
+  .touch-target {
+    @apply min-h-touch min-w-touch flex items-center justify-center;
+  }
+
+  .touch-target-lg {
+    @apply min-h-touch-lg min-w-touch-lg flex items-center justify-center;
+  }
+
+  .scroll-smooth-native {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  .bottom-sheet {
+    @apply fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-2xl
+           transform transition-transform duration-300 ease-out
+           max-h-[90vh] overflow-y-auto;
+  }
+
+  .bottom-sheet-handle {
+    @apply mx-auto mt-3 w-10 h-1.5 bg-gray-300 rounded-full;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 300ms ease-out forwards;
+  }
+
+  .animate-slide-down {
+    animation: slide-down 200ms ease-in forwards;
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+  }
+}
+
 /* OpenDyslexic (OFL 1.1) — fuente de alta legibilidad para dislexia. */
 @font-face {
   font-family: 'OpenDyslexic';

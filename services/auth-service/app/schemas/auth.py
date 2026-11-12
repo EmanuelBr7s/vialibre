@@ -2,7 +2,15 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import AfiliacionAcademica, ProgramaAcademico, UserRole
+
+# Roles that a person may self-assign through the public registration flow.
+# Privileged roles (admin) can never be requested by the client.
+PUBLIC_REGISTER_ROLES = (
+    UserRole.SOLUCIONADOR,
+    UserRole.EGRESADO,
+    UserRole.PUBLICADOR,
+)
 
 
 class LoginRequest(BaseModel):
@@ -23,12 +31,17 @@ class RegisterRequest(BaseModel):
     empresa_nombre: Optional[str] = None
 
     # SOLUCIONADOR fields (estudiantes)
-    programa_academico: Optional[str] = None
-    afiliacion_academica: Optional[str] = None
+    programa_academico: Optional[ProgramaAcademico] = None
+    afiliacion_academica: Optional[AfiliacionAcademica] = None
 
     @model_validator(mode="after")
     def validate_role_fields(self) -> "RegisterRequest":
         """Ensure role-specific fields are provided correctly."""
+        if self.role not in PUBLIC_REGISTER_ROLES:
+            raise ValueError(
+                "El registro público solo admite los roles: "
+                + ", ".join(r.value for r in PUBLIC_REGISTER_ROLES)
+            )
         if self.role == UserRole.PUBLICADOR:
             if not self.nit_empresa:
                 raise ValueError(

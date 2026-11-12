@@ -1,66 +1,62 @@
-.PHONY: up down logs restart build clean ps init-schemas migrate setup-db seed seed-core seed-match \
-        logs-auth logs-core logs-match migrate-auth migrate-core migrate-match
+.PHONY: install install-auth install-core install-match install-frontend \
+        dev-auth dev-core dev-match dev-frontend \
+        init-schemas migrate migrate-auth migrate-core migrate-match \
+        seed seed-core seed-match setup-db \
+        test test-auth test-core test-match
 
+# Desarrollo local sin contenedores: PostgreSQL 16 instalado (o administrado),
+# Python 3.11+ con el entorno virtual activo y Node.js 20+.
 # Nombre de la revision autogenerada: make migrate MSG=agregar_campos
 MSG ?= initial_schema
+PSQL ?= psql -h localhost -U vialibre -d vialibre
 
-up:
-	docker-compose up -d
+# ── Instalacion ──
+install: install-auth install-core install-match install-frontend
 
-down:
-	docker-compose down
+install-%:
+	pip install -r shared/python/requirements-common.txt -e shared/python -r services/$*-service/requirements.txt
 
-logs:
-	docker-compose logs -f
+install-frontend:
+	cd frontend && npm install
 
-logs-auth:
-	docker-compose logs -f auth-service
+# ── Servidores de desarrollo (uno por terminal) ──
+dev-auth:
+	cd services/auth-service && uvicorn app.main:app --reload --port 8001
 
-logs-core:
-	docker-compose logs -f core-service
+dev-core:
+	cd services/core-service && uvicorn app.main:app --reload --port 8002
 
-logs-match:
-	docker-compose logs -f match-service
+dev-match:
+	cd services/match-service && uvicorn app.main:app --reload --port 8003
 
-build:
-	docker-compose build
+dev-frontend:
+	cd frontend && npm run dev
 
-restart:
-	docker-compose restart
-
-clean:
-	docker-compose down -v
-
-ps:
-	docker-compose ps
-
+# ── Base de datos ──
 init-schemas:
-	docker-compose exec postgres psql -U vialibre -d vialibre -c "CREATE SCHEMA IF NOT EXISTS vialibre_auth;"
-	docker-compose exec postgres psql -U vialibre -d vialibre -c "CREATE SCHEMA IF NOT EXISTS vialibre_core;"
-	docker-compose exec postgres psql -U vialibre -d vialibre -c "CREATE SCHEMA IF NOT EXISTS vialibre_match;"
+	$(PSQL) -c "CREATE SCHEMA IF NOT EXISTS vialibre_auth;"
+	$(PSQL) -c "CREATE SCHEMA IF NOT EXISTS vialibre_core;"
+	$(PSQL) -c "CREATE SCHEMA IF NOT EXISTS vialibre_match;"
 
-migrate-auth:
-	docker-compose exec auth-service alembic revision --autogenerate -m "$(MSG)"
-	docker-compose exec auth-service alembic upgrade head
-
-migrate-core:
-	docker-compose exec core-service alembic revision --autogenerate -m "$(MSG)"
-	docker-compose exec core-service alembic upgrade head
-
-migrate-match:
-	docker-compose exec match-service alembic revision --autogenerate -m "$(MSG)"
-	docker-compose exec match-service alembic upgrade head
+migrate-%:
+	cd services/$*-service && alembic revision --autogenerate -m "$(MSG)" && alembic upgrade head
 
 migrate: migrate-auth migrate-core migrate-match
 
+# ── Pruebas (pytest en cada servicio, con el entorno virtual activo) ──
+test: test-auth test-core test-match
+
+test-%:
+	cd services/$*-service && pytest -q
+
 seed:
-	docker-compose exec auth-service python -m app.seed
+	cd services/auth-service && python -m app.seed
 
 seed-core:
-	docker-compose exec core-service python -m app.seed_core
+	cd services/core-service && python -m app.seed_core
 
 seed-match:
-	docker-compose exec match-service python -m app.seed_match
+	cd services/match-service && python -m app.seed_match
 
 setup-db: init-schemas migrate seed seed-core seed-match
 	@echo "Database setup complete!"

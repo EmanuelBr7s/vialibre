@@ -6,11 +6,12 @@ import { useTour } from '@/contexts/TourContext';
 import OnboardingModal from './OnboardingModal';
 import FeatureTour from './FeatureTour';
 import { ONBOARDING_KEY, onboardingKey, type TourRole } from '@/data/tour';
-import type { UserRole } from '@/types';
+import { UserRole } from '@/types';
 import { isTalentRole } from '@/lib/constants';
 
 function roleToTourRole(role: UserRole): TourRole {
-  return isTalentRole(role) ? 'solucionador' : 'publicador';
+  if (role === UserRole.ADMIN) return UserRole.ADMIN;
+  return isTalentRole(role) ? UserRole.SOLUCIONADOR : UserRole.PUBLICADOR;
 }
 
 /**
@@ -71,7 +72,7 @@ useEffect(() => {
     <>
       <OnboardingModal
         open={open}
-        role={roleToTourRole(user?.role ?? 'publicador')}
+        role={roleToTourRole(user?.role ?? UserRole.PUBLICADOR)}
         onClose={handleClose}
         onStartTour={handleStartTour}
       />

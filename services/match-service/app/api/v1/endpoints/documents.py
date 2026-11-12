@@ -13,25 +13,23 @@ from urllib.parse import quote
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import undefer
 
 from app.api.deps import AuthContext, get_current_user
+from app.api.duplicates import raise_duplicate_conflict
 from app.config import settings
 from app.database import get_db
 from app.models.document import InteractionDocument
 from app.models.interaction import Interaction, InteractionStatus
 from app.schemas.match import DocumentChecklist, DocumentInfo, RequiredDocument
 from vialibre_common.pdf import A4_HEIGHT, A4_WIDTH, Pdf
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import ChallengeTipo, DocumentoTipo, UserRole
+from vialibre_common.service_auth import service_headers
 
 router = APIRouter()
 
-REQUIRED_DOCUMENTS = {
-    "documento_identidad": "Documento de identidad",
-    "certificado_matricula": "Certificado de matrícula vigente",
-    "afiliacion_eps": "Certificado de afiliación a EPS",
-}
 DOC_MAX_BYTES = 5 * 1024 * 1024
 # Firma de los formatos admitidos: PDF, JPEG y PNG.
 DOC_SIGNATURES = {
@@ -46,15 +44,28 @@ MESES = [
 ]
 
 
-async def _fetch_json(url: str) -> dict:
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.get(url)
+async def _fetch_json(url: str, headers: dict | None = None) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(url, headers=headers)
+    except httpx.HTTPError:
+        # Fallo de transporte/timeout de un servicio relacionado: 502 con
+        # mensaje estatico, sin exponer URL interna, host ni la excepcion.
+        # Solo httpx.HTTPError: un error de programacion propaga sin enmascarar.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="No se pudo consultar un servicio relacionado",
+        )
     if response.status_code != 200:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="No se pudo consultar un servicio relacionado",
         )
     return response.json()
+
+
+def _service_headers(method: str, path: str) -> dict:
+    return service_headers(settings.jwt_secret_key, settings.service_name, method, path)
 
 
 async def _load(
@@ -80,7 +91,9 @@ async def _load(
     return interaction, challenge, is_owner
 
 
-async def _documents(db: AsyncSession, interaction_id: uuid.UUID) -> dict[str, InteractionDocument]:
+async def _documents(
+    db: AsyncSession, interaction_id: uuid.UUID
+) -> dict[DocumentoTipo, InteractionDocument]:
     result = await db.execute(
         select(InteractionDocument).where(InteractionDocument.interaction_id == interaction_id)
     )
@@ -88,7 +101,10 @@ async def _documents(db: AsyncSession, interaction_id: uuid.UUID) -> dict[str, I
 
 
 def _applies(interaction: Interaction, challenge: dict) -> bool:
-    return challenge.get("tipo") == "practica" and interaction.status == InteractionStatus.APROBADO
+    return (
+        challenge.get("tipo") == ChallengeTipo.PRACTICA
+        and interaction.status == InteractionStatus.APROBADO
+    )
 
 
 @router.get("/{interaction_id}/documentos", response_model=DocumentChecklist)
@@ -103,10 +119,10 @@ async def list_documents(
     required = [
         RequiredDocument(
             tipo=tipo,
-            label=label,
+            label=tipo.label,
             documento=DocumentInfo.model_validate(docs[tipo]) if tipo in docs else None,
         )
-        for tipo, label in REQUIRED_DOCUMENTS.items()
+        for tipo in DocumentoTipo
     ]
     return DocumentChecklist(
         aplica=_applies(interaction, challenge),
@@ -118,14 +134,12 @@ async def list_documents(
 @router.put("/{interaction_id}/documentos/{tipo}", response_model=DocumentInfo)
 async def upload_document(
     interaction_id: uuid.UUID,
-    tipo: str,
+    tipo: DocumentoTipo,
     file: UploadFile = File(...),
     auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """El estudiante seleccionado carga (o reemplaza) un documento requisito."""
-    if tipo not in REQUIRED_DOCUMENTS:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Documento no requerido")
     interaction, challenge, is_owner = await _load(db, interaction_id, auth)
     if not is_owner:
         raise HTTPException(
@@ -160,14 +174,26 @@ async def upload_document(
     doc.data = content
     doc.uploaded_at = datetime.utcnow()
     db.add(doc)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # El upsert secuencial reemplaza el documento; bajo carrera, la
+        # restriccion uq_interaction_document_tipo convierte la doble carga
+        # concurrente en 409 (nuevo detalle: no existia duplicado secuencial).
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="uq_interaction_document_tipo",
+            detail="El documento fue cargado por otra solicitud; intentalo de nuevo",
+        )
+        raise
     return DocumentInfo.model_validate(doc)
 
 
 @router.get("/{interaction_id}/documentos/{tipo}")
 async def download_document(
     interaction_id: uuid.UUID,
-    tipo: str,
+    tipo: DocumentoTipo,
     auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -277,7 +303,7 @@ async def download_endorsement_letter(
             detail="La carta de aval aplica a prácticas en las que fuiste seleccionado",
         )
     docs = await _documents(db, interaction_id)
-    missing = [label for tipo, label in REQUIRED_DOCUMENTS.items() if tipo not in docs]
+    missing = [tipo.label for tipo in DocumentoTipo if tipo not in docs]
     if missing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -285,8 +311,16 @@ async def download_endorsement_letter(
         )
 
     auth_url = f"{settings.auth_service_url}/api/v1/auth/users"
-    student = await _fetch_json(f"{auth_url}/{interaction.solucionador_id}")
-    company = await _fetch_json(f"{auth_url}/{challenge['author_id']}")
+    student_path = f"/api/v1/auth/users/{interaction.solucionador_id}"
+    company_path = f"/api/v1/auth/users/{challenge['author_id']}"
+    student = await _fetch_json(
+        f"{auth_url}/{interaction.solucionador_id}",
+        headers=_service_headers("GET", student_path),
+    )
+    company = await _fetch_json(
+        f"{auth_url}/{challenge['author_id']}",
+        headers=_service_headers("GET", company_path),
+    )
     pdf = build_endorsement_letter(
         student, company, challenge, interaction, max(d.uploaded_at for d in docs.values())
     )

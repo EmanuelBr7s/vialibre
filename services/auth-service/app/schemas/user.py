@@ -6,7 +6,13 @@ from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field, StringConstraints, model_validator
 
-from vialibre_common.schemas import UserRole
+from vialibre_common.schemas import (
+    AfiliacionAcademica,
+    ProgramaAcademico,
+    Semestre,
+    Ubicacion,
+    UserRole,
+)
 
 
 class UserCreate(BaseModel):
@@ -18,8 +24,8 @@ class UserCreate(BaseModel):
     bio: Optional[str] = None
     nit_empresa: Optional[str] = None
     empresa_nombre: Optional[str] = None
-    programa_academico: Optional[str] = None
-    afiliacion_academica: Optional[str] = None
+    programa_academico: Optional[ProgramaAcademico] = None
+    afiliacion_academica: Optional[AfiliacionAcademica] = None
 
 
 SkillList = Annotated[
@@ -36,15 +42,15 @@ class UserUpdate(BaseModel):
     avatar_url: Optional[str] = None
     nit_empresa: Optional[str] = None
     empresa_nombre: Optional[str] = None
-    programa_academico: Optional[str] = None
-    afiliacion_academica: Optional[str] = None
+    programa_academico: Optional[ProgramaAcademico] = None
+    afiliacion_academica: Optional[AfiliacionAcademica] = None
     skills: Optional[SkillList] = None
     soft_skills: Optional[SkillList] = None
     linkedin_url: Optional[Url] = None
     github_url: Optional[Url] = None
     portfolio_url: Optional[Url] = None
-    ubicacion: Optional[str] = Field(None, max_length=120)
-    semestre: Optional[str] = Field(None, max_length=30)
+    ubicacion: Optional[Ubicacion] = None
+    semestre: Optional[Semestre] = None
     anio_egreso: Optional[int] = Field(None, ge=1960, le=2100)
     disponible: Optional[bool] = None
 
@@ -106,3 +112,14 @@ class UserListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+class UserSummaryResponse(BaseModel):
+    """Minimal, non-sensitive display info for internal service consumption."""
+
+    id: uuid.UUID
+    full_name: str
+    empresa_nombre: Optional[str] = None
+    avatar_url: Optional[str] = None
+    programa_academico: Optional[str] = None
+    afiliacion_academica: Optional[str] = None

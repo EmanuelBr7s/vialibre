@@ -1,7 +1,76 @@
 // ── Auth Types ──
 
-/** solucionador = estudiante; egresado = graduado en búsqueda de empleo. */
-export type UserRole = 'admin' | 'publicador' | 'solucionador' | 'egresado';
+/** SOLUCIONADOR = estudiante; EGRESADO = graduado en búsqueda de empleo. */
+export enum UserRole {
+  ADMIN = 'admin',
+  PUBLICADOR = 'publicador',
+  SOLUCIONADOR = 'solucionador',
+  EGRESADO = 'egresado',
+}
+
+// ── Campos con opciones fijas (el valor es el texto que se muestra) ──
+
+/** Programas académicos de la universidad. */
+export enum ProgramaAcademico {
+  INGENIERIA_SISTEMAS = 'Ingeniería de Sistemas',
+  INGENIERIA_INDUSTRIAL = 'Ingeniería Industrial',
+  INGENIERIA_AMBIENTAL = 'Ingeniería Ambiental',
+  CONTADURIA_PUBLICA = 'Contaduría Pública',
+  DERECHO = 'Derecho',
+  ADMINISTRACION_EMPRESAS = 'Administración de Empresas',
+  OTRO = 'Otro',
+}
+
+/** Semilleros, ramas y consultorios. */
+export enum AfiliacionAcademica {
+  LABORATORIO_INNOVACION = 'Laboratorio de Innovación',
+  RAMA_IEEE = 'Rama Estudiantil IEEE',
+  CONSULTORIO_JURIDICO = 'Consultorio Jurídico',
+  SEMILLERO_FINANZAS = 'Semillero de Finanzas Sostenibles',
+  OTRO = 'Otro',
+}
+
+/** Semestre en curso del estudiante. */
+export enum Semestre {
+  PRIMERO = '1° semestre',
+  SEGUNDO = '2° semestre',
+  TERCERO = '3° semestre',
+  CUARTO = '4° semestre',
+  QUINTO = '5° semestre',
+  SEXTO = '6° semestre',
+  SEPTIMO = '7° semestre',
+  OCTAVO = '8° semestre',
+  NOVENO = '9° semestre',
+  DECIMO = '10° semestre',
+}
+
+/** Municipios del Atlántico. */
+export enum Ubicacion {
+  BARRANQUILLA = 'Barranquilla, Atlántico',
+  BARANOA = 'Baranoa, Atlántico',
+  CAMPO_DE_LA_CRUZ = 'Campo de la Cruz, Atlántico',
+  CANDELARIA = 'Candelaria, Atlántico',
+  GALAPA = 'Galapa, Atlántico',
+  JUAN_DE_ACOSTA = 'Juan de Acosta, Atlántico',
+  LURUACO = 'Luruaco, Atlántico',
+  MALAMBO = 'Malambo, Atlántico',
+  MANATI = 'Manatí, Atlántico',
+  PALMAR_DE_VARELA = 'Palmar de Varela, Atlántico',
+  PIOJO = 'Piojó, Atlántico',
+  POLONUEVO = 'Polonuevo, Atlántico',
+  PONEDERA = 'Ponedera, Atlántico',
+  PUERTO_COLOMBIA = 'Puerto Colombia, Atlántico',
+  REPELON = 'Repelón, Atlántico',
+  SABANAGRANDE = 'Sabanagrande, Atlántico',
+  SABANALARGA = 'Sabanalarga, Atlántico',
+  SANTA_LUCIA = 'Santa Lucía, Atlántico',
+  SANTO_TOMAS = 'Santo Tomás, Atlántico',
+  SOLEDAD = 'Soledad, Atlántico',
+  SUAN = 'Suan, Atlántico',
+  TUBARA = 'Tubará, Atlántico',
+  USIACURI = 'Usiacurí, Atlántico',
+  OTRA_CIUDAD = 'Otra ciudad',
+}
 
 export interface User {
   id: string;
@@ -53,8 +122,8 @@ export interface RegisterRequest {
   phone?: string;
   nit_empresa?: string;
   empresa_nombre?: string;
-  programa_academico?: string;
-  afiliacion_academica?: string;
+  programa_academico?: ProgramaAcademico;
+  afiliacion_academica?: AfiliacionAcademica;
 }
 
 export interface TokenResponse {
@@ -67,11 +136,27 @@ export interface TokenResponse {
 
 // ── Challenge Types (aligned with core-service schemas) ──
 
-export type ChallengeStatus = 'abierto' | 'en_progreso' | 'cerrado';
-export type DifficultyLevel = 'easy' | 'medium' | 'hard';
+export enum ChallengeStatus {
+  ABIERTO = 'abierto',
+  EN_PROGRESO = 'en_progreso',
+  CERRADO = 'cerrado',
+}
+export enum DifficultyLevel {
+  EASY = 'easy',
+  MEDIUM = 'medium',
+  HARD = 'hard',
+}
 /** Módulo de la publicación: reto (laboratorio), práctica o empleo. */
-export type ChallengeTipo = 'reto' | 'practica' | 'empleo';
-export type Modalidad = 'presencial' | 'remoto' | 'hibrido';
+export enum ChallengeTipo {
+  RETO = 'reto',
+  PRACTICA = 'practica',
+  EMPLEO = 'empleo',
+}
+export enum Modalidad {
+  PRESENCIAL = 'presencial',
+  REMOTO = 'remoto',
+  HIBRIDO = 'hibrido',
+}
 
 export interface Category {
   id: string;
@@ -113,8 +198,15 @@ export interface ChallengeListResponse {
 
 // ── Match Types (aligned with match-service schemas) ──
 
-export type InteractionStatus = 'pendiente' | 'aprobado' | 'rechazado';
-export type ReactionType = 'like' | 'bookmark';
+export enum InteractionStatus {
+  PENDIENTE = 'pendiente',
+  APROBADO = 'aprobado',
+  RECHAZADO = 'rechazado',
+}
+export enum ReactionType {
+  LIKE = 'like',
+  BOOKMARK = 'bookmark',
+}
 
 export interface Interaction {
   id: string;
@@ -167,15 +259,21 @@ export interface ContactInfo {
 
 // ── Documentos de práctica (carta de aval) ──
 
+export enum DocumentoTipo {
+  DOCUMENTO_IDENTIDAD = 'documento_identidad',
+  CERTIFICADO_MATRICULA = 'certificado_matricula',
+  AFILIACION_EPS = 'afiliacion_eps',
+}
+
 export interface DocumentInfo {
-  tipo: string;
+  tipo: DocumentoTipo;
   filename: string;
   size: number;
   uploaded_at: string;
 }
 
 export interface RequiredDocument {
-  tipo: string;
+  tipo: DocumentoTipo;
   label: string;
   documento?: DocumentInfo | null;
 }
@@ -189,7 +287,11 @@ export interface DocumentChecklist {
 
 // ── Profile / Resume types (client-persisted extended data) ──
 
-export type PreferredChannel = 'correo' | 'telefono' | 'whatsapp';
+export enum PreferredChannel {
+  CORREO = 'correo',
+  TELEFONO = 'telefono',
+  WHATSAPP = 'whatsapp',
+}
 
 export interface ExtendedProfile {
   /** Campos que el backend aún no persiste; se guardan en el navegador. */
@@ -215,15 +317,166 @@ export interface ProfileUpdatePayload {
   bio?: string | null;
   avatar_url?: string | null;
   empresa_nombre?: string;
-  programa_academico?: string;
-  afiliacion_academica?: string;
+  programa_academico?: ProgramaAcademico;
+  afiliacion_academica?: AfiliacionAcademica;
   skills?: string[];
   soft_skills?: string[];
   linkedin_url?: string | null;
   github_url?: string | null;
   portfolio_url?: string | null;
-  ubicacion?: string | null;
-  semestre?: string | null;
+  ubicacion?: Ubicacion | null;
+  semestre?: Semestre | null;
   anio_egreso?: number | null;
   disponible?: boolean;
+}
+
+// ── Admin CRUD Types ──
+
+export interface TutorDocente {
+  id: string;
+  identificacion: string | null;
+  nombres: string | null;
+  apellidos: string | null;
+  email: string | null;
+  telefono: string | null;
+  programa_academico: string | null;
+  user_id: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TutorDocenteCreate {
+  identificacion?: string | null;
+  nombres?: string | null;
+  apellidos?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  programa_academico?: string | null;
+  user_id?: string | null;
+  activo?: boolean;
+}
+
+export interface TutorDocenteUpdate {
+  identificacion?: string | null;
+  nombres?: string | null;
+  apellidos?: string | null;
+  email?: string | null;
+  telefono?: string | null;
+  programa_academico?: string | null;
+  user_id?: string | null;
+  activo?: boolean | null;
+}
+
+export interface TutorDocenteListResponse {
+  tutores: TutorDocente[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface Empresa {
+  id: string;
+  nit: string | null;
+  razon_social: string | null;
+  sector: string | null;
+  representante_legal: string | null;
+  contacto_email: string | null;
+  contacto_telefono: string | null;
+  publicador_user_id: string | null;
+  activa: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmpresaCreate {
+  nit?: string | null;
+  razon_social?: string | null;
+  sector?: string | null;
+  representante_legal?: string | null;
+  contacto_email?: string | null;
+  contacto_telefono?: string | null;
+  publicador_user_id?: string | null;
+  activa?: boolean;
+}
+
+export interface EmpresaUpdate {
+  nit?: string | null;
+  razon_social?: string | null;
+  sector?: string | null;
+  representante_legal?: string | null;
+  contacto_email?: string | null;
+  contacto_telefono?: string | null;
+  publicador_user_id?: string | null;
+  activa?: boolean | null;
+}
+
+export interface EmpresaListResponse {
+  empresas: Empresa[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export interface Practica {
+  id: string;
+  challenge_id: string | null;
+  interaction_id: string;
+  solucionador_id: string | null;
+  empresa_id: string | null;
+  tutor_docente_id: string | null;
+  created_by: string | null;
+  estado_administrativo: string | null;
+  modalidad: string | null;
+  tipo_practica: string | null;
+  duracion_horas: number | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  anio_academico: string | null;
+  periodo_academico: string | null;
+  bilingue: boolean;
+  observaciones_institucionales: string | null;
+  fecha_formalizacion: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PracticaCreate {
+  interaction_id: string;
+  challenge_id?: string | null;
+  solucionador_id?: string | null;
+  empresa_id?: string | null;
+  tutor_docente_id?: string | null;
+  estado_administrativo?: string | null;
+  modalidad?: string | null;
+  tipo_practica?: string | null;
+  duracion_horas?: number | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  anio_academico?: string | null;
+  periodo_academico?: string | null;
+  bilingue?: boolean;
+  observaciones_institucionales?: string | null;
+}
+
+export interface PracticaUpdate {
+  empresa_id?: string | null;
+  tutor_docente_id?: string | null;
+  estado_administrativo?: string | null;
+  modalidad?: string | null;
+  tipo_practica?: string | null;
+  duracion_horas?: number | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  anio_academico?: string | null;
+  periodo_academico?: string | null;
+  bilingue?: boolean | null;
+  observaciones_institucionales?: string | null;
+}
+
+export interface PracticaListResponse {
+  practicas: Practica[];
+  total: number;
+  skip: number;
+  limit: number;
 }

@@ -17,7 +17,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ── Docker ──
+# ── Logs ──
 *.log
 
 # ── IDE ──
@@ -36,6 +36,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
+# ── TypeScript incremental build info ──
+*.tsbuildinfo
 # ── Alembic ──
 # Las revisiones se autogeneran por entorno (make migrate) a partir de los modelos.
-services/*/alembic/versions/
+# D13 (resuelto): se dejo de excluir services/*/alembic/versions/ para versionar
+# las migraciones en Git y hacerlas reproducibles.

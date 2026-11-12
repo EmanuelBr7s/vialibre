@@ -2,9 +2,11 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, AuthContext
+from app.api.duplicates import raise_duplicate_conflict
 from app.database import get_db
 from app.models.reaction import Reaction, ReactionType
 from app.schemas.match import (
@@ -43,7 +45,21 @@ async def create_reaction(
         reaction_type=data.reaction_type,
     )
     db.add(reaction)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError as exc:
+        # La restriccion uq_user_challenge_reaction_type sostiene la unicidad
+        # ante carrera; se traduce a 409 con el mismo detail secuencial.
+        await db.rollback()
+        raise_duplicate_conflict(
+            exc,
+            constraint="uq_user_challenge_reaction_type",
+            detail=(
+                f"You already have a {data.reaction_type.value} "
+                "reaction for this challenge"
+            ),
+        )
+        raise
     return reaction
 
 
@@ -106,15 +122,25 @@ async def delete_reaction(
     await db.delete(reaction)
 
 
-# ── Internal endpoints (no auth) ──
+# ── Internal endpoints ──
 
+# DECISION (B3-A): se mantiene GET /internal/count/{challenge_id} SIN CAMBIOS
+# funcionales. Sigue protegido con get_current_user (JWT de usuario) y NO se
+# migra a autenticacion de servicio ni se elimina: el endpoint no tiene
+# llamadores en el repositorio (0 consumidores en frontend, gateway y otros
+# servicios), por lo que migrarlo a X-Service-Token obligaria a crear
+# infraestructura de verificacion interna en match-service para nadie.
+# La nomenclatura "/internal" con autenticacion JWT es imprecisa y asi queda
+# registrada (ver .opencode/reports/B3_01_INVESTIGACION.md, Duda 2/H4).
+# Revisar si aparece algun consumidor cross-service real o en una fase de limpieza.
 @router.get("/internal/count/{challenge_id}")
 async def count_reactions(
     challenge_id: uuid.UUID,
     reaction_type: ReactionType | None = None,
+    auth: AuthContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Count reactions for a challenge (internal endpoint)."""
+    """Count reactions for a challenge (requires authentication)."""
     query = select(func.count(Reaction.id)).where(
         Reaction.challenge_id == challenge_id
     )

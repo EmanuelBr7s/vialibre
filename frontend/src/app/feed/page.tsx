@@ -12,7 +12,8 @@ import ChallengeCardSkeleton from '@/components/skeletons/ChallengeCardSkeleton'
 import FeaturedCardSkeleton from '@/components/skeletons/FeaturedCardSkeleton';
 import CreateChallengeModal from '@/components/CreateChallengeModal';
 import api from '@/lib/api';
-import type { Challenge, ChallengeTipo } from '@/types';
+import type { Challenge } from '@/types';
+import { ChallengeTipo, UserRole } from '@/types';
 import { LAB_CONTACT, MODULES, MODULE_BY_ID, defaultModuleFor } from '@/data/modules';
 import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
@@ -91,9 +92,9 @@ export default function FeedPage() {
 
   if (!isAuthenticated) return null;
 
-  const canPublish = user?.role === 'publicador' || user?.role === 'admin';
+  const canPublish = user?.role === UserRole.PUBLICADOR || user?.role === UserRole.ADMIN;
   const toggleModal = () => setModalOpen((open) => !open);
-  const current = MODULE_BY_ID[activeTab ?? 'reto'];
+  const current = MODULE_BY_ID[activeTab ?? ChallengeTipo.RETO];
 
   return (
     <div className="flex min-h-screen">
@@ -169,7 +170,7 @@ export default function FeedPage() {
           )}
         </div>
 
-        {activeTab === 'reto' && (
+        {activeTab === ChallengeTipo.RETO && (
           <aside
             aria-label="Contacto del Laboratorio de Innovación"
             className="mb-8 flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-violet-200 bg-violet-50 p-5"
@@ -205,7 +206,7 @@ export default function FeedPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Destacados
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {Array.from({ length: 3 }).map((_, i) => (
                     <FeaturedCardSkeleton key={i} />
                   ))}
@@ -216,7 +217,7 @@ export default function FeedPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
                   Publicaciones recientes
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <ChallengeCardSkeleton key={i} />
                   ))}
@@ -230,7 +231,7 @@ export default function FeedPage() {
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">
                     Destacados
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {featured.map((challenge) => (
                       <FeaturedCard key={challenge.id} challenge={challenge} />
                     ))}
@@ -245,17 +246,17 @@ export default function FeedPage() {
                 {challenges.length === 0 ? (
                   <p className="text-gray-500">Aún no hay publicaciones en este módulo.</p>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {challenges.map((challenge) => (
-                      <Link
-                        key={challenge.id}
-                        href={`/feed/${challenge.id}`}
-                        className={`block rounded-lg ${FOCUS_RING}`}
-                      >
-                        <ChallengeCard challenge={challenge} />
-                      </Link>
-                    ))}
-                  </div>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      {challenges.map((challenge) => (
+                        <Link
+                          key={challenge.id}
+                          href={`/feed/${challenge.id}`}
+                          className={`block rounded-lg ${FOCUS_RING}`}
+                        >
+                          <ChallengeCard challenge={challenge} />
+                        </Link>
+                      ))}
+                    </div>
                 )}
               </section>
             </div>
