@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { FOCUS_RING } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
 
 type ToastTone = 'success' | 'error';
 
@@ -30,8 +30,8 @@ const ToastContext = createContext<ToastApi | undefined>(undefined);
 const DURATION_MS = 5000;
 
 const TONE_CLASS: Record<ToastTone, string> = {
-  success: 'text-green-800 bg-green-50 border-green-200',
-  error: 'text-red-700 bg-red-50 border-red-200',
+  success: 'text-green-700 bg-green-50 border-green-200',
+  error: 'text-red-600 bg-red-50 border-red-200',
 };
 
 /**
@@ -52,17 +52,35 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const push = useCallback(
-    (tone: ToastTone, message: string) => {
-      const id = nextId.current;
-      nextId.current += 1;
-      setToasts((current) => [...current.slice(-2), { id, tone, message }]);
+  const schedule = useCallback(
+    (id: number) => {
+      const previous = timers.current.get(id);
+      if (previous !== undefined) window.clearTimeout(previous);
       timers.current.set(
         id,
         window.setTimeout(() => dismiss(id), DURATION_MS)
       );
     },
     [dismiss]
+  );
+
+  /** Mientras se lee (ratón encima o foco dentro) el aviso no se cierra. */
+  const pause = useCallback((id: number) => {
+    const timer = timers.current.get(id);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      timers.current.delete(id);
+    }
+  }, []);
+
+  const push = useCallback(
+    (tone: ToastTone, message: string) => {
+      const id = nextId.current;
+      nextId.current += 1;
+      setToasts((current) => [...current.slice(-2), { id, tone, message }]);
+      schedule(id);
+    },
+    [schedule]
   );
 
   useEffect(() => {
@@ -81,12 +99,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {/* Sobre la barra inferior en móvil; esquina inferior derecha en escritorio. */}
-      <div className="pointer-events-none fixed inset-x-4 bottom-24 z-[60] flex flex-col items-center gap-2 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:items-end">
+      {/* Por encima de la barra inferior (móvil) y del botón de accesibilidad (escritorio). */}
+      <div className="pointer-events-none fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[60] flex flex-col items-center gap-2 lg:inset-x-auto lg:right-6 lg:items-end">
         {toasts.map((toast) => (
           <div
             key={toast.id}
             role={toast.tone === 'error' ? 'alert' : 'status'}
+            onMouseEnter={() => pause(toast.id)}
+            onMouseLeave={() => schedule(toast.id)}
+            onFocus={() => pause(toast.id)}
+            onBlur={() => schedule(toast.id)}
             className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 text-fluid-sm shadow-lg ${TONE_CLASS[toast.tone]}`}
           >
             <p className="min-w-0 flex-1 break-words">{toast.message}</p>
@@ -94,7 +116,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => dismiss(toast.id)}
               aria-label="Cerrar aviso"
-              className={`-m-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg leading-none opacity-70 hover:opacity-100 ${FOCUS_RING}`}
+              className={`-my-2 -mr-2 inline-flex shrink-0 items-center justify-center rounded-lg text-fluid-lg leading-none opacity-70 hover:opacity-100 ${TOUCH_TARGET} ${FOCUS_RING}`}
             >
               <span aria-hidden="true">×</span>
             </button>

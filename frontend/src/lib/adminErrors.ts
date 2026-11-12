@@ -10,3 +10,15 @@ export function errorMessage(err: unknown): string {
 export function isStatus(err: unknown, status: number): boolean {
   return err instanceof ApiError && err.status === status;
 }
+
+/**
+ * Lleva el foco al primer campo con error, según el orden en pantalla.
+ * `order` es la lista de [campo, id del elemento].
+ */
+export function focusFirstError(
+  errors: Record<string, string>,
+  order: ReadonlyArray<readonly [string, string]>
+): void {
+  const first = order.find(([field]) => errors[field]);
+  if (first) document.getElementById(first[1])?.focus();
+}

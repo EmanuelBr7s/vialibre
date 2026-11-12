@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '@/components/admin/AdminShell';
+import FormErrors from '@/components/admin/FormErrors';
 import StatusAlert from '@/components/admin/StatusAlert';
 import EmptyState from '@/components/admin/EmptyState';
 import ListSkeleton from '@/components/admin/ListSkeleton';
 import ListPagination from '@/components/admin/ListPagination';
 import { CheckboxField, TextField } from '@/components/admin/FormField';
 import { api } from '@/lib/api';
-import { errorMessage, isStatus } from '@/lib/adminErrors';
+import { errorMessage, focusFirstError, isStatus } from '@/lib/adminErrors';
 import { validateEmpresa, type EmpresaDraft, type FieldErrors } from '@/lib/adminValidation';
 import ResponsiveList from '@/components/admin/ResponsiveList';
 import Select from '@/components/ui/Select';
@@ -18,6 +19,17 @@ import { FOCUS_RING, TOUCH_TARGET, btnPrimary, btnSecondary } from '@/components
 import type { Empresa, EmpresaCreate } from '@/types';
 
 const LIMIT = 20;
+
+/** Orden de los campos en pantalla: el foco va al primero con error. */
+const FIELD_IDS: Array<[string, string]> = [
+  ['nit', 'empresa-nit'],
+  ['razon_social', 'empresa-razon-social'],
+  ['sector', 'empresa-sector'],
+  ['representante_legal', 'empresa-representante'],
+  ['contacto_email', 'empresa-contacto-email'],
+  ['contacto_telefono', 'empresa-contacto-telefono'],
+  ['publicador_user_id', 'empresa-publicador'],
+];
 
 type ActivaFilter = 'todas' | 'activas' | 'inactivas';
 
@@ -145,10 +157,13 @@ export default function AdminEmpresasPage() {
     event.preventDefault();
     const errors = validateEmpresa(draft);
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    setFormError(null);
+    if (Object.keys(errors).length > 0) {
+      focusFirstError(errors, FIELD_IDS);
+      return;
+    }
 
     setSubmitting(true);
-    setFormError(null);
     try {
       const payload = toPayload(draft);
       if (editing) {
@@ -255,9 +270,7 @@ export default function AdminEmpresasPage() {
               </div>
 
               {/* Los avisos van junto a los botones: es donde está mirando quien envía. */}
-              <div aria-live="polite">
-                {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
-              </div>
+              <FormErrors formError={formError} fieldErrors={fieldErrors} />
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button

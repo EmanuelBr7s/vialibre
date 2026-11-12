@@ -29,6 +29,9 @@ interface ReferenceSelectProps {
   emptyAction?: { href: string; label: string };
   /** Texto de la opción que deja el campo sin valor. */
   clearLabel?: string;
+  required?: boolean;
+  /** Error de validación del formulario (no deshabilita el campo). */
+  fieldError?: string | null;
 }
 
 /**
@@ -51,20 +54,28 @@ export default function ReferenceSelect({
   emptyText = 'No hay registros disponibles para seleccionar.',
   emptyAction,
   clearLabel = 'Sin asignar',
+  required = false,
+  fieldError = null,
 }: ReferenceSelectProps) {
   const helpId = `${id}-help`;
   const errorId = `${id}-error`;
+  const fieldErrorId = `${id}-field-error`;
 
   const valueInOptions = value !== null && options.some((o) => o.value === value);
   const showUnknown = value !== null && !valueInOptions;
 
   const comboOptions: ReferenceOption[] =
     showUnknown && value !== null
-      ? [...options, { value, label: `${value} (${unknownLabel})` }]
+      ? [...options, { value, label: `…${value.slice(-4)} (${unknownLabel})` }]
       : options;
 
   const disabled = loading || error !== null;
   const isEmpty = !loading && !error && options.length === 0;
+  // 9: solo se referencian los textos de ayuda que de verdad están en pantalla.
+  const hasHelp = loading || !!error || isEmpty || showUnknown;
+  const describedBy = [fieldError ? fieldErrorId : null, error ? errorId : null, hasHelp ? helpId : null]
+    .filter(Boolean)
+    .join(' ');
   const placeholder = loading
     ? 'Cargando…'
     : error
@@ -73,8 +84,9 @@ export default function ReferenceSelect({
 
   return (
     <div>
-      <label htmlFor={id} className={labelClass}>
+      <label id={`${id}-label`} htmlFor={id} className={labelClass}>
         {label}
+        {required ? <span aria-hidden="true"> *</span> : null}
       </label>
       <Combobox
         id={id}
@@ -84,9 +96,17 @@ export default function ReferenceSelect({
         placeholder={placeholder}
         clearLabel={clearLabel}
         disabled={disabled}
-        invalid={!!error}
-        describedBy={`${helpId}${error ? ` ${errorId}` : ''}`}
+        invalid={!!error || !!fieldError}
+        describedBy={describedBy || undefined}
+        required={required}
+        noOptionsText={emptyText}
       />
+
+      {fieldError ? (
+        <p id={fieldErrorId} role="alert" className={errorClass}>
+          {fieldError}
+        </p>
+      ) : null}
 
       {error ? (
         <p id={errorId} role="alert" className={errorClass}>

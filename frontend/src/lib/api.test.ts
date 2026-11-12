@@ -223,6 +223,27 @@ describe('errores sin JSON y reintentos', () => {
     });
   });
 
+  it('traduce los errores de validación (422) del backend', async () => {
+    fetchMock.mockImplementation(async () =>
+      jsonResponse(
+        {
+          detail: [
+            { msg: "String should match pattern '^(19|20)\d{2}$'" },
+            { msg: "Input should be '1' or '2'" },
+            { msg: 'Input should be greater than or equal to 1' },
+          ],
+        },
+        422
+      )
+    );
+
+    await expect(api.createPractica({ interaction_id: 'i1' })).rejects.toMatchObject({
+      status: 422,
+      message:
+        'el formato no es válido; el valor no está entre las opciones permitidas; el número está fuera del rango permitido',
+    });
+  });
+
   it('traduce los mensajes en inglés del backend', async () => {
     fetchMock.mockImplementation(async () =>
       jsonResponse({ detail: 'Only publicadores can create challenges' }, 403)

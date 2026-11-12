@@ -155,7 +155,11 @@ export default function FeedPage() {
             {activeTab && (
               <button
                 type="button"
-                onClick={() => loadChallenges(activeTab)}
+                onClick={() => {
+                  // El botón desaparece al reintentar: el foco pasa al panel.
+                  document.getElementById('module-panel')?.focus();
+                  void loadChallenges(activeTab);
+                }}
                 className={`${btnSecondary} w-full sm:w-auto shrink-0`}
               >
                 Reintentar
@@ -249,7 +253,14 @@ export default function FeedPage() {
           </aside>
         )}
 
-        <div id="module-panel" role="tabpanel" aria-labelledby={`tab-${current.id}`} aria-live="polite">
+        <div
+          id="module-panel"
+          role="tabpanel"
+          tabIndex={-1}
+          aria-labelledby={`tab-${current.id}`}
+          aria-live="polite"
+          className="focus:outline-none"
+        >
           {isLoading ? (
             <div className="space-y-8">
               <section aria-label="Cargando destacados">

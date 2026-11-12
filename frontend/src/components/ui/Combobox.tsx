@@ -25,6 +25,9 @@ interface ComboboxProps {
   describedBy?: string;
   /** Texto cuando la búsqueda no encuentra nada. */
   emptyText?: string;
+  /** Texto cuando no hay ninguna opción que ofrecer. */
+  noOptionsText?: string;
+  required?: boolean;
 }
 
 const normalize = (text: string) =>
@@ -48,6 +51,8 @@ export default function Combobox({
   invalid = false,
   describedBy,
   emptyText = 'Sin resultados',
+  noOptionsText,
+  required = false,
 }: ComboboxProps) {
   const listId = `${useId()}-list`;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -134,10 +139,23 @@ export default function Combobox({
         close();
         break;
       default:
+        // Escribir (o borrar) con la lista cerrada inicia una búsqueda nueva:
+        // el campo se vacía antes de que entre el carácter.
+        if (
+          !open &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey &&
+          (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete')
+        ) {
+          openList();
+        }
     }
   };
 
   const optionId = (index: number) => `${listId}-opt-${index}`;
+  const labelId = `${id}-label`;
+  const emptyMessage = options.length === 0 && noOptionsText ? noOptionsText : emptyText;
 
   return (
     <div className="relative">
@@ -148,7 +166,8 @@ export default function Combobox({
         role="combobox"
         autoComplete="off"
         aria-expanded={open}
-        aria-controls={listId}
+        aria-controls={open ? listId : undefined}
+        aria-required={required || undefined}
         aria-autocomplete="list"
         aria-activedescendant={open && items[activeIndex] ? optionId(activeIndex) : undefined}
         aria-invalid={invalid || undefined}
@@ -161,13 +180,10 @@ export default function Combobox({
           setActiveIndex(0);
           if (!open) setOpen(true);
         }}
-        onFocus={openList}
         onClick={openList}
         onBlur={close}
         onKeyDown={onKeyDown}
-        className={`${INPUT_SURFACE} py-3 pl-4 pr-11 text-fluid-sm min-h-touch truncate cursor-pointer text-gray-900 placeholder:text-gray-500 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed ${
-          invalid ? 'border-red-400' : ''
-        }`}
+        className={`${INPUT_SURFACE} py-3 pl-4 pr-11 text-fluid-sm min-h-touch truncate cursor-pointer text-gray-900 placeholder:text-gray-500 disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed`}
       />
       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -175,16 +191,21 @@ export default function Combobox({
         </svg>
       </span>
 
+      <span role="status" className="sr-only">
+        {open && items.length === 0 ? emptyMessage : ''}
+      </span>
+
       {open && (
         <ul
           ref={listRef}
           id={listId}
           role="listbox"
+          aria-labelledby={labelId}
           className="absolute z-30 mt-1 w-full max-h-60 overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
         >
           {items.length === 0 ? (
             <li role="presentation" className="px-4 py-3 text-fluid-sm text-gray-500">
-              {emptyText}
+              {emptyMessage}
             </li>
           ) : (
             items.map((option, index) => {
@@ -209,7 +230,7 @@ export default function Combobox({
                 >
                   <span className="truncate">{option.label}</span>
                   {option.description ? (
-                    <span className="truncate text-fluid-xs font-normal text-gray-500">
+                    <span className="truncate text-fluid-xs font-normal text-gray-600">
                       {option.description}
                     </span>
                   ) : null}

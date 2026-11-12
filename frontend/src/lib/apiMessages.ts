@@ -32,6 +32,9 @@ const DETAIL_TRANSLATIONS: Record<string, string> = {
   'Could not fetch user information': 'No se pudo consultar la información del usuario. Inténtalo de nuevo.',
   'Could not fetch challenge info': 'No se pudo consultar la publicación. Inténtalo de nuevo.',
   'Invalid internal service token': 'No se pudo completar la operación. Inténtalo de nuevo.',
+  'Ya existe una practica formalizada para esta interaccion':
+    'Ya existe una práctica formalizada para esta postulación.',
+  'La interaccion indicada no existe': 'La postulación indicada no existe.',
   'Internal Server Error': 'Ocurrió un error en el servidor. Inténtalo de nuevo.',
   'Not Found': 'No se encontró lo que buscabas.',
   'Method Not Allowed': 'Operación no permitida.',
@@ -94,6 +97,9 @@ function translateValidationMsg(msg: string): string {
   if (/^Input should be a valid date/i.test(text)) return 'la fecha no es válida';
   if (/^Input should be a valid UUID/i.test(text)) return 'la referencia no es válida';
   if (/^value is not a valid email address/i.test(text)) return 'el correo no es válido';
+  if (/^String should match pattern/i.test(text)) return 'el formato no es válido';
+  if (/^Input should be '.+'/i.test(text)) return 'el valor no está entre las opciones permitidas';
+  if (/^Input should be (greater|less) than/i.test(text)) return 'el número está fuera del rango permitido';
   return text;
 }
 

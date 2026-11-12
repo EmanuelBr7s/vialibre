@@ -35,7 +35,7 @@ describe('ReferenceSelect', () => {
 
     await user.clear(combo);
     await user.type(combo, 'zzz');
-    expect(screen.getByText('Sin resultados')).toBeInTheDocument();
+    expect(screen.getAllByText('Sin resultados').length).toBeGreaterThan(0);
   });
 
   it('se puede elegir solo con el teclado', async () => {
@@ -46,7 +46,8 @@ describe('ReferenceSelect', () => {
     );
 
     await user.tab();
-    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}');
+    // La lista no se abre sola al recibir el foco: la primera flecha la abre.
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}{Enter}');
     expect(onChange).toHaveBeenCalledWith(OPTIONS[1].value);
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
@@ -155,7 +156,7 @@ describe('ReferenceSelect', () => {
     );
     expect(
       (screen.getByRole('combobox', { name: 'Empresa' }) as HTMLInputElement).value
-    ).toMatch(/99999999-9999-9999-9999-999999999999/);
+    ).toMatch(/…9999 \(referencia no verificada\)/);
     expect(
       screen.getByText(/El valor guardado no está en la lista de opciones/i)
     ).toBeInTheDocument();

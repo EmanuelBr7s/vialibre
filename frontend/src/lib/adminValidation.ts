@@ -177,11 +177,20 @@ export function validatePractica(
     ['observaciones_institucionales', maxLength(draft.observaciones_institucionales, 2000)],
   ];
   checks.forEach(([field, message]) => {
-    if (message && !unchanged.has(field)) errors[field] = message;
+    if (!message) return;
+    // El rango de fechas depende de las dos: basta con que cambie una.
+    const skip =
+      field === 'fecha_fin'
+        ? unchanged.has('fecha_fin') && unchanged.has('fecha_inicio')
+        : unchanged.has(field);
+    if (!skip) errors[field] = message;
   });
 
   // Año y periodo forman una sola referencia ("2026-2"): van juntos o ninguno.
+  // Un registro antiguo con solo uno de los dos se puede guardar si no se tocan.
+  const pairUntouched = unchanged.has('anio_academico') && unchanged.has('periodo_academico');
   const anio = draft.anio_academico.trim();
+  if (pairUntouched) return errors;
   if (anio !== '' && draft.periodo_academico === '' && !errors.periodo_academico) {
     errors.periodo_academico = 'Indica también el periodo.';
   }

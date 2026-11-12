@@ -13,6 +13,7 @@ import {
   TextAreaField,
   TextField,
 } from '@/components/admin/FormField';
+import FormErrors from '@/components/admin/FormErrors';
 import ReferenceSelect, {
   UNVERIFIED_REFERENCE_NOTICE,
   type ReferenceOption,
@@ -22,7 +23,7 @@ import Combobox from '@/components/ui/Combobox';
 import Select from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
-import { errorMessage, isStatus } from '@/lib/adminErrors';
+import { errorMessage, focusFirstError, isStatus } from '@/lib/adminErrors';
 import {
   periodMismatchWarning,
   validatePractica,
@@ -76,6 +77,7 @@ const EMPTY_DRAFT: PracticaDraft = {
 
 /** Orden de los campos en pantalla: el foco va al primero con error. */
 const FIELD_IDS: Array<[string, string]> = [
+  ['challenge', 'practica-challenge'],
   ['interaction', 'practica-interaction'],
   ['estado_administrativo', 'practica-estado'],
   ['modalidad', 'practica-modalidad'],
@@ -161,6 +163,8 @@ export default function AdminPracticasPage() {
   const [interactionLoading, setInteractionLoading] = useState(false);
   const [interactionError, setInteractionError] = useState<string | null>(null);
   const [formalizedIds, setFormalizedIds] = useState<Set<string>>(new Set());
+  // Última publicación pedida: descarta respuestas que llegan tarde.
+  const requestedChallenge = useRef<string | null>(null);
 
   // Nombres de los estudiantes (se resuelven una vez por id).
   const [students, setStudents] = useState<Map<string, StudentInfo>>(new Map());
@@ -381,10 +385,15 @@ export default function AdminPracticasPage() {
   }, [loadEmpresas, loadTutores, loadChallenges, loadFormalized]);
 
   const onChallengeChange = async (id: string | null) => {
+    requestedChallenge.current = id;
     setChallengeId(id ?? '');
     setInteractionId('');
     setInteractionOptions([]);
     setInteractionError(null);
+    setFieldErrors((prev) => {
+      const { challenge: _challenge, ...rest } = prev;
+      return rest;
+    });
     if (!id) return;
 
     // La empresa que publicó la oferta se propone como empresa vinculada.
@@ -397,15 +406,16 @@ export default function AdminPracticasPage() {
     setInteractionLoading(true);
     try {
       const res = await api.getChallengeApplicants(id);
+      if (requestedChallenge.current !== id) return;
       setInteractionOptions(res.interactions);
     } catch (err) {
       if (isStatus(err, 401)) {
         handleUnauthorized();
         return;
       }
-      setInteractionError(errorMessage(err));
+      if (requestedChallenge.current === id) setInteractionError(errorMessage(err));
     } finally {
-      setInteractionLoading(false);
+      if (requestedChallenge.current === id) setInteractionLoading(false);
     }
   };
 
@@ -473,26 +483,19 @@ export default function AdminPracticasPage() {
   const updateDraft = (patch: Partial<PracticaDraft>) =>
     setDraft((prev) => ({ ...prev, ...patch }));
 
-  const focusFirstError = (errors: FieldErrors) => {
-    const first = FIELD_IDS.find(([field]) => errors[field]);
-    if (!first) return;
-    // Sin publicación elegida, el selector de postulación está deshabilitado.
-    const targetId =
-      first[0] === 'interaction' && !challengeId ? 'practica-challenge' : first[1];
-    document.getElementById(targetId)?.focus();
-  };
-
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const unchanged = editing ? unchangedFields(draft, toDraft(editing)) : new Set<string>();
     const errors = validatePractica(draft, unchanged);
-    if (!editing && interactionId === '') {
+    if (!editing && challengeId === '') {
+      errors.challenge = 'Selecciona la publicación de origen.';
+    } else if (!editing && interactionId === '') {
       errors.interaction = 'Selecciona la postulación que respalda la práctica.';
     }
     setFieldErrors(errors);
     setFormError(null);
     if (Object.keys(errors).length > 0) {
-      focusFirstError(errors);
+      focusFirstError(errors, FIELD_IDS);
       return;
     }
 
@@ -544,7 +547,6 @@ export default function AdminPracticasPage() {
     return map.get(id) ?? `${shortId(id)} (referencia no verificada)`;
   };
 
-  const errorCount = Object.keys(fieldErrors).length;
   const derivedChallengeId = editing?.challenge_id ?? selectedInteraction?.challenge_id ?? null;
   const derivedStudentId = editing?.solucionador_id ?? selectedInteraction?.solucionador_id ?? null;
   const derivedStudent = derivedStudentId ? students.get(derivedStudentId) : undefined;
@@ -580,10 +582,13 @@ export default function AdminPracticasPage() {
                     error={challengeError}
                     clearLabel="Selecciona una publicación"
                     emptyText="Aún no hay publicaciones."
+                    required
+                    fieldError={fieldErrors.challenge}
                   />
                   <div>
-                    <label htmlFor="practica-interaction" className={labelClass}>
+                    <label id="practica-interaction-label" htmlFor="practica-interaction" className={labelClass}>
                       Postulación del estudiante
+                      <span aria-hidden="true"> *</span>
                     </label>
                     <Combobox
                       id="practica-interaction"
@@ -591,6 +596,8 @@ export default function AdminPracticasPage() {
                       value={interactionId}
                       onChange={setInteractionId}
                       placeholder={interactionPlaceholder}
+                      noOptionsText="Sin postulaciones disponibles"
+                      required
                       disabled={interactionLoading || !challengeId || !!interactionError}
                       invalid={!!fieldErrors.interaction || !!interactionError}
                       describedBy={[
@@ -759,17 +766,7 @@ export default function AdminPracticasPage() {
               />
 
               {/* Los avisos van junto a los botones: es donde está mirando quien envía. */}
-              <div aria-live="polite">
-                {formError ? (
-                  <StatusAlert tone="error">{formError}</StatusAlert>
-                ) : errorCount > 0 ? (
-                  <StatusAlert tone="error">
-                    {errorCount === 1
-                      ? 'Revisa el campo marcado antes de continuar.'
-                      : `Revisa los ${errorCount} campos marcados antes de continuar.`}
-                  </StatusAlert>
-                ) : null}
-              </div>
+              <FormErrors formError={formError} fieldErrors={fieldErrors} />
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button

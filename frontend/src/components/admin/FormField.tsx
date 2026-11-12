@@ -37,7 +37,8 @@ export function TextField({
 }: TextFieldProps) {
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
-  const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ');
+  // El error sustituye a la ayuda: solo se referencia lo que está en pantalla.
+  const describedBy = error ? errorId : hint ? hintId : '';
   return (
     <div>
       <label htmlFor={id} className={labelClass}>

@@ -162,7 +162,7 @@ describe('AdminPracticasPage', () => {
     await user.click(screen.getByRole('button', { name: 'Formalizar práctica' }));
 
     expect(
-      await screen.findByText('Selecciona la postulación que respalda la práctica.')
+      await screen.findByText('Selecciona la publicación de origen.')
     ).toBeInTheDocument();
     expect(createPractica).not.toHaveBeenCalled();
   });
