@@ -176,7 +176,7 @@ def test_registro_duplicado_secuencial_devuelve_409():
         "password": "Secreto123",
         "full_name": "Registro Secuencial",
         "role": "solucionador",
-        "programa_academico": "Ingenieria de Sistemas",
+        "programa_academico": "Ingeniería de Sistemas",
     }
     try:
         primero = client.post(REGISTER_URL, json=payload)
@@ -235,7 +235,7 @@ def test_registro_duplicado_concurrente_devuelve_409():
                 "password": "Secreto123",
                 "full_name": "Registro Concurrente",
                 "role": "solucionador",
-                "programa_academico": "Ingenieria de Sistemas",
+                "programa_academico": "Ingeniería de Sistemas",
             },
         )
 
@@ -258,7 +258,7 @@ def test_registro_duplicado_concurrente_devuelve_409():
                 "password": "Secreto123",
                 "full_name": "Post Carrera",
                 "role": "solucionador",
-                "programa_academico": "Ingenieria de Sistemas",
+                "programa_academico": "Ingeniería de Sistemas",
             },
         )
         assert otro.status_code == 201

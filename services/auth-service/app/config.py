@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
 
+    # Coste de bcrypt para las contrasenas (ver app/core/security.py).
+    bcrypt_rounds: int = 10
+
     # Service
     service_name: str = "auth-service"
     api_v1_prefix: str = "/api/v1/auth"

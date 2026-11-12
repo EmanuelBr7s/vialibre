@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # Internal service URLs
     auth_service_url: str = "http://localhost:8001"
 
+    # Segundos que se recuerda el nombre visible de un autor (0 = sin cache).
+    author_cache_ttl_seconds: int = 300
+
     model_config = {"env_file": (ROOT_ENV, ".env"), "extra": "ignore"}
 
     def model_post_init(self, __context) -> None:
