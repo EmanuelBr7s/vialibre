@@ -16,11 +16,11 @@ export interface AdSlot {
 // Set a `null` para forzar el estado "Espacio disponible para pauta".
 export const currentAd: AdSlot | null = {
   id: 'ad-001',
-  empresa: 'SoftCaribe S.A.S',
-  title: 'SoftCaribe',
+  empresa: 'Qbits Global S.A.S',
+  title: 'Qbits Global S.A.S',
   description: 'Únete a nuestro programa de pasantías en tecnología y transforma el Caribe.',
-  image_url: '',
-  link_url: 'https://softcaribe.example.com',
+  image_url: 'https://qbitsglobal.com/qbits-isotipo.svg',
+  link_url: 'https://qbitsglobal.com/',
   expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
 };
 
