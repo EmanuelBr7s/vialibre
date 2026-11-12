@@ -65,7 +65,7 @@ const CHALLENGE = {
 };
 
 /** Abre un combobox por su etiqueta y elige la opción cuyo nombre coincide. */
-async function choose(user: ReturnType<typeof userEvent.setup>, label: string, option: RegExp) {
+async function choose(user: ReturnType<typeof userEvent.setup>, label: string | RegExp, option: RegExp) {
   await user.click(screen.getByRole('combobox', { name: label }));
   await user.click(await screen.findByRole('option', { name: option }));
 }
@@ -149,6 +149,71 @@ describe('AdminPracticasPage', () => {
     expect(payload.interaction_id).toBe('i1');
     expect(payload.challenge_id).toBeUndefined();
     expect(payload.solucionador_id).toBeUndefined();
+  });
+
+  it('la empresa propuesta sigue a la publicación elegida y respeta una elección manual', async () => {
+    mockBaseCatalogs();
+    const otra = { id: 'c2', title: 'Otra oferta', tipo: 'empleo', author_id: 'u-b' };
+    getChallenges.mockResolvedValue({
+      challenges: [{ ...CHALLENGE, author_id: 'u-a' }, otra],
+      total: 2,
+      skip: 0,
+      limit: 100,
+    });
+    listEmpresas.mockResolvedValue({
+      empresas: [
+        { id: 'e-a', razon_social: 'Empresa A', nit: null, publicador_user_id: 'u-a', activa: true },
+        { id: 'e-b', razon_social: 'Empresa B', nit: null, publicador_user_id: 'u-b', activa: true },
+        { id: 'e-c', razon_social: 'Empresa C', nit: null, publicador_user_id: null, activa: true },
+      ],
+      total: 3,
+      skip: 0,
+      limit: 100,
+    });
+    const user = userEvent.setup();
+    const empresa = () => (screen.getByRole('combobox', { name: 'Empresa vinculada' }) as HTMLInputElement).value;
+
+    renderWithProviders(<AdminPracticasPage />);
+    await screen.findByText('No hay prácticas formalizadas.');
+    await user.click(screen.getByRole('button', { name: 'Nueva práctica' }));
+
+    await choose(user, /Publicación de origen/, /Reto de ejemplo/);
+    await waitFor(() => expect(empresa()).toBe('Empresa A'));
+
+    // Al cambiar de publicación, la propuesta cambia con ella.
+    await choose(user, /Publicación de origen/, /Otra oferta/);
+    await waitFor(() => expect(empresa()).toBe('Empresa B'));
+
+    // Una empresa elegida a mano ya no se sustituye.
+    await choose(user, /Empresa vinculada/, /Empresa C/);
+    await choose(user, /Publicación de origen/, /Reto de ejemplo/);
+    await waitFor(() => expect(getChallengeApplicants).toHaveBeenCalledTimes(3));
+    expect(empresa()).toBe('Empresa C');
+  });
+
+  it('los errores de año y periodo desaparecen al corregir el campo', async () => {
+    mockBaseCatalogs();
+    const user = userEvent.setup();
+
+    renderWithProviders(<AdminPracticasPage />);
+    await screen.findByText('No hay prácticas formalizadas.');
+    await user.click(screen.getByRole('button', { name: 'Nueva práctica' }));
+    await choose(user, /Publicación de origen/, /Reto de ejemplo/);
+    await waitFor(() => expect(getUserById).toHaveBeenCalled());
+    await choose(user, /Postulación del estudiante/, /Ana Pérez/);
+
+    await user.type(screen.getByLabelText('Año académico'), '26');
+    await user.click(screen.getByRole('button', { name: 'Formalizar práctica' }));
+    expect(await screen.findByText(/Escribe un año de cuatro dígitos/)).toBeInTheDocument();
+    expect(screen.getByText('Indica también el periodo.')).toBeInTheDocument();
+    expect(screen.getByText('Revisa los 2 campos marcados antes de continuar.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Año académico')).toHaveFocus();
+
+    await user.type(screen.getByLabelText('Año académico'), '26');
+    expect(screen.queryByText(/Escribe un año de cuatro dígitos/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Indica también el periodo.')).not.toBeInTheDocument();
+    expect(screen.queryByText(/campos marcados/)).not.toBeInTheDocument();
+    expect(createPractica).not.toHaveBeenCalled();
   });
 
   it('exige seleccionar una interacción antes de formalizar', async () => {

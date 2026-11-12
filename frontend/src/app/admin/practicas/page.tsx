@@ -23,7 +23,7 @@ import Combobox from '@/components/ui/Combobox';
 import Select from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast';
 import { api } from '@/lib/api';
-import { errorMessage, focusFirstError, isStatus } from '@/lib/adminErrors';
+import { errorMessage, focusFirstError, isStatus, withoutErrors } from '@/lib/adminErrors';
 import {
   periodMismatchWarning,
   validatePractica,
@@ -57,7 +57,7 @@ import type {
   PracticaCreate,
   PracticaUpdate,
 } from '@/types';
-import { ChallengeStatus } from '@/types';
+import { ChallengeStatus, InteractionStatus } from '@/types';
 
 const LIMIT = 20;
 const OPTIONS_LIMIT = 100;
@@ -163,6 +163,8 @@ export default function AdminPracticasPage() {
   const [interactionLoading, setInteractionLoading] = useState(false);
   const [interactionError, setInteractionError] = useState<string | null>(null);
   const [formalizedIds, setFormalizedIds] = useState<Set<string>>(new Set());
+  // Empresa propuesta automáticamente (la que publicó la oferta elegida).
+  const proposedEmpresa = useRef<string | null>(null);
   // Última publicación pedida: descarta respuestas que llegan tarde.
   const requestedChallenge = useRef<string | null>(null);
 
@@ -390,10 +392,7 @@ export default function AdminPracticasPage() {
     setInteractionId('');
     setInteractionOptions([]);
     setInteractionError(null);
-    setFieldErrors((prev) => {
-      const { challenge: _challenge, ...rest } = prev;
-      return rest;
-    });
+    setFieldErrors((prev) => withoutErrors(prev, ['challenge', 'interaction']));
     if (!id) return;
 
     // La empresa que publicó la oferta se propone como empresa vinculada.
@@ -401,7 +400,11 @@ export default function AdminPracticasPage() {
     const owner = empresas.find(
       (empresa) => empresa.publicador_user_id !== null && empresa.publicador_user_id === authorId
     );
-    if (owner) setEmpresaId((current) => current ?? owner.id);
+    // Solo se sustituye la propuesta anterior, nunca una empresa elegida a mano.
+    const proposed = owner?.id ?? null;
+    const previous = proposedEmpresa.current;
+    proposedEmpresa.current = proposed;
+    setEmpresaId((current) => (current === null || current === previous ? proposed : current));
 
     setInteractionLoading(true);
     try {
@@ -419,9 +422,12 @@ export default function AdminPracticasPage() {
     }
   };
 
-  const availableInteractions = interactionOptions.filter(
-    (interaction) => !formalizedIds.has(interaction.id)
-  );
+  const availableInteractions = interactionOptions
+    .filter((interaction) => !formalizedIds.has(interaction.id))
+    .sort(
+      (a, b) =>
+        Number(b.status === InteractionStatus.APROBADO) - Number(a.status === InteractionStatus.APROBADO)
+    );
   const selectedInteraction =
     interactionOptions.find((interaction) => interaction.id === interactionId) ?? null;
 
@@ -445,6 +451,7 @@ export default function AdminPracticasPage() {
     : 'Selecciona una postulación';
 
   const resetForm = () => {
+    proposedEmpresa.current = null;
     setEmpresaId(null);
     setTutorId(null);
     setBilingue(false);
@@ -480,8 +487,19 @@ export default function AdminPracticasPage() {
     setFieldErrors({});
   };
 
-  const updateDraft = (patch: Partial<PracticaDraft>) =>
+  const updateDraft = (patch: Partial<PracticaDraft>) => {
     setDraft((prev) => ({ ...prev, ...patch }));
+    // Al editar un campo, su error deja de mostrarse. Año y periodo, y las dos
+    // fechas, se validan en pareja: editar uno limpia el aviso del otro.
+    const fields = Object.keys(patch);
+    if (fields.some((field) => field === 'anio_academico' || field === 'periodo_academico')) {
+      fields.push('anio_academico', 'periodo_academico');
+    }
+    if (fields.some((field) => field === 'fecha_inicio' || field === 'fecha_fin')) {
+      fields.push('fecha_inicio', 'fecha_fin');
+    }
+    setFieldErrors((prev) => withoutErrors(prev, fields));
+  };
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -594,7 +612,10 @@ export default function AdminPracticasPage() {
                       id="practica-interaction"
                       options={interactionComboOptions}
                       value={interactionId}
-                      onChange={setInteractionId}
+                      onChange={(value) => {
+                        setInteractionId(value);
+                        setFieldErrors((prev) => withoutErrors(prev, ['interaction']));
+                      }}
                       placeholder={interactionPlaceholder}
                       noOptionsText="Sin postulaciones disponibles"
                       required
@@ -808,6 +829,7 @@ export default function AdminPracticasPage() {
                   value={estadoFilter}
                   onChange={(event) => setEstadoFilter(event.target.value)}
                   compact
+                  className="min-w-[8.5rem]"
                 >
                   <option value="">Todos</option>
                   {ESTADOS_PRACTICA.map((option) => (
@@ -868,7 +890,7 @@ export default function AdminPracticasPage() {
                 {
                   header: 'Estado',
                   cell: (row) => (
-                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                    <span className="inline-block whitespace-nowrap px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
                       {row.estado_administrativo
                         ? catalogLabel(ESTADOS_PRACTICA, row.estado_administrativo)
                         : 'Sin estado'}
