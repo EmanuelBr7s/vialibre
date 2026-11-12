@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithProviders } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 
 const {
@@ -9,6 +10,7 @@ const {
   listTutoresDocentes,
   getChallenges,
   getChallengeApplicants,
+  getUserById,
   createPractica,
   updatePractica,
   clearToken,
@@ -19,6 +21,7 @@ const {
   listTutoresDocentes: vi.fn(),
   getChallenges: vi.fn(),
   getChallengeApplicants: vi.fn(),
+  getUserById: vi.fn(),
   createPractica: vi.fn(),
   updatePractica: vi.fn(),
   clearToken: vi.fn(),
@@ -43,6 +46,7 @@ vi.mock('@/lib/api', async () => {
       listTutoresDocentes,
       getChallenges,
       getChallengeApplicants,
+      getUserById,
       createPractica,
       updatePractica,
       clearToken,
@@ -57,7 +61,14 @@ const CHALLENGE = {
   id: 'c1',
   title: 'Reto de ejemplo',
   tipo: 'practica',
+  author_id: 'u-empresa',
 };
+
+/** Abre un combobox por su etiqueta y elige la opción cuyo nombre coincide. */
+async function choose(user: ReturnType<typeof userEvent.setup>, label: string, option: RegExp) {
+  await user.click(screen.getByRole('combobox', { name: label }));
+  await user.click(await screen.findByRole('option', { name: option }));
+}
 
 const INTERACTION = {
   id: 'i1',
@@ -75,6 +86,11 @@ function mockBaseCatalogs() {
   listTutoresDocentes.mockResolvedValue({ tutores: [], total: 0, skip: 0, limit: 100 });
   getChallenges.mockResolvedValue({ challenges: [CHALLENGE], total: 1, skip: 0, limit: 100 });
   getChallengeApplicants.mockResolvedValue({ interactions: [INTERACTION], total: 1 });
+  getUserById.mockResolvedValue({
+    id: INTERACTION.solucionador_id,
+    full_name: 'Ana Pérez',
+    programa_academico: 'Ingeniería de Sistemas',
+  });
 }
 
 beforeEach(() => {
@@ -84,6 +100,7 @@ beforeEach(() => {
   listTutoresDocentes.mockReset();
   getChallenges.mockReset();
   getChallengeApplicants.mockReset();
+  getUserById.mockReset();
   createPractica.mockReset();
   updatePractica.mockReset();
   clearToken.mockReset();
@@ -93,7 +110,7 @@ describe('AdminPracticasPage', () => {
   it('muestra el estado vacío del listado', async () => {
     mockBaseCatalogs();
 
-    render(<AdminPracticasPage />);
+    renderWithProviders(<AdminPracticasPage />);
 
     expect(await screen.findByText('No hay prácticas formalizadas.')).toBeInTheDocument();
   });
@@ -103,7 +120,7 @@ describe('AdminPracticasPage', () => {
     listEmpresas.mockRejectedValue(new ApiError('Operación exclusiva del rol admin', 403));
     const user = userEvent.setup();
 
-    render(<AdminPracticasPage />);
+    renderWithProviders(<AdminPracticasPage />);
     await screen.findByText('No hay prácticas formalizadas.');
 
     await user.click(screen.getByRole('button', { name: 'Nueva práctica' }));
@@ -117,20 +134,13 @@ describe('AdminPracticasPage', () => {
     createPractica.mockResolvedValue({ id: 'p1' });
     const user = userEvent.setup();
 
-    render(<AdminPracticasPage />);
+    renderWithProviders(<AdminPracticasPage />);
     await screen.findByText('No hay prácticas formalizadas.');
 
     await user.click(screen.getByRole('button', { name: 'Nueva práctica' }));
-    await user.selectOptions(
-      screen.getByLabelText('Publicación de origen'),
-      CHALLENGE.id
-    );
-
-    const interactionSelect = await screen.findByLabelText('Interacción (postulación)');
-    await waitFor(() =>
-      expect(screen.getByRole('option', { name: /11111111… · aprobado/ })).toBeInTheDocument()
-    );
-    await user.selectOptions(interactionSelect, INTERACTION.id);
+    await choose(user, 'Publicación de origen', /Reto de ejemplo/);
+    await waitFor(() => expect(getUserById).toHaveBeenCalled());
+    await choose(user, 'Postulación del estudiante', /Ana Pérez/);
 
     await user.click(screen.getByRole('button', { name: 'Formalizar práctica' }));
 
@@ -145,14 +155,14 @@ describe('AdminPracticasPage', () => {
     mockBaseCatalogs();
     const user = userEvent.setup();
 
-    render(<AdminPracticasPage />);
+    renderWithProviders(<AdminPracticasPage />);
     await screen.findByText('No hay prácticas formalizadas.');
 
     await user.click(screen.getByRole('button', { name: 'Nueva práctica' }));
     await user.click(screen.getByRole('button', { name: 'Formalizar práctica' }));
 
     expect(
-      await screen.findByText('Selecciona la interacción que respalda la práctica.')
+      await screen.findByText('Selecciona la publicación de origen.')
     ).toBeInTheDocument();
     expect(createPractica).not.toHaveBeenCalled();
   });
@@ -164,14 +174,13 @@ describe('AdminPracticasPage', () => {
     );
     const user = userEvent.setup();
 
-    render(<AdminPracticasPage />);
+    renderWithProviders(<AdminPracticasPage />);
     await screen.findByText('No hay prácticas formalizadas.');
 
     await user.click(screen.getByRole('button', { name: 'Nueva práctica' }));
-    await user.selectOptions(screen.getByLabelText('Publicación de origen'), CHALLENGE.id);
-    const interactionSelect = await screen.findByLabelText('Interacción (postulación)');
-    await waitFor(() => expect(getChallengeApplicants).toHaveBeenCalledWith('c1'));
-    await user.selectOptions(interactionSelect, INTERACTION.id);
+    await choose(user, 'Publicación de origen', /Reto de ejemplo/);
+    await waitFor(() => expect(getUserById).toHaveBeenCalled());
+    await choose(user, 'Postulación del estudiante', /Ana Pérez/);
     await user.click(screen.getByRole('button', { name: 'Formalizar práctica' }));
 
     expect(

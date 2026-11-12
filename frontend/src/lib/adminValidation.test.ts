@@ -4,6 +4,9 @@ import {
   isValidEmail,
   validateDateRange,
   validateEmpresa,
+  periodMismatchWarning,
+  validateAcademicYear,
+  validateHours,
   validateNonNegativeInt,
   validatePractica,
   validateTutor,
@@ -37,7 +40,7 @@ const EMPRESA: EmpresaDraft = {
 const PRACTICA: PracticaDraft = {
   estado_administrativo: 'en_proceso',
   modalidad: 'presencial',
-  tipo_practica: 'profesional',
+  tipo_practica: 'empresarial',
   duracion_horas: '320',
   fecha_inicio: '2026-01-01',
   fecha_fin: '2026-06-30',
@@ -114,5 +117,57 @@ describe('validatePractica', () => {
 
   it('marca duración con formato inválido', () => {
     expect(validatePractica({ ...PRACTICA, duracion_horas: 'doce' }).duracion_horas).toBeTruthy();
+  });
+});
+
+describe('validatePractica · catálogos, año y periodo', () => {
+  it('exige año de cuatro dígitos en rango', () => {
+    expect(validatePractica({ ...PRACTICA, anio_academico: '26' }).anio_academico).toBeTruthy();
+    expect(validatePractica({ ...PRACTICA, anio_academico: '1999' }).anio_academico).toBeTruthy();
+    expect(validatePractica({ ...PRACTICA, anio_academico: '2026-2' }).anio_academico).toBeTruthy();
+    expect(validateAcademicYear('2026', new Date('2026-11-11'))).toBeNull();
+    expect(validateAcademicYear('2028', new Date('2026-11-11'))).toBeTruthy();
+  });
+
+  it('año y periodo van juntos', () => {
+    expect(
+      validatePractica({ ...PRACTICA, anio_academico: '2026', periodo_academico: '' }).periodo_academico
+    ).toBe('Indica también el periodo.');
+    expect(
+      validatePractica({ ...PRACTICA, anio_academico: '', periodo_academico: '2' }).anio_academico
+    ).toBe('Indica también el año.');
+    expect(validatePractica({ ...PRACTICA, anio_academico: '', periodo_academico: '' })).toEqual({});
+  });
+
+  it('rechaza valores fuera de catálogo y periodos distintos de 1 o 2', () => {
+    const errors = validatePractica({
+      ...PRACTICA,
+      estado_administrativo: 'inventado',
+      modalidad: 'a distancia',
+      tipo_practica: 'otra',
+      periodo_academico: '3',
+    });
+    expect(Object.keys(errors).sort()).toEqual([
+      'estado_administrativo',
+      'modalidad',
+      'periodo_academico',
+      'tipo_practica',
+    ]);
+  });
+
+  it('no vuelve a validar un valor antiguo que no se ha cambiado', () => {
+    const legacy = { ...PRACTICA, estado_administrativo: 'en_curso' };
+    expect(validatePractica(legacy, new Set(['estado_administrativo']))).toEqual({});
+  });
+
+  it('limita la duración a 1–2000 horas', () => {
+    expect(validateHours('0')).toBeTruthy();
+    expect(validateHours('2001')).toBeTruthy();
+    expect(validateHours('480')).toBeNull();
+  });
+
+  it('avisa, sin bloquear, si la fecha de inicio no cae en el año académico', () => {
+    expect(periodMismatchWarning({ ...PRACTICA, fecha_inicio: '2025-08-01' })).toMatch(/2026/);
+    expect(periodMismatchWarning(PRACTICA)).toBeNull();
   });
 });

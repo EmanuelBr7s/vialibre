@@ -29,6 +29,7 @@ import type {
 import { ChallengeTipo, InteractionStatus, Modalidad, ReactionType, UserRole } from '@/types';
 import { AUTH_COOKIE_NAME } from '@/lib/constants';
 import { mockApi } from '@/lib/mockApi';
+import { NETWORK_ERROR_MESSAGE, messageForResponse } from '@/lib/apiMessages';
 
 export { AUTH_COOKIE_NAME };
 
@@ -77,15 +78,37 @@ const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
 };
 
+/** Convierte una respuesta de error en un ApiError con mensaje en español. */
 async function toError(response: Response): Promise<ApiError> {
-  const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-  const message =
-    typeof error.detail === 'string'
-      ? error.detail
-      : Array.isArray(error.detail)
-      ? error.detail.map((d: { msg?: string }) => d.msg || '').join('; ')
-      : `HTTP error! status: ${response.status}`;
-  return new ApiError(message || `HTTP error! status: ${response.status}`, response.status);
+  const bodyText = await response.text().catch(() => '');
+  return new ApiError(messageForResponse(response.status, bodyText), response.status);
+}
+
+/**
+ * Reintentos de lecturas (GET) cuando el servidor está arrancando (502/503/504)
+ * o no hay respuesta. El plan gratuito de Render suspende el servicio tras un
+ * rato sin uso, y la primera petición puede fallar mientras despierta.
+ * Las escrituras nunca se reintentan: podrían duplicar la operación.
+ */
+export const apiRetry = { delaysMs: [1000, 3000] };
+const RETRYABLE_STATUS = new Set([502, 503, 504]);
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** fetch que convierte los fallos de red en ApiError (status 0) y reintenta los GET. */
+async function fetchWithRetry(url: string, config: RequestInit): Promise<Response> {
+  const method = (config.method ?? 'GET').toUpperCase();
+  const delays = method === 'GET' ? apiRetry.delaysMs : [];
+  for (let attempt = 0; ; attempt += 1) {
+    const canRetry = attempt < delays.length;
+    try {
+      const response = await fetch(url, config);
+      if (!RETRYABLE_STATUS.has(response.status) || !canRetry) return response;
+    } catch {
+      if (!canRetry) throw new ApiError(NETWORK_ERROR_MESSAGE, 0);
+    }
+    await wait(delays[attempt]);
+  }
 }
 
 class ApiClient {
@@ -125,7 +148,7 @@ class ApiClient {
       config.body = JSON.stringify(body);
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, config);
+    const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, config);
 
     if (!response.ok) {
       throw await toError(response);
@@ -227,7 +250,7 @@ class ApiClient {
     body.append('file', file);
     const token = this.getToken();
     // Sin Content-Type: el navegador fija el boundary del multipart.
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, {
       method: 'PUT',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body,
@@ -239,7 +262,7 @@ class ApiClient {
   /** Descarga con el token y devuelve una URL blob para <iframe> o descarga. */
   private async fetchBlobUrl(endpoint: string): Promise<string> {
     const token = this.getToken();
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await fetchWithRetry(`${this.baseUrl}${endpoint}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) throw await toError(response);

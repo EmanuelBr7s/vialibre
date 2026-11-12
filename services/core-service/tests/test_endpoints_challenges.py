@@ -115,11 +115,18 @@ def test_create_requires_auth():
     assert client.post(BASE, json=VALID_PAYLOAD).status_code == 401
 
 
-def test_create_restricted_to_publicador():
-    for role in (UserRole.ADMIN, UserRole.SOLUCIONADOR, UserRole.EGRESADO):
+def test_create_restricted_to_publicador_and_admin():
+    for role in (UserRole.SOLUCIONADOR, UserRole.EGRESADO):
         response = client.post(BASE, json=VALID_PAYLOAD, headers=auth_headers(role))
         assert response.status_code == 403, response.text
-        assert response.json()["detail"] == "Only publicadores can create challenges"
+        assert response.json()["detail"] == "Solo las empresas y el administrador pueden publicar"
+
+
+def test_create_allowed_for_admin():
+    headers = auth_headers(UserRole.ADMIN)
+    response = client.post(BASE, json=VALID_PAYLOAD, headers=headers)
+    assert response.status_code == 201, response.text
+    _cleanup(response.json()["id"], headers)
 
 
 def test_create_returns_201_with_defaults_and_echoed_fields():

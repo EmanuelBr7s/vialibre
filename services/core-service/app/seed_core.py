@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session
 from app.models.challenge import Challenge, ChallengeStatus, ChallengeTipo, DifficultyLevel, Modalidad
+from app.models.empresa import Empresa
 
 
 def _uid(n: int) -> uuid.UUID:
@@ -36,6 +37,34 @@ MAR_AZUL = _uid(104)
 CONTADORES = _uid(105)
 
 PORTADA = "/seed/portadas/{}.jpg"
+
+
+def _emp(n: int) -> uuid.UUID:
+    return uuid.UUID(f"e0000000-0000-0000-0000-{n:012d}")
+
+
+# Registro institucional de cada empresa de la demo (panel de administración).
+# Los datos reflejan las cuentas publicadoras del seed de auth-service.
+EMPRESAS = [
+    {"id": _emp(1), "publicador_user_id": ARTESANIAS, "razon_social": "Artesanías Llamas",
+     "nit": "900.123.456-7", "sector": "Manufactura artesanal",
+     "contacto_email": "contacto@artesaniasllamas.com", "contacto_telefono": "+57 300 000 0001"},
+    {"id": _emp(2), "publicador_user_id": MALAMBO, "razon_social": "Agropecuaria Malambo S.A.S.",
+     "nit": "901.234.567-1", "sector": "Agroindustria",
+     "contacto_email": "talento.malambo@empresas.vialibre.edu.co", "contacto_telefono": "+57 300 000 0002"},
+    {"id": _emp(3), "publicador_user_id": PUERTO_CARIBE, "razon_social": "Puerto Caribe Logística S.A.",
+     "nit": "900.778.120-4", "sector": "Logística y transporte",
+     "contacto_email": "rrhh.puertocaribe@empresas.vialibre.edu.co", "contacto_telefono": "+57 300 000 0003"},
+    {"id": _emp(4), "publicador_user_id": TECNOCARIBE, "razon_social": "TecnoCaribe Software S.A.S.",
+     "nit": "901.556.903-2", "sector": "Tecnología",
+     "contacto_email": "talento.tecnocaribe@empresas.vialibre.edu.co", "contacto_telefono": "+57 300 000 0004"},
+    {"id": _emp(5), "publicador_user_id": MAR_AZUL, "razon_social": "Clínica Mar Azul",
+     "nit": "890.112.334-5", "sector": "Salud",
+     "contacto_email": "gestionhumana.marazul@empresas.vialibre.edu.co", "contacto_telefono": "+57 300 000 0005"},
+    {"id": _emp(6), "publicador_user_id": CONTADORES, "razon_social": "Contadores Asociados del Atlántico",
+     "nit": "900.441.287-9", "sector": "Servicios contables",
+     "contacto_email": "seleccion.contadores@empresas.vialibre.edu.co", "contacto_telefono": "+57 300 000 0006"},
+]
 NOW = datetime.utcnow()
 
 
@@ -327,11 +356,28 @@ async def seed_challenges(db: AsyncSession) -> None:
         print(f"  [{values['tipo']}] '{values['title'][:50]}' {'created' if created else 'updated'}.")
 
 
+async def seed_empresas(db: AsyncSession) -> None:
+    """Create or update the institutional record of each demo company."""
+    for data in EMPRESAS:
+        empresa = (
+            await db.execute(select(Empresa).where(Empresa.id == data["id"]))
+        ).scalar_one_or_none()
+        created = empresa is None
+        if created:
+            empresa = Empresa(id=data["id"])
+            db.add(empresa)
+        for field, value in data.items():
+            setattr(empresa, field, value)
+        await db.flush()
+        print(f"  [empresa] '{data['razon_social']}' {'created' if created else 'updated'}.")
+
+
 async def main():
     print("Seeding Vialibre core database...")
     async with async_session() as db:
         try:
             await seed_challenges(db)
+            await seed_empresas(db)
             await db.commit()
             print("Core seed complete!")
         except Exception as e:

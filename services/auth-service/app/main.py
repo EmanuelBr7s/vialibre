@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from vialibre_common.timing import add_server_timing
 from app.api.v1.router import router as v1_router
 
 
@@ -35,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Tiempo de proceso de cada peticion (cabecera Server-Timing y aviso si es lenta)
+add_server_timing(app, "auth")
 
 # Include v1 router
 app.include_router(v1_router, prefix=settings.api_v1_prefix)

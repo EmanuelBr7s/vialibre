@@ -228,7 +228,7 @@ async def approve_interaction(
     if auth.payload.role != UserRole.PUBLICADOR and auth.payload.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only publicadores can approve interactions",
+            detail="Solo las empresas y el administrador pueden resolver postulaciones",
         )
 
     result = await db.execute(

@@ -513,7 +513,20 @@ Tres servicios con plan gratuito, sin tarjeta:
 
 Los tres `*_SERVICE_URL` apuntan al mismo gateway, que enruta por prefijo (`/api/v1/auth`, `/core`, `/match`). Si cambian, vuelve a desplegar el frontend.
 
-> El plan gratuito de Render suspende el servicio tras 15 min sin tráfico: la primera petición después tarda alrededor de un minuto.
+> El plan gratuito de Render suspende el servicio tras 15 min sin tráfico: la primera petición después tarda alrededor de un minuto. Para evitarlo, `.github/workflows/keepalive.yml` consulta `/health` cada 10 minutos (GitHub Actions, gratis). Si cambia la URL de la API, define la variable de repositorio `API_HEALTH_URL`.
+
+### Rendimiento
+
+| Variable (Render) | Por defecto | Efecto |
+|---|---|---|
+| `BCRYPT_ROUNDS` | `10` | Coste del hash de contraseñas. 10 es el mínimo recomendado por OWASP y mantiene el inicio de sesión por debajo de un segundo en la CPU compartida del plan gratuito; súbelo a 12 en un plan con CPU dedicada. Los hashes existentes se actualizan solos al iniciar sesión. |
+| `AUTHOR_CACHE_TTL_SECONDS` | `300` | Tiempo que core-service recuerda el nombre de la empresa de cada publicación. Un cambio de nombre tarda como máximo ese tiempo en verse en el feed; `0` desactiva la caché. |
+
+Cada respuesta de la API lleva la cabecera `Server-Timing` con el tiempo del servicio y del gateway (visible en la pestaña *Network* del navegador), y las peticiones de más de 800 ms quedan registradas en el log. Para medir desde fuera:
+
+```bash
+VL_EMAIL=usuario@correo VL_PASSWORD=clave scripts/medir_latencia.sh https://<servicio>.onrender.com 5
+```
 
 ---
 

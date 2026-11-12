@@ -296,7 +296,7 @@ def test_update_secuencial_acepta_y_persiste_par_valido():
 
 def test_update_practica_requiere_autenticacion():
     response = client.patch(
-        f"{PRACTICAS_URL}/{uuid.uuid4()}", json={"estado_administrativo": "x"}
+        f"{PRACTICAS_URL}/{uuid.uuid4()}", json={"estado_administrativo": "en_proceso"}
     )
     assert response.status_code == 401
 
@@ -307,7 +307,7 @@ def test_update_practica_prohibida_para_no_admin():
         headers = auth_headers(UserRole.PUBLICADOR)
         response = client.patch(
             f"{PRACTICAS_URL}/{practica_id}",
-            json={"estado_administrativo": "x"},
+            json={"estado_administrativo": "en_proceso"},
             headers=headers,
         )
         assert response.status_code == 403

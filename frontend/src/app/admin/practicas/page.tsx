@@ -1,26 +1,47 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminShell from '@/components/admin/AdminShell';
 import StatusAlert from '@/components/admin/StatusAlert';
 import EmptyState from '@/components/admin/EmptyState';
 import ListSkeleton from '@/components/admin/ListSkeleton';
 import ListPagination from '@/components/admin/ListPagination';
-import { CheckboxField, TextAreaField, TextField } from '@/components/admin/FormField';
-import ReferenceSelect, { type ReferenceOption } from '@/components/admin/ReferenceSelect';
-import { api } from '@/lib/api';
-import { errorMessage, isStatus } from '@/lib/adminErrors';
 import {
+  CheckboxField,
+  SelectField,
+  TextAreaField,
+  TextField,
+} from '@/components/admin/FormField';
+import FormErrors from '@/components/admin/FormErrors';
+import ReferenceSelect, {
+  UNVERIFIED_REFERENCE_NOTICE,
+  type ReferenceOption,
+} from '@/components/admin/ReferenceSelect';
+import ResponsiveList from '@/components/admin/ResponsiveList';
+import Combobox from '@/components/ui/Combobox';
+import Select from '@/components/ui/Select';
+import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib/api';
+import { errorMessage, focusFirstError, isStatus } from '@/lib/adminErrors';
+import {
+  periodMismatchWarning,
   validatePractica,
   type FieldErrors,
   type PracticaDraft,
 } from '@/lib/adminValidation';
-import ResponsiveList from '@/components/admin/ResponsiveList';
-import Select from '@/components/ui/Select';
+import {
+  ESTADOS_PRACTICA,
+  INTERACTION_STATUS_LABEL,
+  MODALIDADES_PRACTICA,
+  PERIODOS_ACADEMICOS,
+  TIPOS_PRACTICA,
+  catalogLabel,
+  periodoLabel,
+} from '@/lib/catalogs';
+import { MODULE_BY_ID } from '@/data/modules';
 import {
   FOCUS_RING,
-  INPUT_SURFACE,
   TOUCH_TARGET,
   btnPrimary,
   btnSecondary,
@@ -30,6 +51,7 @@ import {
 } from '@/components/ui/classes';
 import type {
   Challenge,
+  Empresa,
   Interaction,
   Practica,
   PracticaCreate,
@@ -52,6 +74,26 @@ const EMPTY_DRAFT: PracticaDraft = {
   periodo_academico: '',
   observaciones_institucionales: '',
 };
+
+/** Orden de los campos en pantalla: el foco va al primero con error. */
+const FIELD_IDS: Array<[string, string]> = [
+  ['challenge', 'practica-challenge'],
+  ['interaction', 'practica-interaction'],
+  ['estado_administrativo', 'practica-estado'],
+  ['modalidad', 'practica-modalidad'],
+  ['tipo_practica', 'practica-tipo'],
+  ['duracion_horas', 'practica-duracion'],
+  ['fecha_inicio', 'practica-fecha-inicio'],
+  ['fecha_fin', 'practica-fecha-fin'],
+  ['anio_academico', 'practica-anio'],
+  ['periodo_academico', 'practica-periodo'],
+  ['observaciones_institucionales', 'practica-observaciones'],
+];
+
+interface StudentInfo {
+  name: string;
+  programa: string | null;
+}
 
 function orNull(value: string): string | null {
   const trimmed = value.trim();
@@ -86,8 +128,18 @@ function commonPayload(draft: PracticaDraft) {
   };
 }
 
+/** Campos del borrador que conservan el valor ya guardado. */
+function unchangedFields(draft: PracticaDraft, original: PracticaDraft): Set<string> {
+  return new Set(
+    (Object.keys(draft) as Array<keyof PracticaDraft>).filter((key) => draft[key] === original[key])
+  );
+}
+
+const shortId = (id: string) => `…${id.slice(-4)}`;
+
 export default function AdminPracticasPage() {
   const router = useRouter();
+  const toast = useToast();
   const [rows, setRows] = useState<Practica[]>([]);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
@@ -96,7 +148,7 @@ export default function AdminPracticasPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Catálogos de referencia (solo lectura).
-  const [empresaOptions, setEmpresaOptions] = useState<ReferenceOption[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [empresaOptionsLoading, setEmpresaOptionsLoading] = useState(true);
   const [empresaOptionsError, setEmpresaOptionsError] = useState<string | null>(null);
   const [tutorOptions, setTutorOptions] = useState<ReferenceOption[]>([]);
@@ -104,13 +156,19 @@ export default function AdminPracticasPage() {
   const [tutorOptionsError, setTutorOptionsError] = useState<string | null>(null);
 
   // Catálogo de publicaciones e interacciones (para crear).
-  const [challengeOptions, setChallengeOptions] = useState<ReferenceOption[]>([]);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [challengeLoading, setChallengeLoading] = useState(true);
   const [challengeError, setChallengeError] = useState<string | null>(null);
   const [interactionOptions, setInteractionOptions] = useState<Interaction[]>([]);
   const [interactionLoading, setInteractionLoading] = useState(false);
   const [interactionError, setInteractionError] = useState<string | null>(null);
   const [formalizedIds, setFormalizedIds] = useState<Set<string>>(new Set());
+  // Última publicación pedida: descarta respuestas que llegan tarde.
+  const requestedChallenge = useRef<string | null>(null);
+
+  // Nombres de los estudiantes (se resuelven una vez por id).
+  const [students, setStudents] = useState<Map<string, StudentInfo>>(new Map());
+  const requestedStudents = useRef(new Set<string>());
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Practica | null>(null);
@@ -124,18 +182,20 @@ export default function AdminPracticasPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const [feedback, setFeedback] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!feedback) return;
-    const timer = window.setTimeout(() => setFeedback(null), 3000);
-    return () => window.clearTimeout(timer);
-  }, [feedback]);
-
   const handleUnauthorized = useCallback(() => {
     api.clearToken();
     router.replace('/login');
   }, [router]);
+
+  const empresaOptions = useMemo<ReferenceOption[]>(
+    () =>
+      empresas.map((empresa) => ({
+        value: empresa.id,
+        label: empresa.razon_social ?? empresa.nit ?? `Empresa ${shortId(empresa.id)}`,
+        description: empresa.razon_social && empresa.nit ? `NIT ${empresa.nit}` : undefined,
+      })),
+    [empresas]
+  );
 
   const empresaLabelById = useMemo(() => {
     const map = new Map<string, string>();
@@ -148,6 +208,56 @@ export default function AdminPracticasPage() {
     tutorOptions.forEach((option) => map.set(option.value, option.label));
     return map;
   }, [tutorOptions]);
+
+  const challengeById = useMemo(() => {
+    const map = new Map<string, Challenge>();
+    challenges.forEach((challenge) => map.set(challenge.id, challenge));
+    return map;
+  }, [challenges]);
+
+  const challengeOptions = useMemo<ReferenceOption[]>(
+    () =>
+      challenges.map((challenge) => ({
+        value: challenge.id,
+        label: challenge.title,
+        description: [MODULE_BY_ID[challenge.tipo]?.singular, challenge.empresa_nombre]
+          .filter(Boolean)
+          .join(' · '),
+      })),
+    [challenges]
+  );
+
+  // ── Nombres de estudiantes ──
+  const resolveStudents = useCallback((ids: Array<string | null>) => {
+    ids.forEach((id) => {
+      if (!id || requestedStudents.current.has(id)) return;
+      requestedStudents.current.add(id);
+      api
+        .getUserById(id)
+        .then((user) =>
+          setStudents((prev) =>
+            new Map(prev).set(id, {
+              name: user.full_name,
+              programa: user.programa_academico ?? null,
+            })
+          )
+        )
+        .catch(() => {
+          // Sin nombre disponible: se muestra el identificador abreviado.
+        });
+    });
+  }, []);
+
+  const studentName = (id: string | null) =>
+    id ? students.get(id)?.name ?? `Estudiante ${shortId(id)}` : '—';
+
+  useEffect(() => {
+    resolveStudents(rows.map((row) => row.solucionador_id));
+  }, [rows, resolveStudents]);
+
+  useEffect(() => {
+    resolveStudents(interactionOptions.map((interaction) => interaction.solucionador_id));
+  }, [interactionOptions, resolveStudents]);
 
   // ── Listado principal ──
   const load = useCallback(
@@ -186,15 +296,7 @@ export default function AdminPracticasPage() {
     setEmpresaOptionsError(null);
     try {
       const res = await api.listEmpresas({ skip: 0, limit: OPTIONS_LIMIT });
-      setEmpresaOptions(
-        res.empresas.map((empresa) => ({
-          value: empresa.id,
-          label:
-            empresa.razon_social ??
-            empresa.nit ??
-            `${empresa.id.slice(0, 8)}…`,
-        }))
-      );
+      setEmpresas(res.empresas);
     } catch (err) {
       if (isStatus(err, 401)) {
         handleUnauthorized();
@@ -217,7 +319,8 @@ export default function AdminPracticasPage() {
           const name = [tutor.nombres, tutor.apellidos].filter(Boolean).join(' ').trim();
           return {
             value: tutor.id,
-            label: name || tutor.email || `${tutor.id.slice(0, 8)}…`,
+            label: name || tutor.email || `Tutor ${shortId(tutor.id)}`,
+            description: tutor.programa_academico ?? undefined,
           };
         })
       );
@@ -262,9 +365,7 @@ export default function AdminPracticasPage() {
       );
       const map = new Map<string, Challenge>();
       results.forEach((res) => res.challenges.forEach((c) => map.set(c.id, c)));
-      setChallengeOptions(
-        Array.from(map.values()).map((c) => ({ value: c.id, label: `${c.title} (${c.tipo})` }))
-      );
+      setChallenges(Array.from(map.values()));
     } catch (err) {
       if (isStatus(err, 401)) {
         handleUnauthorized();
@@ -284,23 +385,37 @@ export default function AdminPracticasPage() {
   }, [loadEmpresas, loadTutores, loadChallenges, loadFormalized]);
 
   const onChallengeChange = async (id: string | null) => {
+    requestedChallenge.current = id;
     setChallengeId(id ?? '');
     setInteractionId('');
     setInteractionOptions([]);
     setInteractionError(null);
+    setFieldErrors((prev) => {
+      const { challenge: _challenge, ...rest } = prev;
+      return rest;
+    });
     if (!id) return;
+
+    // La empresa que publicó la oferta se propone como empresa vinculada.
+    const authorId = challengeById.get(id)?.author_id;
+    const owner = empresas.find(
+      (empresa) => empresa.publicador_user_id !== null && empresa.publicador_user_id === authorId
+    );
+    if (owner) setEmpresaId((current) => current ?? owner.id);
+
     setInteractionLoading(true);
     try {
       const res = await api.getChallengeApplicants(id);
+      if (requestedChallenge.current !== id) return;
       setInteractionOptions(res.interactions);
     } catch (err) {
       if (isStatus(err, 401)) {
         handleUnauthorized();
         return;
       }
-      setInteractionError(errorMessage(err));
+      if (requestedChallenge.current === id) setInteractionError(errorMessage(err));
     } finally {
-      setInteractionLoading(false);
+      if (requestedChallenge.current === id) setInteractionLoading(false);
     }
   };
 
@@ -310,9 +425,26 @@ export default function AdminPracticasPage() {
   const selectedInteraction =
     interactionOptions.find((interaction) => interaction.id === interactionId) ?? null;
 
-  const openCreate = () => {
-    setEditing(null);
-    setDraft(EMPTY_DRAFT);
+  const interactionComboOptions = availableInteractions.map((interaction) => ({
+    value: interaction.id,
+    label: studentName(interaction.solucionador_id),
+    description: [
+      students.get(interaction.solucionador_id)?.programa,
+      INTERACTION_STATUS_LABEL[interaction.status] ?? interaction.status,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  }));
+
+  const interactionPlaceholder = interactionLoading
+    ? 'Cargando…'
+    : !challengeId
+    ? 'Selecciona primero una publicación'
+    : availableInteractions.length === 0
+    ? 'Sin postulaciones disponibles'
+    : 'Selecciona una postulación';
+
+  const resetForm = () => {
     setEmpresaId(null);
     setTutorId(null);
     setBilingue(false);
@@ -322,21 +454,22 @@ export default function AdminPracticasPage() {
     setInteractionError(null);
     setFieldErrors({});
     setFormError(null);
+  };
+
+  const openCreate = () => {
+    resetForm();
+    setEditing(null);
+    setDraft(EMPTY_DRAFT);
     setFormOpen(true);
   };
 
   const openEdit = (practica: Practica) => {
+    resetForm();
     setEditing(practica);
     setDraft(toDraft(practica));
     setEmpresaId(practica.empresa_id);
     setTutorId(practica.tutor_docente_id);
     setBilingue(practica.bilingue);
-    setChallengeId('');
-    setInteractionId('');
-    setInteractionOptions([]);
-    setInteractionError(null);
-    setFieldErrors({});
-    setFormError(null);
     setFormOpen(true);
   };
 
@@ -352,25 +485,36 @@ export default function AdminPracticasPage() {
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    const errors = validatePractica(draft);
-    if (!editing && interactionId === '') {
-      errors.interaction = 'Selecciona la interacción que respalda la práctica.';
+    const unchanged = editing ? unchangedFields(draft, toDraft(editing)) : new Set<string>();
+    const errors = validatePractica(draft, unchanged);
+    if (!editing && challengeId === '') {
+      errors.challenge = 'Selecciona la publicación de origen.';
+    } else if (!editing && interactionId === '') {
+      errors.interaction = 'Selecciona la postulación que respalda la práctica.';
     }
     setFieldErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    setFormError(null);
+    if (Object.keys(errors).length > 0) {
+      focusFirstError(errors, FIELD_IDS);
+      return;
+    }
 
     setSubmitting(true);
-    setFormError(null);
     try {
       if (editing) {
+        // Solo se envían los campos modificados: un valor antiguo fuera de
+        // catálogo se conserva sin que el servidor lo rechace.
+        const changed = Object.fromEntries(
+          Object.entries(commonPayload(draft)).filter(([field]) => !unchanged.has(field))
+        );
         const payload: PracticaUpdate = {
-          ...commonPayload(draft),
+          ...changed,
           empresa_id: empresaId,
           tutor_docente_id: tutorId,
           bilingue,
         };
         await api.updatePractica(editing.id, payload);
-        setFeedback('Práctica actualizada correctamente.');
+        toast.success('Práctica actualizada correctamente.');
       } else {
         // `challenge_id` y `solucionador_id` se derivan en el backend desde la
         // interacción; no se envían para que la autoridad sea el servidor.
@@ -382,7 +526,7 @@ export default function AdminPracticasPage() {
           bilingue,
         };
         await api.createPractica(payload);
-        setFeedback('Práctica formalizada correctamente.');
+        toast.success('Práctica formalizada correctamente.');
       }
       const target = editing ? skip : 0;
       closeForm();
@@ -400,8 +544,12 @@ export default function AdminPracticasPage() {
 
   const renderReferenceLabel = (id: string | null, map: Map<string, string>) => {
     if (!id) return '—';
-    return map.get(id) ?? `${id} (referencia no verificada)`;
+    return map.get(id) ?? `${shortId(id)} (referencia no verificada)`;
   };
+
+  const derivedChallengeId = editing?.challenge_id ?? selectedInteraction?.challenge_id ?? null;
+  const derivedStudentId = editing?.solucionador_id ?? selectedInteraction?.solucionador_id ?? null;
+  const derivedStudent = derivedStudentId ? students.get(derivedStudentId) : undefined;
 
   return (
     <AdminShell
@@ -409,10 +557,6 @@ export default function AdminPracticasPage() {
       subtitle="Formalización y expediente administrativo de las prácticas profesionales."
     >
       <div className="space-y-6">
-        <div aria-live="polite">
-          {feedback ? <StatusAlert tone="success">{feedback}</StatusAlert> : null}
-        </div>
-
         {formOpen ? (
           <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
@@ -421,74 +565,48 @@ export default function AdminPracticasPage() {
               </h2>
               {editing ? (
                 <p className={hintClass}>
-                  La interacción de origen no se puede cambiar una vez formalizada.
+                  La postulación de origen no se puede cambiar una vez formalizada.
                 </p>
               ) : null}
             </div>
             <form onSubmit={onSubmit} className="p-4 sm:p-6 space-y-4" noValidate>
-              {formError ? <StatusAlert tone="error">{formError}</StatusAlert> : null}
-
-              {editing ? (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-fluid-xs text-gray-600 space-y-1">
-                  <p>
-                    <span className="font-medium text-gray-700">Interacción: </span>
-                    <span className="break-all">{editing.interaction_id}</span>
-                  </p>
-                  <p>
-                    <span className="font-medium text-gray-700">Publicación: </span>
-                    <span className="break-all">{editing.challenge_id ?? '—'}</span>
-                  </p>
-                  <p>
-                    <span className="font-medium text-gray-700">Estudiante: </span>
-                    <span className="break-all">{editing.solucionador_id ?? '—'}</span>
-                  </p>
-                </div>
-              ) : (
+              {!editing ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ReferenceSelect
+                    id="practica-challenge"
+                    label="Publicación de origen"
+                    options={challengeOptions}
+                    value={challengeId === '' ? null : challengeId}
+                    onChange={(value) => void onChallengeChange(value)}
+                    loading={challengeLoading}
+                    error={challengeError}
+                    clearLabel="Selecciona una publicación"
+                    emptyText="Aún no hay publicaciones."
+                    required
+                    fieldError={fieldErrors.challenge}
+                  />
                   <div>
-                    <ReferenceSelect
-                      id="practica-challenge"
-                      label="Publicación de origen"
-                      options={challengeOptions}
-                      value={challengeId === '' ? null : challengeId}
-                      onChange={(value) => void onChallengeChange(value)}
-                      loading={challengeLoading}
-                      error={challengeError}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="practica-interaction" className={labelClass}>
-                      Interacción (postulación)
+                    <label id="practica-interaction-label" htmlFor="practica-interaction" className={labelClass}>
+                      Postulación del estudiante
+                      <span aria-hidden="true"> *</span>
                     </label>
-                    <Select
+                    <Combobox
                       id="practica-interaction"
+                      options={interactionComboOptions}
                       value={interactionId}
+                      onChange={setInteractionId}
+                      placeholder={interactionPlaceholder}
+                      noOptionsText="Sin postulaciones disponibles"
+                      required
                       disabled={interactionLoading || !challengeId || !!interactionError}
-                      onChange={(event) => setInteractionId(event.target.value)}
-                      aria-invalid={!!fieldErrors.interaction || !!interactionError || undefined}
-                      aria-describedby={[
+                      invalid={!!fieldErrors.interaction || !!interactionError}
+                      describedBy={[
                         fieldErrors.interaction ? 'practica-interaction-error' : null,
                         interactionError ? 'practica-interaction-load-error' : 'practica-interaction-help',
                       ]
                         .filter(Boolean)
                         .join(' ')}
-                      className="disabled:opacity-60 disabled:bg-gray-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="">
-                        {interactionLoading
-                          ? 'Cargando…'
-                          : !challengeId
-                          ? 'Selecciona primero una publicación'
-                          : availableInteractions.length === 0
-                          ? 'Sin interacciones disponibles'
-                          : 'Selecciona una interacción'}
-                      </option>
-                      {availableInteractions.map((interaction) => (
-                        <option key={interaction.id} value={interaction.id}>
-                          {`${interaction.solucionador_id.slice(0, 8)}… · ${interaction.status}`}
-                        </option>
-                      ))}
-                    </Select>
+                    />
                     {fieldErrors.interaction ? (
                       <p id="practica-interaction-error" role="alert" className={errorClass}>
                         {fieldErrors.interaction}
@@ -505,45 +623,52 @@ export default function AdminPracticasPage() {
                     )}
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {!editing && selectedInteraction ? (
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-fluid-xs text-gray-600 space-y-1">
-                  <p>
-                    <span className="font-medium text-gray-700">Publicación (derivada): </span>
-                    <span className="break-all">{selectedInteraction.challenge_id}</span>
-                  </p>
-                  <p>
-                    <span className="font-medium text-gray-700">Estudiante (derivado): </span>
-                    <span className="break-all">{selectedInteraction.solucionador_id}</span>
-                  </p>
-                </div>
+              {derivedStudentId ? (
+                <dl className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-fluid-sm text-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="min-w-0">
+                    <dt className="text-fluid-xs uppercase tracking-wider text-gray-500">Publicación</dt>
+                    <dd className="font-medium text-gray-900 break-words" title={derivedChallengeId ?? undefined}>
+                      {derivedChallengeId
+                        ? challengeById.get(derivedChallengeId)?.title ?? `Publicación ${shortId(derivedChallengeId)}`
+                        : '—'}
+                    </dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-fluid-xs uppercase tracking-wider text-gray-500">Estudiante</dt>
+                    <dd className="font-medium text-gray-900 break-words" title={derivedStudentId}>
+                      {studentName(derivedStudentId)}
+                    </dd>
+                    {derivedStudent?.programa ? (
+                      <dd className="text-fluid-xs text-gray-500">{derivedStudent.programa}</dd>
+                    ) : null}
+                  </div>
+                </dl>
               ) : null}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <TextField
+                <SelectField
                   id="practica-estado"
                   label="Estado administrativo"
                   value={draft.estado_administrativo}
-                  maxLength={30}
-                  placeholder="en_proceso, culminada…"
+                  options={ESTADOS_PRACTICA}
                   onChange={(v) => updateDraft({ estado_administrativo: v })}
                   error={fieldErrors.estado_administrativo}
                 />
-                <TextField
+                <SelectField
                   id="practica-modalidad"
                   label="Modalidad"
                   value={draft.modalidad}
-                  maxLength={20}
-                  placeholder="presencial, remoto, hibrido"
+                  options={MODALIDADES_PRACTICA}
                   onChange={(v) => updateDraft({ modalidad: v })}
                   error={fieldErrors.modalidad}
                 />
-                <TextField
+                <SelectField
                   id="practica-tipo"
                   label="Tipo de práctica"
                   value={draft.tipo_practica}
-                  maxLength={30}
+                  options={TIPOS_PRACTICA}
                   onChange={(v) => updateDraft({ tipo_practica: v })}
                   error={fieldErrors.tipo_practica}
                 />
@@ -551,6 +676,10 @@ export default function AdminPracticasPage() {
                   id="practica-duracion"
                   label="Duración (horas)"
                   type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={2000}
+                  placeholder="480"
                   value={draft.duracion_horas}
                   onChange={(v) => updateDraft({ duracion_horas: v })}
                   error={fieldErrors.duracion_horas}
@@ -562,6 +691,7 @@ export default function AdminPracticasPage() {
                   value={draft.fecha_inicio}
                   onChange={(v) => updateDraft({ fecha_inicio: v })}
                   error={fieldErrors.fecha_inicio}
+                  hint={periodMismatchWarning(draft)}
                 />
                 <TextField
                   id="practica-fecha-fin"
@@ -574,42 +704,49 @@ export default function AdminPracticasPage() {
                 <TextField
                   id="practica-anio"
                   label="Año académico"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="2026"
                   value={draft.anio_academico}
-                  maxLength={10}
-                  onChange={(v) => updateDraft({ anio_academico: v })}
+                  onChange={(v) => updateDraft({ anio_academico: v.replace(/\D/g, '') })}
                   error={fieldErrors.anio_academico}
                 />
-                <TextField
+                <SelectField
                   id="practica-periodo"
                   label="Periodo académico"
                   value={draft.periodo_academico}
-                  maxLength={10}
+                  options={PERIODOS_ACADEMICOS}
                   onChange={(v) => updateDraft({ periodo_academico: v })}
                   error={fieldErrors.periodo_academico}
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <ReferenceSelect
-                  id="practica-empresa"
-                  label="Empresa vinculada"
-                  options={empresaOptions}
-                  value={empresaId}
-                  onChange={setEmpresaId}
-                  loading={empresaOptionsLoading}
-                  error={empresaOptionsError}
-                  notice
-                />
-                <ReferenceSelect
-                  id="practica-tutor"
-                  label="Tutor docente vinculado"
-                  options={tutorOptions}
-                  value={tutorId}
-                  onChange={setTutorId}
-                  loading={tutorOptionsLoading}
-                  error={tutorOptionsError}
-                  notice
-                />
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <ReferenceSelect
+                    id="practica-empresa"
+                    label="Empresa vinculada"
+                    options={empresaOptions}
+                    value={empresaId}
+                    onChange={setEmpresaId}
+                    loading={empresaOptionsLoading}
+                    error={empresaOptionsError}
+                    emptyText="Aún no hay empresas registradas."
+                    emptyAction={{ href: '/admin/empresas', label: 'Registrar empresa' }}
+                  />
+                  <ReferenceSelect
+                    id="practica-tutor"
+                    label="Tutor docente vinculado"
+                    options={tutorOptions}
+                    value={tutorId}
+                    onChange={setTutorId}
+                    loading={tutorOptionsLoading}
+                    error={tutorOptionsError}
+                    emptyText="Aún no hay tutores registrados."
+                    emptyAction={{ href: '/admin/tutores', label: 'Registrar tutor' }}
+                  />
+                </div>
+                <p className="mt-2 text-fluid-xs text-amber-700">{UNVERIFIED_REFERENCE_NOTICE}</p>
               </div>
 
               <CheckboxField
@@ -623,18 +760,25 @@ export default function AdminPracticasPage() {
                 id="practica-observaciones"
                 label="Observaciones institucionales"
                 value={draft.observaciones_institucionales}
+                maxLength={2000}
                 onChange={(v) => updateDraft({ observaciones_institucionales: v })}
                 error={fieldErrors.observaciones_institucionales}
               />
+
+              {/* Los avisos van junto a los botones: es donde está mirando quien envía. */}
+              <FormErrors formError={formError} fieldErrors={fieldErrors} />
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
+                  aria-busy={submitting}
                   className={`${btnPrimary} w-full sm:w-auto`}
                 >
                   {submitting
-                    ? 'Guardando…'
+                    ? editing
+                      ? 'Guardando…'
+                      : 'Formalizando…'
                     : editing
                     ? 'Guardar cambios'
                     : 'Formalizar práctica'}
@@ -659,15 +803,19 @@ export default function AdminPracticasPage() {
                 <label htmlFor="filtro-estado" className="text-fluid-xs text-gray-500 shrink-0">
                   Estado
                 </label>
-                <input
+                <Select
                   id="filtro-estado"
-                  type="text"
                   value={estadoFilter}
-                  placeholder="Todos"
-                  maxLength={30}
                   onChange={(event) => setEstadoFilter(event.target.value)}
-                  className={`${INPUT_SURFACE} px-3 py-2 text-fluid-sm text-gray-900 sm:w-40`}
-                />
+                  compact
+                >
+                  <option value="">Todos</option>
+                  {ESTADOS_PRACTICA.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
               </div>
               <button
                 type="button"
@@ -696,21 +844,22 @@ export default function AdminPracticasPage() {
               rowKey={(row) => row.id}
               columns={[
                 {
-                  header: 'Empresa',
+                  header: 'Estudiante',
                   kind: 'primary',
                   cell: (row) => (
-                    <p className="font-medium text-gray-900">
-                      {renderReferenceLabel(row.empresa_id, empresaLabelById)}
-                    </p>
+                    <>
+                      <p className="font-medium text-gray-900">{studentName(row.solucionador_id)}</p>
+                      <p className="text-xs text-gray-500">
+                        {row.challenge_id
+                          ? challengeById.get(row.challenge_id)?.title ?? `Publicación ${shortId(row.challenge_id)}`
+                          : '—'}
+                      </p>
+                    </>
                   ),
                 },
                 {
-                  header: 'Interacción',
-                  cell: (row) => <span className="text-xs text-gray-500 break-all">{row.interaction_id}</span>,
-                },
-                {
-                  header: 'Estudiante',
-                  cell: (row) => <span className="text-xs text-gray-500 break-all">{row.solucionador_id ?? '—'}</span>,
+                  header: 'Empresa',
+                  cell: (row) => renderReferenceLabel(row.empresa_id, empresaLabelById),
                 },
                 {
                   header: 'Tutor',
@@ -720,9 +869,15 @@ export default function AdminPracticasPage() {
                   header: 'Estado',
                   cell: (row) => (
                     <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                      {row.estado_administrativo ?? 'Sin estado'}
+                      {row.estado_administrativo
+                        ? catalogLabel(ESTADOS_PRACTICA, row.estado_administrativo)
+                        : 'Sin estado'}
                     </span>
                   ),
+                },
+                {
+                  header: 'Periodo',
+                  cell: (row) => periodoLabel(row.anio_academico, row.periodo_academico),
                 },
                 {
                   header: 'Vigencia',

@@ -1,11 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.api.duplicates import raise_duplicate_conflict
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    hash_password,
+    needs_rehash,
+    verify_password,
+)
 from app.database import get_db
 from app.models.role import Role
 from app.models.user import User
@@ -28,7 +34,11 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(request.password, user.password_hash):
+    # bcrypt es costoso a proposito: se ejecuta en un hilo para no detener al
+    # resto de peticiones del servicio mientras se comprueba la contrasena.
+    if not user or not await run_in_threadpool(
+        verify_password, request.password, user.password_hash
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -39,6 +49,11 @@ async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is deactivated",
         )
+
+    # Contrasena correcta: si el hash se creo con otro coste, se actualiza al
+    # configurado (BCRYPT_ROUNDS) aprovechando que aqui se conoce la clave.
+    if needs_rehash(user.password_hash):
+        user.password_hash = await run_in_threadpool(hash_password, request.password)
 
     access_token = create_access_token(
         user_id=str(user.id),
@@ -98,7 +113,7 @@ async def register(
     # Create user with role-specific fields
     user = User(
         email=request.email,
-        password_hash=hash_password(request.password),
+        password_hash=await run_in_threadpool(hash_password, request.password),
         full_name=request.full_name,
         role_id=role.id,
         phone=request.phone,

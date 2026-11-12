@@ -1,12 +1,11 @@
-import asyncio
 import uuid
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role
+from app.authors import resolve_authors
 from app.config import settings
 from app.database import get_db
 from app.models.challenge import Challenge, ChallengeStatus, DifficultyLevel
@@ -21,50 +20,18 @@ from app.schemas.challenge import (
     ChallengeUpdate,
 )
 from vialibre_common.schemas import TokenPayload, UserRole
-from vialibre_common.service_auth import service_headers
 
 router = APIRouter()
-
-
-async def _resolve_author(author_id: uuid.UUID) -> dict:
-    """
-    Fetch a single author's display info from auth-service.
-    Uses a request-bound internal service token; only display fields are returned.
-    Returns fields (author_name, empresa_nombre) or empty dict on failure.
-    """
-    path = f"/api/v1/auth/users/{author_id}/resumen"
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(
-                f"{settings.auth_service_url}{path}",
-                headers=service_headers(
-                    settings.jwt_secret_key, settings.service_name, "GET", path
-                ),
-            )
-            if response.status_code != 200:
-                return {}
-            data = response.json()
-            return {
-                "author_name": data.get("full_name"),
-                "empresa_nombre": data.get("empresa_nombre")
-                or data.get("full_name"),
-            }
-    except httpx.HTTPError:
-        return {}
 
 
 async def _attach_authors(
     challenges: list[Challenge],
 ) -> list[dict]:
     """
-    Resolve unique author IDs via auth-service in parallel (asyncio.gather),
-    then enrich each challenge with author_name / empresa_nombre.
+    Enriquece cada publicacion con author_name / empresa_nombre. Los autores
+    unicos se resuelven en paralelo contra auth-service, con cache (app.authors).
     """
-    author_ids = {str(c.author_id) for c in challenges}
-    results = await asyncio.gather(
-        *(_resolve_author(uuid.UUID(uid)) for uid in author_ids)
-    )
-    author_map = {uid: info for uid, info in zip(author_ids, results)}
+    author_map = await resolve_authors({c.author_id for c in challenges})
 
     enriched = []
     for challenge in challenges:
@@ -118,12 +85,12 @@ async def create_challenge(
 ):
     """
     Create a new challenge.
-    Only users with PUBLICADOR role can create challenges.
+    Solo las empresas (PUBLICADOR) y el administrador pueden publicar.
     """
-    if current_user.role != UserRole.PUBLICADOR:
+    if current_user.role not in (UserRole.PUBLICADOR, UserRole.ADMIN):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only publicadores can create challenges",
+            detail="Solo las empresas y el administrador pueden publicar",
         )
 
     challenge = Challenge(

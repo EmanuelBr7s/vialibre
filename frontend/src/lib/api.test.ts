@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, apiRetry } from '@/lib/api';
+import { ChallengeTipo } from '@/types';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -164,5 +165,92 @@ describe('token de sesión', () => {
 
     const [, config] = lastCall();
     expect((config.headers as Record<string, string>).Authorization).toBe('Bearer jwt-123');
+  });
+});
+
+describe('errores sin JSON y reintentos', () => {
+  const htmlResponse = (status: number) =>
+    new Response('<html><body>Bad Gateway</body></html>', {
+      status,
+      headers: { 'Content-Type': 'text/html' },
+    });
+
+  beforeEach(() => {
+    apiRetry.delaysMs = [0, 0];
+  });
+
+  afterEach(() => {
+    apiRetry.delaysMs = [1000, 3000];
+  });
+
+  it('nunca muestra "Unknown error": un 502 en HTML avisa de que el servidor arranca', async () => {
+    fetchMock.mockImplementation(async () => htmlResponse(502));
+
+    const error = (await api.getChallenges().catch((err: unknown) => err)) as ApiError;
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error.status).toBe(502);
+    expect(error.message).toBe('El servidor se está iniciando. Reintenta en unos segundos.');
+    expect(error.message).not.toMatch(/unknown/i);
+  });
+
+  it('reintenta las lecturas (GET) y devuelve el resultado cuando el servidor despierta', async () => {
+    fetchMock
+      .mockImplementationOnce(async () => htmlResponse(503))
+      .mockImplementationOnce(async () => {
+        throw new TypeError('Failed to fetch');
+      })
+      .mockImplementationOnce(async () => jsonResponse({ challenges: [], total: 0, skip: 0, limit: 20 }));
+
+    await expect(api.getChallenges()).resolves.toMatchObject({ total: 0 });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('no reintenta las escrituras (POST) para no duplicar la operación', async () => {
+    fetchMock.mockImplementation(async () => htmlResponse(503));
+
+    await expect(api.createPractica({ interaction_id: 'i1' })).rejects.toMatchObject({ status: 503 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('convierte un fallo de red en un mensaje claro', async () => {
+    fetchMock.mockImplementation(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+
+    await expect(api.createEmpresa({ razon_social: 'X' })).rejects.toMatchObject({
+      status: 0,
+      message: 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.',
+    });
+  });
+
+  it('traduce los errores de validación (422) del backend', async () => {
+    fetchMock.mockImplementation(async () =>
+      jsonResponse(
+        {
+          detail: [
+            { msg: "String should match pattern '^(19|20)\d{2}$'" },
+            { msg: "Input should be '1' or '2'" },
+            { msg: 'Input should be greater than or equal to 1' },
+          ],
+        },
+        422
+      )
+    );
+
+    await expect(api.createPractica({ interaction_id: 'i1' })).rejects.toMatchObject({
+      status: 422,
+      message:
+        'el formato no es válido; el valor no está entre las opciones permitidas; el número está fuera del rango permitido',
+    });
+  });
+
+  it('traduce los mensajes en inglés del backend', async () => {
+    fetchMock.mockImplementation(async () =>
+      jsonResponse({ detail: 'Only publicadores can create challenges' }, 403)
+    );
+
+    await expect(
+      api.createChallenge({ title: 't', short_description: 's', long_description: 'l', tipo: ChallengeTipo.RETO })
+    ).rejects.toMatchObject({ message: 'Solo las empresas y el administrador pueden publicar.' });
   });
 });

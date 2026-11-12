@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,7 +15,12 @@ import api from '@/lib/api';
 import type { Challenge } from '@/types';
 import { ChallengeTipo, UserRole } from '@/types';
 import { LAB_CONTACT, MODULES, MODULE_BY_ID, defaultModuleFor } from '@/data/modules';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, btnSecondary } from '@/components/ui/classes';
+
+/** Publicaciones que se piden por módulo, las que se listan y las destacadas. */
+const FETCH_LIMIT = 100;
+const FEED_LIMIT = 30;
+const FEATURED_LIMIT = 20;
 
 export default function FeedPage() {
   const { isAuthenticated, loading, user } = useAuth();
@@ -24,25 +29,44 @@ export default function FeedPage() {
   const [featured, setFeatured] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // El servidor gratuito se suspende sin uso: si la carga se alarga, se avisa.
+  const [slowLoad, setSlowLoad] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ChallengeTipo | null>(null);
 
-  const loadChallenges = useCallback(async (tipo: ChallengeTipo) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [all, feat] = await Promise.all([
-        api.getChallenges({ limit: 30, tipo }),
-        api.getChallenges({ featured_only: true, tipo }),
-      ]);
-      setChallenges(all.challenges);
-      setFeatured(feat.challenges);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al cargar las publicaciones');
-    } finally {
-      setIsLoading(false);
-    }
+  // Publicaciones ya cargadas por módulo: al volver a una pestaña se muestran
+  // al instante y se refrescan en segundo plano.
+  const cache = useRef(new Map<ChallengeTipo, Challenge[]>());
+  const currentTab = useRef<ChallengeTipo | null>(null);
+
+  const showList = useCallback((list: Challenge[]) => {
+    setChallenges(list.slice(0, FEED_LIMIT));
+    setFeatured(list.filter((challenge) => challenge.is_featured).slice(0, FEATURED_LIMIT));
   }, []);
+
+  const loadChallenges = useCallback(
+    async (tipo: ChallengeTipo) => {
+      currentTab.current = tipo;
+      const cached = cache.current.get(tipo);
+      if (cached) showList(cached);
+      setIsLoading(!cached);
+      setError(null);
+      try {
+        // Una sola petición por módulo: las destacadas salen de la misma lista.
+        const { challenges: list } = await api.getChallenges({ limit: FETCH_LIMIT, tipo });
+        cache.current.set(tipo, list);
+        // Si mientras tanto se cambió de pestaña, no se pisa lo que se ve.
+        if (currentTab.current === tipo) showList(list);
+      } catch (err) {
+        if (currentTab.current === tipo && !cached) {
+          setError(err instanceof Error ? err.message : 'Error al cargar las publicaciones');
+        }
+      } finally {
+        if (currentTab.current === tipo) setIsLoading(false);
+      }
+    },
+    [showList]
+  );
 
   useEffect(() => {
     if (loading) return;
@@ -58,6 +82,15 @@ export default function FeedPage() {
     if (activeTab) loadChallenges(activeTab);
   }, [activeTab, loadChallenges]);
 
+  useEffect(() => {
+    if (!isLoading) {
+      setSlowLoad(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlowLoad(true), 4000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
   const handleCreated = (challenge: Challenge) => {
     // Si se publicó en otro módulo, se cambia de pestaña (recarga ese módulo).
     if (challenge.tipo !== activeTab) {
@@ -65,10 +98,9 @@ export default function FeedPage() {
       return;
     }
     // Actualiza el feed localmente sin recargar la página (estado/caché).
-    setChallenges((prev) => [challenge, ...prev]);
-    if (challenge.is_featured) {
-      setFeatured((prev) => [challenge, ...prev]);
-    }
+    const list = [challenge, ...(cache.current.get(challenge.tipo) ?? challenges)];
+    cache.current.set(challenge.tipo, list);
+    showList(list);
   };
 
   // Flechas izquierda/derecha entre pestañas (patrón ARIA tabs).
@@ -117,9 +149,31 @@ export default function FeedPage() {
         {error && (
           <div
             role="alert"
-            className="mb-6 text-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200"
+            className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-fluid-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200"
           >
-            {error}
+            <p>{error}</p>
+            {activeTab && (
+              <button
+                type="button"
+                onClick={() => {
+                  // El botón desaparece al reintentar: el foco pasa al panel.
+                  document.getElementById('module-panel')?.focus();
+                  void loadChallenges(activeTab);
+                }}
+                className={`${btnSecondary} w-full sm:w-auto shrink-0`}
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
+
+        {slowLoad && !error && (
+          <div
+            role="status"
+            className="mb-6 text-fluid-sm text-primary-700 bg-primary-50 rounded-lg p-4 border border-primary-200"
+          >
+            El servidor se está despertando. La primera carga puede tardar hasta un minuto…
           </div>
         )}
 
@@ -199,7 +253,14 @@ export default function FeedPage() {
           </aside>
         )}
 
-        <div id="module-panel" role="tabpanel" aria-labelledby={`tab-${current.id}`} aria-live="polite">
+        <div
+          id="module-panel"
+          role="tabpanel"
+          tabIndex={-1}
+          aria-labelledby={`tab-${current.id}`}
+          aria-live="polite"
+          className="focus:outline-none"
+        >
           {isLoading ? (
             <div className="space-y-8">
               <section aria-label="Cargando destacados">

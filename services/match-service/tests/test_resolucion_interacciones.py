@@ -424,7 +424,7 @@ def test_aprobar_como_solucionador_devuelve_403():
         )
         assert response.status_code == 403
         assert (
-            response.json()["detail"] == "Only publicadores can approve interactions"
+            response.json()["detail"] == "Solo las empresas y el administrador pueden resolver postulaciones"
         )
         # La autorizacion ocurre antes de cualquier llamada o bloqueo.
         assert _estado(iid).status == InteractionStatus.PENDIENTE

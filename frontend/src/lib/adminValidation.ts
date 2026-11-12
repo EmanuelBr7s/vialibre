@@ -6,6 +6,14 @@
  * es un `str` simple, sin validación de formato).
  */
 
+import {
+  ESTADOS_PRACTICA,
+  MODALIDADES_PRACTICA,
+  PERIODOS_ACADEMICOS,
+  TIPOS_PRACTICA,
+  type CatalogOption,
+} from '@/lib/catalogs';
+
 export type FieldErrors = Record<string, string>;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -122,19 +130,81 @@ export interface PracticaDraft {
   observaciones_institucionales: string;
 }
 
-export function validatePractica(draft: PracticaDraft): FieldErrors {
+/** Año académico: cuatro dígitos entre 2000 y el año siguiente al actual. */
+export function validateAcademicYear(value: string, now: Date = new Date()): string | null {
+  const text = value.trim();
+  if (text === '') return null;
+  const max = now.getFullYear() + 1;
+  if (!/^\d{4}$/.test(text) || Number(text) < 2000 || Number(text) > max) {
+    return `Escribe un año de cuatro dígitos entre 2000 y ${max}.`;
+  }
+  return null;
+}
+
+/** Duración de la práctica: entero entre 1 y 2000 horas. */
+export function validateHours(value: string): string | null {
+  const text = value.trim();
+  if (text === '') return null;
+  if (!/^\d+$/.test(text)) return 'Debe ser un número entero de horas.';
+  const hours = Number(text);
+  return hours < 1 || hours > 2000 ? 'Debe estar entre 1 y 2000 horas.' : null;
+}
+
+function inOptions(value: string, options: CatalogOption[], label: string): string | null {
+  if (value === '' || options.some((option) => option.value === value)) return null;
+  return `Elige ${label} de la lista.`;
+}
+
+/**
+ * Valida el expediente de una práctica.
+ * `unchanged` son los campos que conservan el valor ya guardado: no se vuelven
+ * a validar (un registro antiguo puede tener valores fuera de catálogo) ni se
+ * reenvían al guardar.
+ */
+export function validatePractica(
+  draft: PracticaDraft,
+  unchanged: ReadonlySet<string> = new Set()
+): FieldErrors {
   const errors: FieldErrors = {};
   const checks: Array<[string, string | null]> = [
-    ['estado_administrativo', maxLength(draft.estado_administrativo, 30)],
-    ['modalidad', maxLength(draft.modalidad, 20)],
-    ['tipo_practica', maxLength(draft.tipo_practica, 30)],
-    ['anio_academico', maxLength(draft.anio_academico, 10)],
-    ['periodo_academico', maxLength(draft.periodo_academico, 10)],
-    ['duracion_horas', validateNonNegativeInt(draft.duracion_horas)],
+    ['estado_administrativo', inOptions(draft.estado_administrativo, ESTADOS_PRACTICA, 'un estado')],
+    ['modalidad', inOptions(draft.modalidad, MODALIDADES_PRACTICA, 'una modalidad')],
+    ['tipo_practica', inOptions(draft.tipo_practica, TIPOS_PRACTICA, 'un tipo de práctica')],
+    ['duracion_horas', validateHours(draft.duracion_horas)],
     ['fecha_fin', validateDateRange(draft.fecha_inicio, draft.fecha_fin)],
+    ['anio_academico', validateAcademicYear(draft.anio_academico)],
+    ['periodo_academico', inOptions(draft.periodo_academico, PERIODOS_ACADEMICOS, 'un periodo')],
+    ['observaciones_institucionales', maxLength(draft.observaciones_institucionales, 2000)],
   ];
   checks.forEach(([field, message]) => {
-    if (message) errors[field] = message;
+    if (!message) return;
+    // El rango de fechas depende de las dos: basta con que cambie una.
+    const skip =
+      field === 'fecha_fin'
+        ? unchanged.has('fecha_fin') && unchanged.has('fecha_inicio')
+        : unchanged.has(field);
+    if (!skip) errors[field] = message;
   });
+
+  // Año y periodo forman una sola referencia ("2026-2"): van juntos o ninguno.
+  // Un registro antiguo con solo uno de los dos se puede guardar si no se tocan.
+  const pairUntouched = unchanged.has('anio_academico') && unchanged.has('periodo_academico');
+  const anio = draft.anio_academico.trim();
+  if (pairUntouched) return errors;
+  if (anio !== '' && draft.periodo_academico === '' && !errors.periodo_academico) {
+    errors.periodo_academico = 'Indica también el periodo.';
+  }
+  if (anio === '' && draft.periodo_academico !== '' && !errors.anio_academico) {
+    errors.anio_academico = 'Indica también el año.';
+  }
   return errors;
+}
+
+/** Aviso (no bloquea): la fecha de inicio cae en un año distinto al académico. */
+export function periodMismatchWarning(draft: PracticaDraft): string | null {
+  const anio = draft.anio_academico.trim();
+  if (!/^\d{4}$/.test(anio) || !draft.fecha_inicio) return null;
+  return draft.fecha_inicio.slice(0, 4) === anio
+    ? null
+    : `La fecha de inicio no corresponde al año académico ${anio}.`;
 }

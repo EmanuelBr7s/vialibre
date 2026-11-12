@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderWithProviders } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 
 const { replaceMock, pushMock, listTutoresDocentes, createTutorDocente, updateTutorDocente, clearToken } =
@@ -59,7 +60,7 @@ describe('AdminTutoresPage', () => {
   it('lista los tutores devueltos por el backend', async () => {
     listTutoresDocentes.mockResolvedValue({ tutores: [TUTOR], total: 1, skip: 0, limit: 20 });
 
-    render(<AdminTutoresPage />);
+    renderWithProviders(<AdminTutoresPage />);
 
     // Escritorio (tabla) y móvil (tarjetas) se renderizan a la vez; el CSS decide cuál se ve.
     const table = await screen.findByRole('table', { name: 'Tutores registrados' });
@@ -74,7 +75,7 @@ describe('AdminTutoresPage', () => {
   it('muestra el estado vacío cuando no hay registros', async () => {
     listTutoresDocentes.mockResolvedValue({ tutores: [], total: 0, skip: 0, limit: 20 });
 
-    render(<AdminTutoresPage />);
+    renderWithProviders(<AdminTutoresPage />);
 
     expect(await screen.findByText('No hay tutores docentes registrados.')).toBeInTheDocument();
   });
@@ -82,7 +83,7 @@ describe('AdminTutoresPage', () => {
   it('muestra el error del backend cuando falla la carga', async () => {
     listTutoresDocentes.mockRejectedValue(new ApiError('Operación exclusiva del rol admin', 403));
 
-    render(<AdminTutoresPage />);
+    renderWithProviders(<AdminTutoresPage />);
 
     expect(await screen.findByText('Operación exclusiva del rol admin')).toBeInTheDocument();
   });
@@ -90,7 +91,7 @@ describe('AdminTutoresPage', () => {
   it('ante 401 borra el token y redirige a /login', async () => {
     listTutoresDocentes.mockRejectedValue(new ApiError('No autenticado', 401));
 
-    render(<AdminTutoresPage />);
+    renderWithProviders(<AdminTutoresPage />);
 
     await waitFor(() => expect(clearToken).toHaveBeenCalled());
     expect(replaceMock).toHaveBeenCalledWith('/login');
@@ -101,7 +102,7 @@ describe('AdminTutoresPage', () => {
     createTutorDocente.mockResolvedValue({ ...TUTOR, id: 't2' });
     const user = userEvent.setup();
 
-    render(<AdminTutoresPage />);
+    renderWithProviders(<AdminTutoresPage />);
     await screen.findByText('No hay tutores docentes registrados.');
 
     await user.click(screen.getByRole('button', { name: 'Nuevo tutor' }));
@@ -120,7 +121,7 @@ describe('AdminTutoresPage', () => {
     listTutoresDocentes.mockResolvedValue({ tutores: [], total: 0, skip: 0, limit: 20 });
     const user = userEvent.setup();
 
-    render(<AdminTutoresPage />);
+    renderWithProviders(<AdminTutoresPage />);
     await screen.findByText('No hay tutores docentes registrados.');
 
     await user.click(screen.getByRole('button', { name: 'Nuevo tutor' }));
