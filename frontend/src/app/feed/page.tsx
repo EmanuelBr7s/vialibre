@@ -15,7 +15,7 @@ import api from '@/lib/api';
 import type { Challenge } from '@/types';
 import { ChallengeTipo, UserRole } from '@/types';
 import { LAB_CONTACT, MODULES, MODULE_BY_ID, defaultModuleFor } from '@/data/modules';
-import { FOCUS_RING, TOUCH_TARGET } from '@/components/ui/classes';
+import { FOCUS_RING, TOUCH_TARGET, btnSecondary } from '@/components/ui/classes';
 
 export default function FeedPage() {
   const { isAuthenticated, loading, user } = useAuth();
@@ -24,6 +24,8 @@ export default function FeedPage() {
   const [featured, setFeatured] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // El servidor gratuito se suspende sin uso: si la carga se alarga, se avisa.
+  const [slowLoad, setSlowLoad] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<ChallengeTipo | null>(null);
 
@@ -57,6 +59,15 @@ export default function FeedPage() {
   useEffect(() => {
     if (activeTab) loadChallenges(activeTab);
   }, [activeTab, loadChallenges]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setSlowLoad(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSlowLoad(true), 4000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
 
   const handleCreated = (challenge: Challenge) => {
     // Si se publicó en otro módulo, se cambia de pestaña (recarga ese módulo).
@@ -117,9 +128,27 @@ export default function FeedPage() {
         {error && (
           <div
             role="alert"
-            className="mb-6 text-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200"
+            className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-fluid-sm text-red-600 bg-red-50 rounded-lg p-4 border border-red-200"
           >
-            {error}
+            <p>{error}</p>
+            {activeTab && (
+              <button
+                type="button"
+                onClick={() => loadChallenges(activeTab)}
+                className={`${btnSecondary} w-full sm:w-auto shrink-0`}
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
+
+        {slowLoad && !error && (
+          <div
+            role="status"
+            className="mb-6 text-fluid-sm text-primary-700 bg-primary-50 rounded-lg p-4 border border-primary-200"
+          >
+            El servidor se está despertando. La primera carga puede tardar hasta un minuto…
           </div>
         )}
 
